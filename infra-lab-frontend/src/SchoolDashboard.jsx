@@ -74,12 +74,7 @@ const HIGHLIGHTS = [
     trend: 'Tăng 12 thiết bị',
     color: '#34d399',
   },
-  {
-    label: 'Đơn đang giao',
-    value: '05',
-    trend: '3 đơn dự kiến giao hôm nay',
-    color: '#60a5fa',
-  },
+  
 ];
 
 function SchoolDashboard() {
@@ -103,11 +98,11 @@ function SchoolDashboard() {
                 <span className="icon">📦</span>
                 <span>Kho thiết bị</span>
               </div>
-              <div className="menu-item active">
+              {/* <div className="menu-item active">
                 <span className="icon">📨</span>
                 <span>Yêu cầu từ giáo viên</span>
               </div>
-              <div className="menu-item">
+              <div className="menu-item"> 
                 <span className="icon">🚚</span>
                 <span>Đơn xuất kho</span>
               </div>
@@ -118,7 +113,7 @@ function SchoolDashboard() {
               <div className="menu-item">
                 <span className="icon">📑</span>
                 <span>Hợp đồng</span>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -181,7 +176,7 @@ function SchoolDashboard() {
             </div>
           </div>
 
-          <div className="panel-card">
+          {/* <div className="panel-card">
             <div className="panel-title">Trạng thái giao hàng</div>
             <div className="panel-subtitle">Theo dõi tiến độ xuất kho</div>
 
@@ -223,7 +218,7 @@ function SchoolDashboard() {
             </div>
           </div>
 
-          <div className="info-block">
+          {/* <div className="info-block">
             <div className="panel-title">Lịch bảo trì tuần này</div>
             <div className="maintenance-list">
               <div className="maintenance-item">
@@ -243,7 +238,7 @@ function SchoolDashboard() {
                 <span className="maintenance-date">09/12</span>
               </div>
             </div>
-          </div>
+          </div> */}
         </section>
       </main>
     </div>
