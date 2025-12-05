@@ -1,0 +1,293 @@
+README – Tài liệu hướng dẫn Database & Nghiệp vụ hệ thống Kho – Phòng Lab
+
+Tài liệu này giúp toàn bộ team hiểu rõ cách hoạt động của hệ thống mượn/trả thiết bị trong trường, nghiệp vụ chung, cấu trúc database MongoDB và luồng vận hành.
+
+1. Tổng quan dự án
+
+Hệ thống quản lý thiết bị của nhà trường gồm:
+
+Một kho tổng của trường.
+
+Một phòng lab.
+
+Các thiết bị thuộc nhiều loại khác nhau và có số lượng (available/total/broken).
+
+Ba vai trò sử dụng hệ thống:
+student, lab_manager, school_admin.
+
+Mỗi đối tượng có quyền truy cập khác nhau và tham gia vào luồng mượn – trả – sửa chữa thiết bị.
+
+2. Tổng quan nghiệp vụ
+
+Hệ thống bao gồm hai quy trình chính:
+
+2.1. Mượn – trả từ kho trường (giảng viên)
+
+Kho trường chứa nhiều thiết bị. Giảng viên (lab_manager) có thể:
+
+Lên hệ thống, tạo yêu cầu mượn thiết bị từ kho.
+
+Trường (school_admin) duyệt yêu cầu.
+
+Nếu duyệt:
+
+Số lượng thiết bị trong kho giảm.
+
+Số lượng thiết bị trong phòng lab tăng.
+
+Nếu bị từ chối: không thay đổi số lượng.
+
+Giảng viên dùng nguồn thiết bị này để cung cấp cho sinh viên mượn học tập.
+
+2.2. Mượn – trả trong phòng lab (sinh viên)
+
+Sinh viên chọn thiết bị có sẵn trong phòng lab.
+
+Chọn số lượng + thời gian dự kiến trả.
+
+Đơn sinh viên tự động duyệt (vì tinh thần tự giác).
+
+Khi sinh viên trả:
+
+Nếu có đồ hỏng → sinh viên báo cáo hỏng.
+
+Giáo viên kiểm tra và tách số lượng thiết bị hỏng.
+
+Giáo viên gửi yêu cầu sửa chữa lên kho trường.
+
+Kho sửa xong → thiết bị quay lại phòng lab.
+
+Hệ thống luôn ghi lại:
+
+Lịch sử hoạt động.
+
+Thông báo cho người dùng.
+
+3. Các bảng trong MongoDB và mô tả
+
+Hệ thống dùng MongoDB theo dạng collection, không dùng join cứng nhưng sử dụng ObjectId reference.
+
+3.1. users
+
+Chứa thông tin tài khoản cho cả ba role.
+
+Các trường chính:
+
+name, email, password_hash
+
+role: student / lab_manager / school_admin
+
+student_code (nếu là sinh viên)
+
+phone, avatar
+
+verified
+
+timestamps
+
+3.2. devices
+
+Chứa thông tin thiết bị:
+
+name
+
+category
+
+description
+
+image
+
+timestamps
+
+3.3. inventory
+
+Dùng để quản lý số lượng thiết bị theo từng địa điểm:
+
+warehouse (kho)
+
+lab (phòng lab)
+
+Các trường:
+
+device_id
+
+location
+
+total
+
+available
+
+broken
+
+timestamps
+
+Mỗi thiết bị sẽ có 2 dòng: 1 dòng trong kho, 1 dòng trong phòng lab.
+
+3.4. requests_warehouse
+
+Đơn giảng viên mượn từ kho.
+
+lecturer_id
+
+items: danh sách (device + quantity)
+
+status: pending / approved / rejected
+
+timestamps
+
+3.5. borrow_lab
+
+Đơn sinh viên mượn trong phòng lab.
+
+student_id
+
+items
+
+return_due_date
+
+returned
+
+timestamps
+
+3.6. return_lab
+
+Sinh viên trả thiết bị cho lab manager.
+
+borrow_id
+
+student_id
+
+items (có trường broken để báo số lượng hỏng)
+
+status
+
+timestamps
+
+3.7. repair
+
+Phiếu sửa chữa thiết bị hỏng.
+
+device_id
+
+quantity
+
+status
+
+completed_at
+
+timestamps
+
+3.8. notifications
+
+Thông báo gửi tới user.
+
+3.9. activity_logs
+
+Lưu lại mọi sự kiện: mượn, trả, duyệt, sửa chữa.
+
+4. Luồng nghiệp vụ tổng thể
+Luồng 1: Mượn từ kho → chuyển vào lab
+
+Lab manager tạo yêu cầu → requests_warehouse.
+
+School admin duyệt.
+
+Nếu duyệt:
+
+inventory(warehouse).available giảm.
+
+inventory(lab).available tăng.
+
+Gửi thông báo + log hoạt động.
+
+Luồng 2: Sinh viên mượn trong lab
+
+Sinh viên tạo borrow_lab.
+
+Hệ thống tự duyệt.
+
+inventory(lab).available giảm theo items.
+
+Lưu log hoạt động.
+
+Luồng 3: Trả thiết bị
+
+Sinh viên gửi return_lab.
+
+Lab manager kiểm tra:
+
+Số lượng hỏng → đưa vào repair.
+
+Số lượng nguyên vẹn → inventory(lab).available tăng.
+
+Ghi log.
+
+Luồng 4: Sửa chữa thiết bị hỏng
+
+Lab manager gửi yêu cầu repair lên kho.
+
+Kho sửa hoặc thay mới.
+
+Khi hoàn thành:
+
+inventory(warehouse).broken/available cập nhật.
+
+thiết bị được chuyển lại lab → update inventory(lab).
+
+Ghi log.
+
+5. Dữ liệu mẫu
+
+Dự án cung cấp sẵn bộ dữ liệu mẫu:
+
+users.json
+
+devices.json
+
+inventory.json
+
+requests_warehouse.json
+
+borrow_lab.json
+
+return_lab.json
+
+repair.json
+
+notifications.json
+
+activity_logs.json
+
+Mọi dữ liệu đều:
+
+Đã được kiểm tra liên kết chính xác 100%.
+
+Đúng với schema.
+
+Đúng nghiệp vụ thực tế.
+
+Team có thể import bằng MongoDB Compass hoặc lệnh mongoimport.
+
+6. Mục tiêu thiết kế database
+
+Tránh phức tạp không cần thiết (dự án chỉ 3 tuần).
+
+Không tách quá nhiều bảng con để không làm tăng độ khó code API.
+
+Đảm bảo dữ liệu rõ ràng theo từng nghiệp vụ.
+
+Luồng xử lý minh bạch và dễ debug.
+
+Tất cả collection đều có timestamps để dễ quản lý lịch sử.
+
+7. Gợi ý mở rộng tương lai
+
+Khi dự án hoàn thiện hơn hoặc mở rộng sang nhiều lab/kho khác nhau, có thể bổ sung:
+
+collection locations để lưu nhiều phòng/kho.
+
+tách items trong từng request thành bảng riêng để query mạnh hơn.
+
+thêm QR code để check thiết bị.
+
+thêm phân quyền chi tiết theo hành động.
