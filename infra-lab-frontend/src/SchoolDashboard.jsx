@@ -1,83 +1,87 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './dashboard.css';
 
 const REQUESTS = [
-  {
-    id: 'REQ-245',
-    teacher: 'Thầy Minh',
-    device: 'Máy quang phổ UV-Vis',
-    department: 'Hóa phân tích',
-    dueDate: 'Trước 10/12',
-    status: 'Chờ duyệt',
-    badge: 'status-pending',
-  },
-  {
-    id: 'REQ-231',
-    teacher: 'Cô Lan',
-    device: 'Bộ cảm biến sinh học',
-    department: 'Công nghệ sinh học',
-    dueDate: 'Trước 08/12',
-    status: 'Ưu tiên cao',
-    badge: 'status-urgent',
-  },
-  {
-    id: 'REQ-227',
-    teacher: 'Thầy Huy',
-    device: 'Kính hiển vi điện tử',
-    department: 'Vật liệu',
-    dueDate: 'Trước 15/12',
-    status: 'Sẵn sàng xuất',
-    badge: 'status-ready',
-  },
-  {
-    id: 'REQ-225',
-    teacher: 'Cô Trâm',
-    device: 'Máy PCR Real-Time',
-    department: 'Sinh học phân tử',
-    dueDate: 'Trước 12/12',
-    status: 'Chờ duyệt',
-    badge: 'status-pending',
-  },
-];
-
-const SHIPMENTS = [
-  {
-    title: 'Đơn SG-104',
-    info: 'Đến ĐH KHTN · 04 thiết bị',
-    time: 'Đang vận chuyển',
-    status: 'Đang giao',
-  },
-  {
-    title: 'Đơn HN-221',
-    info: 'Đến ĐH Bách Khoa · 06 thiết bị',
-    time: 'Đã rời kho 03/12',
-    status: 'Đã bàn giao 70%',
-  },
-  {
-    title: 'Đơn DN-087',
-    info: 'Đến ĐH Sư phạm · 03 thiết bị',
-    time: 'Chuẩn bị đóng gói',
-    status: 'Đóng gói',
-  },
+  { id: 'REQ-245', teacher: 'Thay Minh', device: 'May quang pho UV-Vis', department: 'Hoa phan tich', dueDate: 'Truoc 10/12', status: 'Cho duyet', badge: 'status-pending' },
+  { id: 'REQ-231', teacher: 'Co Lan', device: 'Bo cam bien sinh hoc', department: 'Cong nghe sinh hoc', dueDate: 'Truoc 08/12', status: 'Uu tien cao', badge: 'status-urgent' },
+  { id: 'REQ-227', teacher: 'Thay Huy', device: 'Kinh hien vi dien tu', department: 'Vat lieu', dueDate: 'Truoc 15/12', status: 'San sang xuat', badge: 'status-ready' },
+  { id: 'REQ-225', teacher: 'Co Tram', device: 'May PCR Real-Time', department: 'Sinh hoc phan tu', dueDate: 'Truoc 12/12', status: 'Cho duyet', badge: 'status-pending' },
 ];
 
 const HIGHLIGHTS = [
-  {
-    label: 'Yêu cầu chờ duyệt',
-    value: '08',
-    trend: '+2 yêu cầu mới hôm nay',
-    color: '#fbbf24',
-  },
-  {
-    label: 'Thiết bị sẵn sàng xuất',
-    value: '320',
-    trend: 'Tăng 12 thiết bị',
-    color: '#34d399',
-  },
-  
+  { label: 'Yeu cau cho duyet', value: '08', trend: '+2 yeu cau moi hom nay', color: '#fbbf24' },
+  { label: 'Thiet bi san sang xuat', value: '320', trend: 'Tang 12 thiet bi', color: '#34d399' },
+  { label: 'Lo hang dang giao', value: '03', trend: 'Cap nhat 2 gio truoc', color: '#38bdf8' },
 ];
 
 function SchoolDashboard() {
+  const [activeSection, setActiveSection] = useState('overview'); // overview | inventory
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('newest'); // newest | oldest
+  const [categories, setCategories] = useState([]);
+  const [devices, setDevices] = useState([]);
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState('all');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+  useEffect(() => {
+    if (activeSection !== 'inventory') return;
+
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const locationFilter = 'warehouse';
+        const [catRes, devRes] = await Promise.all([
+          fetch(`${API_BASE}/device-categories`),
+          fetch(`${API_BASE}/devices?location=${locationFilter}`),
+        ]);
+        if (!catRes.ok) throw new Error('Khong lay duoc danh sach loai linh kien');
+        if (!devRes.ok) throw new Error('Khong lay duoc danh sach thiet bi');
+
+        const catData = await catRes.json();
+        const devData = await devRes.json();
+        setCategories(catData || []);
+        setDevices(devData || []);
+      } catch (err) {
+        setError(err.message || 'Da co loi xay ra');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [API_BASE, activeSection]);
+
+  const filteredDevices = useMemo(() => {
+    const list = devices.filter((item) => {
+      const nameMatches = (item.name || '').toLowerCase().includes(search.toLowerCase().trim());
+
+      // Ưu tiên dùng category_id (_id) để khớp với dropdown value
+      const deviceCategoryKey = (() => {
+        if (item.category_id && typeof item.category_id === 'object') return String(item.category_id._id || '');
+        if (item.category_id) return String(item.category_id);
+        if (item.categoryId && typeof item.categoryId === 'object') return String(item.categoryId._id || '');
+        if (item.categoryId) return String(item.categoryId);
+        if (item.category) return String(item.category);
+        return '';
+      })();
+
+      const categoryMatches =
+        selectedCategoryKey === 'all' ||
+        deviceCategoryKey.toLowerCase() === String(selectedCategoryKey).toLowerCase();
+
+      return nameMatches && categoryMatches;
+    });
+
+    return list.sort((a, b) => {
+      if (sort === 'newest') return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
+      return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
+    });
+  }, [devices, search, sort, selectedCategoryKey]);
+
   return (
     <div className="app-shell">
       {/* Sidebar */}
@@ -90,160 +94,159 @@ function SchoolDashboard() {
           <div>
             <div className="sidebar-menu-title">School</div>
             <div className="menu-list">
-              <div className="menu-item">
-                <span className="icon">🏠</span>
-                <span>Tổng quan</span>
+              <div
+                className={`menu-item ${activeSection === 'overview' ? 'active' : ''}`}
+                onClick={() => setActiveSection('overview')}
+              >
+                <span className="icon">📊</span>
+                <span>Tong quan</span>
               </div>
-              <div className="menu-item">
+              <div
+                className={`menu-item ${activeSection === 'inventory' ? 'active' : ''}`}
+                onClick={() => setActiveSection('inventory')}
+              >
                 <span className="icon">📦</span>
-                <span>Kho thiết bị</span>
+                <span>Kho thiet bi</span>
               </div>
-              {/* <div className="menu-item active">
-                <span className="icon">📨</span>
-                <span>Yêu cầu từ giáo viên</span>
-              </div>
-              <div className="menu-item"> 
-                <span className="icon">🚚</span>
-                <span>Đơn xuất kho</span>
-              </div>
-              <div className="menu-item">
-                <span className="icon">🛠</span>
-                <span>Lịch bảo trì</span>
-              </div>
-              <div className="menu-item">
-                <span className="icon">📑</span>
-                <span>Hợp đồng</span>
-              </div> */}
             </div>
           </div>
         </div>
 
-        <div className="sidebar-footer">Đăng xuất</div>
+        <div className="sidebar-footer">Dang xuat</div>
       </aside>
 
       {/* Main */}
       <main className="main">
         <header className="main-header">
-          <div className="main-title">Trung tâm cung ứng thiết bị InFraLab</div>
+          <div className="main-title">Trung tam cung ung thiet bi InFraLab</div>
           <div className="main-user">
-            <span>Xin chào, School Admin!</span>
+            <span>Xin chao, School Admin!</span>
             <div className="user-avatar" />
           </div>
         </header>
 
-        <section className="supplier-highlight">
-          {HIGHLIGHTS.map((item) => (
-            <div className="highlight-card" key={item.label}>
-              <div className="highlight-label">
-                <span>{item.label}</span>
-                <span role="img" aria-label="icon">
-                  ●
-                </span>
-              </div>
-              <div className="highlight-value" style={{ color: item.color }}>
-                {item.value}
-              </div>
-              <div className="highlight-trend">{item.trend}</div>
-            </div>
-          ))}
-        </section>
-
-        <section className="supplier-panels">
-          <div className="panel-card">
-            <div className="panel-title">Yêu cầu mới từ giáo viên</div>
-            <div className="panel-subtitle">Ưu tiên xử lý trong vòng 24 giờ</div>
-
-            <div className="panel-list">
-              {REQUESTS.map((req) => (
-                <div className="request-item" key={req.id}>
-                  <div className="request-details">
-                    <div className="request-name">
-                      {req.id} · {req.teacher}
-                    </div>
-                    <div className="request-meta">
-                      {req.device} · {req.department}
-                    </div>
-                    <div className="request-date">{req.dueDate}</div>
+        {activeSection === 'overview' && (
+          <>
+            <section className="supplier-highlight">
+              {HIGHLIGHTS.map((item) => (
+                <div className="highlight-card" key={item.label}>
+                  <div className="highlight-label">
+                    <span>{item.label}</span>
+                    <span role="img" aria-label="icon">
+                      🔥
+                    </span>
                   </div>
-                  <div className={`status-pill ${req.badge}`}>{req.status}</div>
+                  <div className="highlight-value" style={{ color: item.color }}>
+                    {item.value}
+                  </div>
+                  <div className="highlight-trend">{item.trend}</div>
                 </div>
               ))}
-            </div>
+            </section>
 
-            <div className="supplier-actions">
-              <button className="button-primary green">Duyệt nhanh</button>
-              <button className="button-secondary">Xem tất cả</button>
-            </div>
-          </div>
+            <section className="supplier-panels">
+              <div className="panel-card">
+                <div className="panel-title">Yeu cau moi tu giao vien</div>
+                <div className="panel-subtitle">Uu tien xu ly trong 24 gio</div>
 
-          {/* <div className="panel-card">
-            <div className="panel-title">Trạng thái giao hàng</div>
-            <div className="panel-subtitle">Theo dõi tiến độ xuất kho</div>
-
-            <div className="timeline">
-              {SHIPMENTS.map((step) => (
-                <div className="timeline-row" key={step.title}>
-                  <div className="timeline-step">
-                    <div className="timeline-title">{step.title}</div>
-                    <div className="timeline-meta">{step.info}</div>
-                    <div className="request-date">{step.time}</div>
-                  </div>
-                  <div className="timeline-status">{step.status}</div>
+                <div className="panel-list">
+                  {REQUESTS.map((req) => (
+                    <div className="request-item" key={req.id}>
+                      <div className="request-details">
+                        <div className="request-name">
+                          {req.id} · {req.teacher}
+                        </div>
+                        <div className="request-meta">
+                          {req.device} · {req.department}
+                        </div>
+                        <div className="request-date">{req.dueDate}</div>
+                      </div>
+                      <div className={`status-pill ${req.badge}`}>{req.status}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        <section className="supplier-bottom">
-          <div className="info-block">
-            <div className="panel-title">Tổng quan kho</div>
-            <div className="inventory-grid">
-              <div>
-                <div className="info-label">Sẵn sàng xuất</div>
-                <div className="info-value">320 thiết bị</div>
+                <div className="supplier-actions">
+                  <button className="button-primary green">Duyet nhanh</button>
+                  <button className="button-secondary">Xem tat ca</button>
+                </div>
               </div>
-              <div>
-                <div className="info-label">Đang sửa chữa</div>
-                <div className="info-value">24 thiết bị</div>
-              </div>
-              <div>
-                <div className="info-label">Dự kiến nhập kho</div>
-                <div className="info-value">58 thiết bị</div>
-              </div>
-              <div>
-                <div className="info-label">Tỷ lệ sử dụng</div>
-                <div className="info-value">82%</div>
-              </div>
-            </div>
-          </div>
+            </section>
+          </>
+        )}
 
-          {/* <div className="info-block">
-            <div className="panel-title">Lịch bảo trì tuần này</div>
-            <div className="maintenance-list">
-              <div className="maintenance-item">
-                <span>Máy sắc ký lỏng</span>
-                <span className="maintenance-date">05/12</span>
-              </div>
-              <div className="maintenance-item">
-                <span>Buồng nuôi cấy tế bào</span>
-                <span className="maintenance-date">06/12</span>
-              </div>
-              <div className="maintenance-item">
-                <span>Máy quang phổ FTIR</span>
-                <span className="maintenance-date">08/12</span>
-              </div>
-              <div className="maintenance-item">
-                <span>Tủ lạnh âm sâu</span>
-                <span className="maintenance-date">09/12</span>
+        {activeSection === 'inventory' && (
+          <section className="inventory-section">
+            <div className="inventory-toolbar">
+              <button className="inventory-side-btn">View list of devices</button>
+
+              <div className="inventory-actions">
+                <div className="category-dropdown">
+                  <label htmlFor="categorySelect">Loai linh kien:</label>
+                  <select
+                    id="categorySelect"
+                    value={selectedCategoryKey}
+                    onChange={(e) => setSelectedCategoryKey(e.target.value)}
+                  >
+                    <option value="all">Tat ca</option>
+                    {categories.map((cat) => (
+                      <option key={cat._id || cat.name} value={cat._id || ''}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="inventory-search">
+                  <span className="search-icon">🔍</span>
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="search"
+                  />
+                </div>
+
+                <div className="inventory-sort">
+                  <span>Sap xep theo</span>
+                  <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                    <option value="newest">Moi nhat</option>
+                    <option value="oldest">Cu nhat</option>
+                  </select>
+                </div>
+
+                <button className="button-primary add-device-btn">Add Device</button>
               </div>
             </div>
-          </div> */}
-        </section>
+
+            {loading && <div className="inventory-status">Dang tai du lieu...</div>}
+            {error && !loading && <div className="inventory-status error">{error}</div>}
+            {!loading && !error && filteredDevices.length === 0 && (
+              <div className="inventory-status">Khong co thiet bi phu hop</div>
+            )}
+
+            {!loading && !error && filteredDevices.length > 0 && (
+              <div className="device-grid">
+                {filteredDevices.map((device) => (
+                  <div className="device-card" key={device._id || device.id}>
+                    <div className="device-thumb">
+                      {device.image ? (
+                        <img src={device.image} alt={device.name} />
+                      ) : null}
+                    </div>
+                    <div className="device-name">{device.name}</div>
+                    <div className="device-actions">
+                      <button className="button-secondary device-update">Update</button>
+                      <button className="button-secondary device-delete">Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );
 }
 
 export default SchoolDashboard;
-
