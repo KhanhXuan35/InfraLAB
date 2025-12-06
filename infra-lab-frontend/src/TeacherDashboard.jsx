@@ -1,62 +1,25 @@
 // src/TeacherDashboard.jsx
-import React from 'react';
-import './dashboard.css';
+import React, { useState } from "react";
+import "./dashboard.css";
+import DeviceList from "./components/LabManager/DeviceList";
 
 function TeacherDashboard() {
-  return (
-    <div className="app-shell">
-      {/* 侧边栏 */}
-      <aside className="sidebar">
-        <div className="sidebar-top">
-          <div className="brand">
-            InFra<span>Lab</span>
-          </div>
+  // "dashboard" | "devices" | "borrow" | "stats" | ...
+  const [activeMenu, setActiveMenu] = useState("dashboard");
 
-          <div>
-            <div className="sidebar-menu-title">Lab Manager</div>
-            <div className="menu-list">
-              <div className="menu-item active">
-                <span className="icon">🧪</span>
-                <span>Quản lý thiết bị</span>
-              </div>
-              <div className="menu-item">
-                <span className="icon">↔️</span>
-                <span>Mượn/Trả</span>
-              </div>
-              <div className="menu-item">
-                <span className="icon">📊</span>
-                <span>Thống kê</span>
-              </div>
-              <div className="menu-item">
-                <span className="icon">📑</span>
-                <span>Báo cáo</span>
-              </div>
-              <div className="menu-item">
-                <span className="icon">🔔</span>
-                <span>Notification</span>
-              </div>
-            </div>
-          </div>
-        </div>
+  const renderMainContent = () => {
+    if (activeMenu === "devices") {
+      return <DeviceList />;
+    }
 
-        <div className="sidebar-footer">Đăng xuất</div>
-      </aside>
-
-      {/* 主区域 */}
-      <main className="main">
-        <header className="main-header">
-          <div className="main-title">InFraLab</div>
-          <div className="main-user">
-            <span>Xin chào, Teacher!</span>
-            <div className="user-avatar" />
-          </div>
-        </header>
-
-        {/* 顶部统计卡片 */}
+    // === màn dashboard gốc ===
+    return (
+      <>
+        {/* Header + stats giữ nguyên */}
         <section className="stats-row">
           <div className="stat-card sc-total">
             <div className="stat-title">
-              <div className="stat-icon" style={{ backgroundColor: '#1d4ed8', color: '#fff' }}>
+              <div className="stat-icon" style={{ backgroundColor: "#1d4ed8", color: "#fff" }}>
                 👥
               </div>
               <span>Tổng tài sản</span>
@@ -66,7 +29,7 @@ function TeacherDashboard() {
 
           <div className="stat-card sc-active">
             <div className="stat-title">
-              <div className="stat-icon" style={{ backgroundColor: '#16a34a', color: '#fff' }}>
+              <div className="stat-icon" style={{ backgroundColor: "#16a34a", color: "#fff" }}>
                 ✔
               </div>
               <span>Đang hoạt động</span>
@@ -76,7 +39,7 @@ function TeacherDashboard() {
 
           <div className="stat-card sc-repair">
             <div className="stat-title">
-              <div className="stat-icon" style={{ backgroundColor: '#f97316', color: '#fff' }}>
+              <div className="stat-icon" style={{ backgroundColor: "#f97316", color: "#fff" }}>
                 🔧
               </div>
               <span>Đang sửa chữa</span>
@@ -86,7 +49,7 @@ function TeacherDashboard() {
 
           <div className="stat-card sc-broken">
             <div className="stat-title">
-              <div className="stat-icon" style={{ backgroundColor: '#b91c1c', color: '#fff' }}>
+              <div className="stat-icon" style={{ backgroundColor: "#b91c1c", color: "#fff" }}>
                 ✖
               </div>
               <span>Hỏng/Thay thế</span>
@@ -95,7 +58,6 @@ function TeacherDashboard() {
           </div>
         </section>
 
-        {/* 最近活动 + 快捷操作 */}
         <section className="two-cols">
           <div>
             <div className="section-title">Hoạt động gần đây</div>
@@ -133,6 +95,72 @@ function TeacherDashboard() {
             </div>
           </div>
         </section>
+      </>
+    );
+  };
+
+  return (
+    <div className="app-shell">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="sidebar-top">
+          <div className="brand">
+            InFra<span>Lab</span>
+          </div>
+
+          <div>
+            <div className="sidebar-menu-title">Lab Manager</div>
+            <div className="menu-list">
+              <div
+                className={`menu-item ${activeMenu === "devices" ? "active" : ""}`}
+                onClick={() => setActiveMenu("devices")}
+              >
+                <span className="icon">🧪</span>
+                <span>Quản lý thiết bị</span>
+              </div>
+
+              <div
+                className={`menu-item ${activeMenu === "borrow" ? "active" : ""}`}
+                onClick={() => setActiveMenu("borrow")}
+              >
+                <span className="icon">↔️</span>
+                <span>Mượn/Trả</span>
+              </div>
+
+              <div
+                className={`menu-item ${activeMenu === "stats" ? "active" : ""}`}
+                onClick={() => setActiveMenu("dashboard")}
+              >
+                <span className="icon">📊</span>
+                <span>Thống kê</span>
+              </div>
+
+              <div className="menu-item">
+                <span className="icon">📑</span>
+                <span>Báo cáo</span>
+              </div>
+              <div className="menu-item">
+                <span className="icon">🔔</span>
+                <span>Notification</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="sidebar-footer">Đăng xuất</div>
+      </aside>
+
+      {/* Main */}
+      <main className="main">
+        <header className="main-header">
+          <div className="main-title">InFraLab</div>
+          <div className="main-user">
+            <span>Xin chào, Teacher!</span>
+            <div className="user-avatar" />
+          </div>
+        </header>
+
+        {renderMainContent()}
       </main>
     </div>
   );
