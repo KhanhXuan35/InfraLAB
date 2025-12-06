@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const returnLabSchema = new mongoose.Schema({
     borrow_id: { type: mongoose.Schema.Types.ObjectId, ref: "BorrowLab", required: true },
@@ -18,4 +18,4 @@ const returnLabSchema = new mongoose.Schema({
     processed_at: Date
 }, { timestamps: true });
 
-module.exports = mongoose.model("ReturnLab", returnLabSchema);
+export default mongoose.model("ReturnLab", returnLabSchema);

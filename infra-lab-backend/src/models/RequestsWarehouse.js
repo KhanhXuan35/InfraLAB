@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const requestsWarehouseSchema = new mongoose.Schema({
     lecturer_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -16,4 +16,4 @@ const requestsWarehouseSchema = new mongoose.Schema({
     processed_at: Date
 }, { timestamps: true });
 
-module.exports = mongoose.model("RequestsWarehouse", requestsWarehouseSchema);
+export default mongoose.model("RequestsWarehouse", requestsWarehouseSchema);

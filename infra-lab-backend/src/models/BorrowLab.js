@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const borrowLabSchema = new mongoose.Schema({
     student_id: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -17,4 +17,4 @@ const borrowLabSchema = new mongoose.Schema({
     returned: { type: Boolean, default: false }
 }, { timestamps: true });
 
-module.exports = mongoose.model("BorrowLab", borrowLabSchema);
+export default mongoose.model("BorrowLab", borrowLabSchema);

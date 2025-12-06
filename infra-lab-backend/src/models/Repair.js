@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const repairSchema = new mongoose.Schema({
     device_id: { type: mongoose.Schema.Types.ObjectId, ref: "Device", required: true },
@@ -7,4 +7,4 @@ const repairSchema = new mongoose.Schema({
     completed_at: Date
 }, { timestamps: true });
 
-module.exports = mongoose.model("Repair", repairSchema);
+export default mongoose.model("Repair", repairSchema);
