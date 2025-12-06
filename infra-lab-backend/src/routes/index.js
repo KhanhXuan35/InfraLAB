@@ -1,4 +1,7 @@
 import express from "express";
+import { getAllDevices, getDeviceById } from "../controllers/deviceController.js";
+import { getAllCategories, getCategoryById } from "../controllers/categoryController.js";
+
 const router = express.Router();
 
 // Health check route
@@ -16,6 +19,14 @@ router.get("/health", (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Device routes
+router.get("/devices", getAllDevices);
+router.get("/devices/:id", getDeviceById);
+
+// Category routes
+router.get("/categories", getAllCategories);
+router.get("/categories/:id", getCategoryById);
 
 export default router;
 
