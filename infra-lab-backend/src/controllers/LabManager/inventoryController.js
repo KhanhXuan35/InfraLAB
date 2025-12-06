@@ -33,3 +33,85 @@ export const getLabDevices = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+// API mới: filter đa điều kiện
+export const filterInventory = async (req, res) => {
+  try {
+    const {
+      search,
+      category = "all",
+      status = "all",
+      area = "lab",    // mặc định lọc trong Lab
+      minTotal,
+      maxTotal,
+    } = req.query;
+
+    // filter cơ bản trên Inventory
+    const mongoFilter = {};
+    if (area && area !== "all") {
+      mongoFilter.location = area;
+    } else {
+      mongoFilter.location = "lab"; // đảm bảo Lab Manager chỉ xem Lab
+    }
+
+    if (minTotal || maxTotal) {
+      mongoFilter.total = {};
+      if (minTotal) mongoFilter.total.$gte = Number(minTotal);
+      if (maxTotal) mongoFilter.total.$lte = Number(maxTotal);
+    }
+
+    const inventories = await Inventory.find(mongoFilter)
+      .populate({
+        path: "device_id",
+        model: Device,
+      })
+      .lean();
+
+    // Map về cùng format với API /lab
+    let data = inventories.map((inv) => {
+      const borrowed =
+        (inv.total || 0) - (inv.available || 0) - (inv.broken || 0);
+
+      return {
+        _id: inv._id,
+        device: {
+          _id: inv.device_id?._id,
+          name: inv.device_id?.name || "",
+          category: inv.device_id?.category || "",
+        },
+        total: inv.total || 0,
+        available: inv.available || 0,
+        broken: inv.broken || 0,
+        borrowed: borrowed > 0 ? borrowed : 0,
+      };
+    });
+
+    // Lọc thêm theo search / category / status trên JS
+    if (search) {
+      const q = search.toLowerCase();
+      data = data.filter((item) =>
+        item.device.name.toLowerCase().includes(q)
+      );
+    }
+
+    if (category && category !== "all") {
+      data = data.filter((item) => item.device.category === category);
+    }
+
+    if (status && status !== "all") {
+      if (status === "available") {
+        data = data.filter((item) => item.available > 0);
+      }
+      if (status === "borrowed") {
+        data = data.filter((item) => item.borrowed > 0);
+      }
+      if (status === "broken") {
+        data = data.filter((item) => item.broken > 0);
+      }
+    }
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error("filterInventory error", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};

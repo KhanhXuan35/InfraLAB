@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import inventoryRoutes from "./routes/LabManager/inventoryRoutes.js";
+import categoryRoutes from "./routes/LabManager/categoryRoutes.js";
 
 const app = express();
 
@@ -16,5 +17,5 @@ app.get("/api/health", (req, res) => {
 
 // Inventory routes
 app.use("/api/inventory", inventoryRoutes);
-
+app.use("/api/categories", categoryRoutes);
 export default app;

@@ -91,7 +91,7 @@
 .main {
   flex: 1;
   padding: 24px 28px;
-  display: flex;
+  display: block;
   flex-direction: column;
   gap: 20px;
 }
