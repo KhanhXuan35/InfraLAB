@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const activityLogSchema = new mongoose.Schema({
     action: String,
@@ -8,4 +8,4 @@ const activityLogSchema = new mongoose.Schema({
     related_id: String
 }, { timestamps: true });
 
-module.exports = mongoose.model("ActivityLog", activityLogSchema);
+export default mongoose.model("ActivityLog", activityLogSchema);

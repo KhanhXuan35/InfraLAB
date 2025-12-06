@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const inventorySchema = new mongoose.Schema({
     device_id: { type: mongoose.Schema.Types.ObjectId, ref: "Device", required: true },
@@ -8,4 +8,4 @@ const inventorySchema = new mongoose.Schema({
     broken: { type: Number, default: 0 }
 }, { timestamps: true });
 
-module.exports = mongoose.model("Inventory", inventorySchema);
+export default mongoose.model("Inventory", inventorySchema);
