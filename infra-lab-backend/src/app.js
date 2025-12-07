@@ -4,6 +4,9 @@ import morgan from "morgan";
 import inventoryRoutes from "./routes/LabManager/inventoryRoutes.js";
 import categoryRoutes from "./routes/LabManager/categoryRoutes.js";
 import detailDevice from "./routes/LabManager/detailDevice.js";
+import dashboardRoutes from "./routes/LabManager/dashboardRoutes.js";
+import schoolDashboardRoutes from "./routes/School/schoolDashboardRoutes.js";
+import userDashboardRoutes from "./routes/User/userDashboardRoutes.js";
 
 const app = express();
 
@@ -21,5 +24,8 @@ console.log("DETAIL DEVICE ROUTE LOADED");
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/device-detail", detailDevice);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/school-dashboard", schoolDashboardRoutes);
+app.use("/api/user-dashboard", userDashboardRoutes);
 
 export default app;

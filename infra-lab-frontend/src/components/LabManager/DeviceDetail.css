@@ -5,15 +5,17 @@
 }
 
 .device-detail-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
   background: linear-gradient(135deg, #1a1f2e 0%, #0f1419 100%);
-  border-radius: 16px;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -61,6 +63,8 @@
   padding: 32px;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 /* Left Column */

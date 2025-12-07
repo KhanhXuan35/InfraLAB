@@ -8,6 +8,11 @@ import App from "./App.jsx";
 import DeviceList from "./components/LabManager/DeviceList.jsx";
 import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage.jsx";
 
+// Empty component for home page (TeacherDashboard renders its own content)
+function HomePage() {
+  return null;
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <Routes>
@@ -15,8 +20,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       {/* APP LAYOUT */}
       <Route path="/" element={<App />}>
 
-        {/* Default route */}
-        <Route index element={<DeviceList />} />
+        {/* Default route - TeacherDashboard tự render main content */}
+        <Route index element={<HomePage />} />
 
         {/* Device List */}
         <Route path="devices" element={<DeviceList />} />
