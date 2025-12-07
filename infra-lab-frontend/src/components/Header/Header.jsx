@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Badge, Avatar, Dropdown, Space, Typography } from 'antd';
+import { Input, Badge, Avatar, Dropdown, Space, Typography, Popover, Button, Image, Empty } from 'antd';
 import { 
   SearchOutlined, 
   ShoppingCartOutlined, 
@@ -8,11 +8,13 @@ import {
   MessageOutlined,
   BellOutlined,
   ClockCircleOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  ShoppingOutlined as ShoppingIcon
 } from '@ant-design/icons';
-import { HeaderContainer, LogoText, SearchContainer, RightSection, SearchWrapper } from './style';
+import { HeaderContainer, LogoText, SearchContainer, RightSection, SearchWrapper, CartPopoverContent } from './style';
 import SearchResults from '../SearchResults/SearchResults';
 import { STUDENT_ROUTES } from '../../constants/routes';
+import { useCart } from '../../contexts/CartContext';
 
 const { Search } = Input;
 const { Text } = Typography;
@@ -59,13 +61,16 @@ const clearSearchHistory = () => {
 
 const Header = () => {
   const navigate = useNavigate();
+  const { getCartCount, cartItems } = useCart();
   const [searchValue, setSearchValue] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [cartPopoverVisible, setCartPopoverVisible] = useState(false);
   const searchTimeoutRef = useRef(null);
   const searchContainerRef = useRef(null);
+  const cartCount = getCartCount();
 
   useEffect(() => {
     setSearchHistory(getSearchHistory());
@@ -204,6 +209,105 @@ const Header = () => {
     },
   ];
 
+  const handleCartClick = () => {
+    setCartPopoverVisible(!cartPopoverVisible);
+  };
+
+  const handleViewCart = () => {
+    setCartPopoverVisible(false);
+    navigate(STUDENT_ROUTES.CART);
+  };
+
+  const cartPopoverContent = (
+    <CartPopoverContent>
+      {cartItems.length === 0 ? (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="Giỏ hàng trống"
+          style={{ padding: '20px 0' }}
+        />
+      ) : (
+        <>
+          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            {cartItems.slice(0, 5).map((item) => (
+              <div
+                key={item.device._id}
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  padding: '12px 0',
+                  borderBottom: '1px solid #f0f0f0',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  setCartPopoverVisible(false);
+                  navigate(STUDENT_ROUTES.DEVICE_DETAIL(item.device._id));
+                }}
+              >
+                {item.device.image ? (
+                  <Image
+                    src={item.device.image}
+                    alt={item.device.name}
+                    width={60}
+                    height={60}
+                    style={{ objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }}
+                    fallback="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4="
+                  />
+                ) : (
+                  <div style={{
+                    width: 60,
+                    height: 60,
+                    backgroundColor: '#f5f5f5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '4px',
+                    flexShrink: 0
+                  }}>
+                    <ShoppingIcon style={{ fontSize: 24, color: '#d9d9d9' }} />
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    strong
+                    ellipsis
+                    style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}
+                  >
+                    {item.device.name}
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    Số lượng: {item.quantity}
+                  </Text>
+                </div>
+              </div>
+            ))}
+            {cartItems.length > 5 && (
+              <div style={{ padding: '8px 0', textAlign: 'center', color: '#1890ff' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                  +{cartItems.length - 5} sản phẩm khác
+                </Text>
+              </div>
+            )}
+          </div>
+          <div style={{ 
+            borderTop: '1px solid #f0f0f0', 
+            paddingTop: '12px', 
+            marginTop: '12px' 
+          }}>
+            <Button
+              type="primary"
+              block
+              onClick={handleViewCart}
+              style={{ height: '40px' }}
+            >
+              Xem giỏ hàng ({cartItems.length})
+            </Button>
+          </div>
+        </>
+      )}
+    </CartPopoverContent>
+  );
+
   return (
     <HeaderContainer>
       <LogoText onClick={() => navigate('/')}>InfraLAB</LogoText>
@@ -297,12 +401,22 @@ const Header = () => {
             onClick={() => console.log('Chat clicked')}
           />
           
-          <Badge count={0} showZero={false}>
-            <ShoppingCartOutlined 
-              style={{ fontSize: '20px', cursor: 'pointer', color: '#666' }} 
-              onClick={() => console.log('Cart clicked')}
-            />
-          </Badge>
+          <Popover
+            content={cartPopoverContent}
+            title="Giỏ hàng của bạn"
+            trigger="click"
+            open={cartPopoverVisible}
+            onOpenChange={setCartPopoverVisible}
+            placement="bottomRight"
+            overlayStyle={{ width: '360px' }}
+          >
+            <Badge count={cartCount} showZero={false}>
+              <ShoppingCartOutlined 
+                style={{ fontSize: '20px', cursor: 'pointer', color: '#666' }} 
+                onClick={handleCartClick}
+              />
+            </Badge>
+          </Popover>
 
           <BellOutlined 
             style={{ fontSize: '20px', cursor: 'pointer', color: '#666' }} 

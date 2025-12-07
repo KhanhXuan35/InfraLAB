@@ -54,3 +54,8 @@ export const RightSection = styled.div`
   }
 `;
 
+export const CartPopoverContent = styled.div`
+  width: 100%;
+  min-width: 320px;
+`;
+

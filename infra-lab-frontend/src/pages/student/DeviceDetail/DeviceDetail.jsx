@@ -21,12 +21,14 @@ import {
 } from '@ant-design/icons';
 import { Container, DetailCard, ImageContainer, ActionSection } from './style';
 import { STUDENT_ROUTES } from '../../../constants/routes';
+import { useCart } from '../../../contexts/CartContext';
 
 const { Title, Text, Paragraph } = Typography;
 
 const DeviceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [device, setDevice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -210,7 +212,10 @@ const DeviceDetail = () => {
                       type="primary"
                       size="large"
                       block
-                      onClick={() => navigate(STUDENT_ROUTES.BORROW(device._id, quantity))}
+                      onClick={() => {
+                        addToCart(device, quantity);
+                        message.success(`Đã thêm ${quantity} ${device.name} vào giỏ hàng`);
+                      }}
                       disabled={maxQuantity === 0}
                       style={{ height: '48px', fontSize: '16px' }}
                     >
