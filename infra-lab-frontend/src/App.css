@@ -7,30 +7,25 @@
   align-items: center;
   min-height: 100vh;
   background-color: #f8f9fa;
-  /* Màu nền sáng hơn chút */
 }
 
+/* Card chung */
 .auth-card {
   background: white;
   padding: 50px;
-  /* Tăng padding để nội dung thoáng hơn */
   border-radius: 16px;
-  /* Bo góc tròn hơn */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  /* Bóng đổ mềm mại hơn */
   width: 100%;
   max-width: 500px;
-  /* Tăng chiều rộng form Login lên 500px */
   box-sizing: border-box;
 }
 
-/* Form Đăng ký cần rộng hơn vì có 2 cột */
+/* Form đăng ký rộng hơn */
 .auth-card.wide {
   max-width: 800px;
-  /* Tăng chiều rộng form Register lên 800px */
 }
 
-/* --- LOGO & TIÊU ĐỀ --- */
+/* Logo & title */
 .logo-section {
   text-align: center;
   margin-bottom: 30px;
@@ -38,7 +33,6 @@
 
 .logo-img {
   height: 60px;
-  /* Logo to hơn */
   margin-bottom: 10px;
 }
 
@@ -48,7 +42,6 @@
   text-transform: uppercase;
   margin: 0;
   font-size: 24px;
-  /* Chữ to hơn */
   letter-spacing: 1px;
 }
 
@@ -57,7 +50,6 @@
   color: #2c3e50;
   margin-bottom: 10px;
   font-size: 32px;
-  /* Tiêu đề to hẳn lên */
   font-weight: 700;
 }
 
@@ -68,7 +60,7 @@
   margin-bottom: 30px;
 }
 
-/* --- FORM INPUT --- */
+/* Form input */
 .form-group {
   margin-bottom: 20px;
 }
@@ -76,7 +68,6 @@
 .form-group label {
   display: block;
   font-size: 15px;
-  /* Label to hơn */
   font-weight: 600;
   color: #555;
   margin-bottom: 8px;
@@ -85,7 +76,6 @@
 .row {
   display: flex;
   gap: 20px;
-  /* Khoảng cách giữa 2 cột lớn hơn */
 }
 
 .col {
@@ -95,11 +85,9 @@
 input {
   width: 100%;
   padding: 14px 16px;
-  /* Ô nhập liệu cao và thoáng hơn */
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   font-size: 16px;
-  /* Cỡ chữ nhập vào to hơn */
   box-sizing: border-box;
   transition: all 0.2s;
   background-color: #fbfbfb;
@@ -110,10 +98,9 @@ input:focus {
   border-color: #F36F21;
   background-color: #fff;
   box-shadow: 0 0 0 4px rgba(243, 111, 33, 0.1);
-  /* Hiệu ứng focus đẹp */
 }
 
-/* --- INPUT CÓ ICON (MẮT) --- */
+/* Input có icon (mắt) */
 .input-wrapper {
   position: relative;
 }
@@ -126,14 +113,12 @@ input:focus {
   cursor: pointer;
   color: #999;
   font-size: 20px;
-  /* Icon mắt to hơn */
 }
 
-/* --- BUTTONS --- */
+/* Buttons */
 .btn-primary {
   width: 100%;
   padding: 16px;
-  /* Nút bấm cao hơn */
   background-color: #333;
   color: white;
   border: none;
@@ -141,7 +126,6 @@ input:focus {
   cursor: pointer;
   font-weight: bold;
   font-size: 16px;
-  /* Chữ trong nút to hơn */
   margin-top: 15px;
   transition: background 0.3s;
 }
@@ -173,7 +157,7 @@ input:focus {
   background-color: #f5f5f5;
 }
 
-/* --- TIỆN ÍCH KHÁC --- */
+/* Misc */
 .forgot-pass {
   text-align: right;
   font-size: 14px;
@@ -198,7 +182,8 @@ input:focus {
   position: relative;
 }
 
-.divider::before, .divider::after {
+.divider::before,
+.divider::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -222,7 +207,6 @@ input:focus {
   color: #666;
 }
 
-
 .auth-footer a {
   color: #F36F21;
   text-decoration: none;
@@ -244,21 +228,16 @@ input:focus {
   margin-top: 2rem;
 }
 
-/* --- STRENGTH METER (CỐ ĐỊNH VỊ TRÍ) --- */
-
-/* Container bao quanh để căn khoảng cách trên dưới */
+/* Strength Meter */
 .strength-container {
   margin-top: 25px;
-  /* Cách ô Confirm Password ra một chút */
   margin-bottom: 25px;
-  /* Cách nút Sign Up ra một chút */
 }
 
 .strength-meter {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
-  /* Khoảng cách giữa vòng tròn và chữ label */
 }
 
 .strength-step {
@@ -268,7 +247,6 @@ input:focus {
   justify-content: center;
 }
 
-/* Đường kẻ nối giữa các vòng tròn */
 .strength-step::after {
   content: "";
   position: absolute;
@@ -281,7 +259,6 @@ input:focus {
   transform: translateY(-50%);
 }
 
-/* Bỏ đường kẻ ở vòng tròn cuối cùng */
 .strength-step:last-child::after {
   display: none;
 }
@@ -297,12 +274,9 @@ input:focus {
   justify-content: center;
   font-size: 14px;
   z-index: 1;
-  /* Để đè lên đường kẻ */
-  position: relative;
   color: #ccc;
   font-weight: bold;
   transition: all 0.3s ease;
-  /* Hiệu ứng chuyển màu mượt */
 }
 
 .circle.active {
@@ -317,6 +291,10 @@ input:focus {
   font-size: 12px;
   color: #888;
   padding: 0 5px;
-  /* Căn chỉnh chữ cho thẳng với vòng tròn */
   font-weight: 500;
+}
+
+.App {
+  min-height: 100vh;
+  background-color: #f5f5f5;
 }

@@ -1,90 +1,182 @@
-import React from 'react';
-import { List, Spin, Typography, Button, Image } from 'antd';
-import { ShoppingOutlined } from '@ant-design/icons';
-import * as S from './SearchResults.styles';
+import React from "react";
+import { List, Typography, Space, Tag, Empty, Spin } from "antd";
+import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { SearchResultsContainer, SearchResultItem } from "./style";
 
 const { Text } = Typography;
 
 const SearchResults = ({ results, loading, onSelect, onViewAll }) => {
+  // ============================
+  // LOADING STATE
+  // ============================
   if (loading) {
     return (
-      <S.ResultsContainer>
-        <div style={{ padding: '20px', textAlign: 'center' }}>
+      <SearchResultsContainer>
+        <div style={{ padding: "20px", textAlign: "center" }}>
           <Spin size="large" />
         </div>
-      </S.ResultsContainer>
+      </SearchResultsContainer>
     );
   }
 
-  if (results.length === 0) {
-    return null;
+  // ============================
+  // NO RESULTS
+  // ============================
+  if (!results || results.length === 0) {
+    return (
+      <SearchResultsContainer>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="Không tìm thấy kết quả"
+          style={{ padding: "16px" }}
+        />
+      </SearchResultsContainer>
+    );
   }
 
+  // ============================
+  // HANDLE INVENTORY STATUS
+  // ============================
+  const getAvailabilityStatus = (inventory) => {
+    if (!inventory) {
+      return { status: "no-data", text: "Chưa có thông tin", color: "default" };
+    }
+    if (inventory.available > 0) {
+      return { status: "available", text: "Có sẵn", color: "success" };
+    }
+    return { status: "unavailable", text: "Hết hàng", color: "error" };
+  };
+
+  // ============================
+  // RENDER LIST
+  // ============================
   return (
-    <S.ResultsContainer>
+    <SearchResultsContainer>
       <List
         dataSource={results.slice(0, 5)}
-        renderItem={(device) => (
-          <List.Item
-            style={{
-              padding: '12px 16px',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            onClick={() => onSelect(device)}
-          >
-            <div style={{ display: 'flex', gap: '12px', width: '100%', alignItems: 'center' }}>
-              {device.image ? (
-                <Image
-                  src={device.image}
-                  alt={device.name}
-                  width={50}
-                  height={50}
-                  style={{ objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }}
-                  fallback="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4="
-                />
-              ) : (
-                <div style={{
-                  width: 50,
-                  height: 50,
-                  backgroundColor: '#f5f5f5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '4px',
-                  flexShrink: 0
-                }}>
-                  <ShoppingOutlined style={{ fontSize: 20, color: '#d9d9d9' }} />
-                </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Text strong style={{ display: 'block', marginBottom: '4px' }}>
-                  {device.name}
-                </Text>
-                {device.inventory && (
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    Có sẵn: {device.inventory.available || 0}
-                  </Text>
-                )}
-              </div>
-            </div>
-          </List.Item>
-        )}
+        renderItem={(device) => {
+          const availability = getAvailabilityStatus(device.inventory);
+          return (
+            <SearchResultItem onClick={() => onSelect(device)}>
+              <List.Item.Meta
+                avatar={
+                  device.image ? (
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: "4px",
+                        overflow: "hidden",
+                        backgroundColor: "#f5f5f5",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <img
+                        src={device.image}
+                        alt={device.name}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "flex";
+                        }}
+                      />
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          backgroundColor: "#f5f5f5",
+                          display: "none",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "24px",
+                          color: "#d9d9d9",
+                        }}
+                      >
+                        📦
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: "4px",
+                        backgroundColor: "#f5f5f5",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "24px",
+                        color: "#d9d9d9",
+                        flexShrink: 0,
+                      }}
+                    >
+                      📦
+                    </div>
+                  )
+                }
+                title={
+                  <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                    <Text strong style={{ fontSize: "16px" }}>
+                      {device.name}
+                    </Text>
+                    {device.category && (
+                      <Tag color="blue" style={{ margin: 0 }}>
+                        {device.category.name}
+                      </Tag>
+                    )}
+                  </Space>
+                }
+                description={
+                  <Space direction="vertical" size={4} style={{ marginTop: 8 }}>
+                    <Tag
+                      color={availability.color}
+                      icon={
+                        availability.status === "available" ? (
+                          <CheckCircleOutlined />
+                        ) : (
+                          <CloseCircleOutlined />
+                        )
+                      }
+                      style={{ margin: 0 }}
+                    >
+                      {availability.text}
+                    </Tag>
+
+                    {device.inventory && (
+                      <Text type="secondary" style={{ fontSize: "12px" }}>
+                        Có sẵn: {device.inventory.available}/{device.inventory.total}
+                      </Text>
+                    )}
+                  </Space>
+                }
+              />
+            </SearchResultItem>
+          );
+        }}
       />
-      {results.length > 5 && (
-        <div style={{
-          borderTop: '1px solid #f0f0f0',
-          padding: '12px 16px',
-          textAlign: 'center'
-        }}>
-          <Button type="link" onClick={onViewAll}>
-            Xem tất cả {results.length} kết quả
-          </Button>
+
+      {/* View all section */}
+      {results.length > 5 && onViewAll && (
+        <div
+          style={{
+            padding: "12px",
+            borderTop: "1px solid #f0f0f0",
+            textAlign: "center",
+            cursor: "pointer",
+            backgroundColor: "#fafafa",
+          }}
+          onClick={onViewAll}
+        >
+          <Text strong style={{ color: "#1890ff" }}>
+            Xem tất cả kết quả ({results.length})
+          </Text>
         </div>
       )}
-    </S.ResultsContainer>
+    </SearchResultsContainer>
   );
 };
 
