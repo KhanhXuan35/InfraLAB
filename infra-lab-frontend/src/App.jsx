@@ -1,7 +1,7 @@
 import React from 'react';
 import UserDashboard from './UserDashboard';
 import TeacherDashboard from './TeacherDashboard';
-import SchoolDashboard from './SchoolDashboard';
+import SchoolDashboard from './assets/SchoolDashboard/SchoolDashboard.jsx';
 
 function App() {
   /**
@@ -10,7 +10,7 @@ function App() {
    *  - 'teacher' : giáo viên/lab manager
    *  - 'school'  : nhà cung cấp thiết bị
    */
-  const currentView = 'school';
+  const currentView = 'school'; // Thay đổi giá trị này để chuyển giao diện
 
   if (currentView === 'teacher') {
     return <TeacherDashboard />;

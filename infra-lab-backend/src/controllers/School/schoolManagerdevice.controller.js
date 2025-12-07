@@ -13,23 +13,20 @@ export const getInventories = async (req, res) => {
 
 export const getDeviceCategories = async (req, res) => {
   try {
-    // Lấy inventories kho warehouse → deviceIds → devices + category_id
-    const deviceIds = (await Inventory.find({ location: "warehouse" })).map((inv) => inv.device_id);
-    const devices = await Device.find({ _id: { $in: deviceIds } }).populate("category_id");
+    const deviceIds = await Inventory.find({ location: "warehouse" }).distinct("device_id");
+    const devices = await Device.find({ _id: { $in: deviceIds } }).populate("category_id").lean();
 
-    // Nhóm nhanh theo category_id
-    const grouped = devices.reduce((acc, d) => {
-      const key = d.category_id?._id?.toString();
+    const grouped = devices.reduce((acc, device) => {
+      const key = device.category_id?._id?.toString();
       if (!key) return acc;
-      (acc[key] = acc[key] || []).push(d);
+      (acc[key] = acc[key] || []).push(device);
       return acc;
     }, {});
 
-    // Chỉ trả category có thiết bị, kèm danh sách thiết bị
-    const categories = await DeviceCategory.find({ _id: { $in: Object.keys(grouped) } });
+    const categories = await DeviceCategory.find({ _id: { $in: Object.keys(grouped) } }).lean();
     res.json(
       categories.map((cat) => ({
-        ...cat.toObject(),
+        ...cat,
         devices: grouped[cat._id.toString()] || []
       }))
     );
@@ -40,11 +37,50 @@ export const getDeviceCategories = async (req, res) => {
 
 export const getDevices = async (req, res) => {
   try {
-    const inventories = await Inventory.find({ location: "warehouse" });
-    const deviceIds = inventories.map((inv) => inv.device_id);
+    const location = req.query.location || "warehouse";
+    const deviceIds = await Inventory.find({ location }).distinct("device_id");
     const devices = await Device.find({ _id: { $in: deviceIds } }).populate("category_id");
     res.json(devices);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch devices", error: error.message });
+  }
+};
+
+export const createDeviceWithInventory = async (req, res) => {
+  try {
+    const { name, description = "", image = "", category_id, total = 0, available, broken = 0, location = "warehouse" } =
+      req.body || {};
+
+    if (!name || !category_id) {
+      return res.status(400).json({ message: "name and category_id are required" });
+    }
+
+    if (!["warehouse", "lab"].includes(location)) {
+      return res.status(400).json({ message: "location must be 'warehouse' or 'lab'" });
+    }
+
+    const category = await DeviceCategory.findById(category_id);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    const device = await Device.create({ name, description, image, category_id });
+
+    const parsedTotal = Number(total) || 0;
+    const parsedBroken = Number(broken) || 0;
+    const parsedAvailable =
+      available !== undefined && available !== null ? Number(available) : Math.max(parsedTotal - parsedBroken, 0);
+
+    const inventory = await Inventory.create({
+      device_id: device._id,
+      location,
+      total: parsedTotal,
+      available: parsedAvailable,
+      broken: parsedBroken
+    });
+
+    res.status(201).json({ device, inventory });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to create device", error: error.message });
   }
 };

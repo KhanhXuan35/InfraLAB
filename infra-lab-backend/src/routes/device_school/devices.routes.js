@@ -1,8 +1,9 @@
 import express from "express";
-import { getDevices } from "../../controllers/School/schoolManagerdevice.controller.js";
+import { createDeviceWithInventory, getDevices } from "../../controllers/School/schoolManagerdevice.controller.js";
 
 const router = express.Router();
 
 router.get("/", getDevices);
+router.post("/", createDeviceWithInventory);
 
 export default router;
