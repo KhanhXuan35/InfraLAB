@@ -24,7 +24,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { Container, FormCard } from './style';
-import { STUDENT_ROUTES } from '../../constants/routes';
+import { STUDENT_ROUTES } from '../../../constants/routes';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;

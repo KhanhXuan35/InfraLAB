@@ -20,7 +20,7 @@ import {
   CloseCircleOutlined
 } from '@ant-design/icons';
 import { Container, DetailCard, ImageContainer, ActionSection } from './style';
-import { STUDENT_ROUTES } from '../../constants/routes';
+import { STUDENT_ROUTES } from '../../../constants/routes';
 
 const { Title, Text, Paragraph } = Typography;
 

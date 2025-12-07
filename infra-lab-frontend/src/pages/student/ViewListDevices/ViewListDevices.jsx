@@ -8,7 +8,7 @@ import {
   ShoppingCartOutlined
 } from '@ant-design/icons';
 import { Container, CategoryFilter, DeviceCard, CardOverlay, BorrowButton } from './style';
-import { STUDENT_ROUTES } from '../../constants/routes';
+import { STUDENT_ROUTES } from '../../../constants/routes';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
