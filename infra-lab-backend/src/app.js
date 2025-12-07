@@ -4,6 +4,8 @@ import morgan from "morgan";
 import inventoryRoutes from "./routes/LabManager/inventoryRoutes.js";
 import categoryRoutes from "./routes/LabManager/categoryRoutes.js";
 import detailDevice from "./routes/LabManager/detailDevice.js";
+import repairRoutes from "./routes/LabManager/repairRoutes.js";
+import repairCheckRoutes from "./routes/repairs/checkExisting.js";
 
 const app = express();
 
@@ -21,5 +23,6 @@ console.log("DETAIL DEVICE ROUTE LOADED");
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/device-detail", detailDevice);
-
+app.use("/api/repairs", repairRoutes);  
+app.use("/api/repairs", repairCheckRoutes);
 export default app;

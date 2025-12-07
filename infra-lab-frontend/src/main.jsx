@@ -7,6 +7,7 @@ import App from "./App.jsx";
 
 import DeviceList from "./components/LabManager/DeviceList.jsx";
 import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage.jsx";
+import RepairRequestList from "./pages/School/RepairRequestList.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -24,6 +25,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         {/* Device Detail */}
         <Route path="device/:id" element={<DeviceDetailPage />} />
 
+        {/* ✅ NEW: Repair Request List (School View) */}
+        <Route path="repairs" element={<RepairRequestList />} />
       </Route>
 
     </Routes>

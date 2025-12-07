@@ -190,19 +190,12 @@ function DeviceList() {
                 <td className="error center">{item.broken}</td>
                 <td className="center">
                   <button
-                    onClick={() => {
-                      const id = item?.inventoryId || item?._id; // <-- dùng _id của Inventory
-                      if (!id) {
-                        console.error("Inventory ID is missing!", item);
-                        alert("Thiết bị không có ID hợp lệ!");
-                        return;
-                      }
-                      navigate(`/device/${id}`);  // 👈 dùng deviceId thật
-                    }}
+                    onClick={() => navigate(`/device/${item._id}`)}   // <<< CHỈ CẦN NÀY
                     className="btn-view"
                   >
                     Chi tiết
                   </button>
+
 
 
                 </td>

@@ -1,66 +1,59 @@
-// src/routes/LabManager/detailDevice.js
 import express from "express";
 import Device from "../../models/Device.js";
 import Inventory from "../../models/Inventory.js";
+import Repair from "../../models/Repair.js";
 
 const router = express.Router();
 
 /**
- * GET /api/device-detail/:inventoryId
- * inventoryId = _id của Inventory
- * Trả về: { device, inventory }
+ * GET /api/device-detail/:id
+ * id = inventoryId
  */
-router.get("/:inventoryId", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
-    const { inventoryId } = req.params;
-
-    // 1. Tìm Inventory theo _id
-    const inventory = await Inventory.findById(inventoryId)
+    const inventory = await Inventory.findById(req.params.id)
       .populate({
         path: "device_id",
-        populate: { path: "category_id" }, // nếu muốn lấy luôn Category
+        populate: { path: "category_id" },
       });
 
-    if (!inventory) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Inventory not found" });
-    }
+    if (!inventory)
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy Inventory.",
+      });
 
-    // 2. Lấy Device từ inventory.device_id
     const device = inventory.device_id;
 
-    if (!device) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Device not found in inventory" });
-    }
+    // Kiểm tra thiết bị có đơn sửa chữa nào chưa hoàn thành không
+    const pendingRepair = await Repair.findOne({
+      device_id: device._id,
+      status: { $in: ["pending", "approved", "in_progress"] },
+    });
 
-    // 3. Chuẩn hóa data trả về frontend
-    res.json({
+    return res.json({
       success: true,
       data: {
+        inventory: {
+          _id: inventory._id,
+          total: inventory.total,
+          available: inventory.available,
+          broken: inventory.broken,
+          location: inventory.location,
+        },
         device: {
           _id: device._id,
           name: device.name,
-          description: device.description,
           image: device.image,
-          category_id: device.category_id, // đã populate
+          description: device.description,
+          category_id: device.category_id,
         },
-        inventory: {
-          _id: inventory._id,
-          location: inventory.location,
-          total: inventory.total ?? 0,
-          available: inventory.available ?? 0,
-          broken: inventory.broken ?? 0,
-        },
+        pendingRepair: pendingRepair || null,
       },
     });
-  } catch (error) {
-    console.error("Detail device error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+  } catch (err) {
+    console.error("Detail device error:", err);
+    res.status(500).json({ success: false });
   }
 });
 

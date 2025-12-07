@@ -7,7 +7,7 @@ import TeacherDashboard from "./TeacherDashboard";
 import SchoolDashboard from "./SchoolDashboard";
 
 export default function App() {
-  const currentView = "teacher"; // Tạm set cứng để test UI
+  const currentView = "school"; // Tạm set cứng để test UI
 
   return (
     <div style={{ display: "flex" }}>

@@ -159,3 +159,25 @@ Dự án đi kèm bộ file JSON chuẩn để import vào MongoDB:
 * Thêm chức năng quét QR Code trên thiết bị để trả nhanh.
 * Thêm bảng `locations` nếu mở rộng nhiều phòng Lab khác nhau.
 * Tích hợp gửi Email thông báo nhắc lịch trả.
+
+
+## 6. Thông tin về database 
+users (Người dùng: Sinh viên, Quản lý, BGH)
+
+categories (Danh mục thiết bị)
+
+devices (Thiết bị)
+
+inventories (Kho hàng)
+
+borrowlabs (Phiếu mượn phòng Lab)
+
+returnlabs (Phiếu trả phòng Lab - Tạo rỗng, chưa cần data)
+
+requestswarehouses (Phiếu yêu cầu nhập kho - Tạo rỗng)
+
+activitylogs (Lịch sử hoạt động - Tạo rỗng)
+
+notifications (Thông báo - Tạo rỗng)
+
+repairs (Sửa chữa - Tạo rỗng)
