@@ -22,7 +22,7 @@ const LoginPage = () => {
 
     // 2. Hiển thị thông báo chào mừng
     api.success({
-      message: "Đăng nhập thành công",
+      title: "Đăng nhập thành công",
       description: `Chào mừng ${data.data.name || "bạn"} quay trở lại hệ thống! 🎉`,
       placement: "topRight",
       duration: 2,
@@ -60,7 +60,7 @@ const LoginPage = () => {
       }
     } catch (error) {
       api.error({
-        message: "Đăng nhập thất bại",
+        title: "Đăng nhập thất bại",
         description: error.message || "Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.",
       });
     } finally {
@@ -81,16 +81,15 @@ const LoginPage = () => {
         // Trường hợp 2: Tài khoản mới tạo hoặc chưa Active -> Chỉ hiện thông báo
         else {
           api.info({
-            message: "Đăng ký thành công!",
+            title: "Đăng ký thành công!",
             description: res.message, // "Vui lòng chờ Admin phê duyệt..."
             duration: 6,
-            showProgress: true,
           });
         }
       }
     } catch (error) {
       api.error({
-        message: "Lỗi Google Login",
+        title: "Lỗi Google Login",
         description: error.message || "Không thể kết nối tới máy chủ.",
       });
     }
@@ -175,16 +174,17 @@ const LoginPage = () => {
         <Divider plain><span style={{ color: '#999', fontSize: '13px' }}>Or</span></Divider>
 
         {/* Nút Google */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => api.error({ message: "Login Failed" })}
-            theme="outline"
-            size="large"
-            width="100%"
-            text="signin_with"
-            shape="rectangular"
-          />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24, width: '100%' }}>
+          <div style={{ width: '100%', maxWidth: '400px' }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => api.error({ title: "Login Failed", description: "Không thể đăng nhập bằng Google." })}
+              theme="outline"
+              size="large"
+              text="signin_with"
+              shape="rectangular"
+            />
+          </div>
         </div>
 
         <div style={{ textAlign: "center" }}>
