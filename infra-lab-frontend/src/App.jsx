@@ -10,7 +10,7 @@ function App() {
    *  - 'teacher' : giáo viên/lab manager
    *  - 'school'  : nhà cung cấp thiết bị
    */
-  const currentView = 'school';
+  const currentView = 'teacher';
 
   if (currentView === 'teacher') {
     return <TeacherDashboard />;

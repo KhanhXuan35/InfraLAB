@@ -1,0 +1,161 @@
+Dưới đây là file **README.md** đã được chuẩn hóa lại toàn bộ.
+Nó cập nhật chính xác tên các Collection (số nhiều theo chuẩn MongoDB), các trường dữ liệu mới thêm (username, gender, category_id...) và logic liên kết mà chúng ta đã chốt.
+
+Bạn có thể copy nội dung này vào file `README.md` của dự án.
+
+---
+
+# 📘 Tài liệu hướng dẫn: Hệ thống Quản lý Kho & Phòng Lab
+
+Tài liệu này mô tả chi tiết nghiệp vụ, cấu trúc Cơ sở dữ liệu (Database) và luồng vận hành của hệ thống quản lý thiết bị trường học.
+
+---
+
+## 1. Tổng quan dự án
+
+Hệ thống quản lý vòng đời của thiết bị từ khi nhập kho đến khi sinh viên mượn sử dụng tại phòng Lab.
+
+* **Phạm vi:** 1 Kho tổng (Warehouse) và 1 Phòng thực hành (Lab).
+* **Đối tượng sử dụng:**
+    1.  **Student (Sinh viên):** Mượn/trả thiết bị tại Lab.
+    2.  **Lab Manager (Quản lý):** Quản lý kho, duyệt đơn mượn, báo cáo sửa chữa.
+    3.  **School Admin (BGH):** Quản trị viên cấp cao, duyệt yêu cầu nhập thiết bị từ giảng viên.
+
+---
+
+## 2. Cấu trúc Database (MongoDB)
+
+Hệ thống sử dụng **10 Collections**. Các quan hệ được thiết lập mềm thông qua `ObjectId` (References).
+
+### 2.1. `users` (Người dùng)
+Lưu trữ thông tin 3 loại tài khoản: Student, Lab Manager, School Admin.
+* **_id**: ObjectId
+* **username**: String (Unique, dùng để đăng nhập)
+* **password**: String (Đã mã hóa bcrypt)
+* **email**: String (Unique)
+* **name**: String
+* **role**: Enum ["student", "lab_manager", "school_admin"]
+* **gender**: Enum ["Male", "Female", "Other"]
+* **date_of_birth**: Date
+* **address**: String
+* **phone**: String
+* **avatar**: String (URL ảnh)
+* **isActive**: Boolean (Trạng thái hoạt động)
+* **student_code**: String (Chỉ dành cho sinh viên)
+
+### 2.2. `categories` (Danh mục)
+Phân loại thiết bị để dễ quản lý và lọc (Ví dụ: Laptop, Linh kiện, Máy đo...).
+* **name**: String
+* **description**: String
+
+### 2.3. `devices` (Thiết bị)
+Thông tin chi tiết về loại thiết bị (Model).
+* **name**: String
+* **category_id**: Ref -> `categories`
+* **description**: String
+* **image**: String (URL ảnh)
+
+### 2.4. `inventories` (Kho hàng)
+Quản lý số lượng thiết bị tại từng địa điểm cụ thể.
+* **device_id**: Ref -> `devices`
+* **location**: Enum ["warehouse", "lab"]
+* **total**: Number (Tổng số lượng sở hữu)
+* **available**: Number (Số lượng có thể cho mượn)
+* **broken**: Number (Số lượng đang hỏng/mất)
+
+### 2.5. `requestswarehouses` (Yêu cầu nhập kho)
+Đơn do Lab Manager tạo để xin rút thiết bị từ Kho tổng về Phòng Lab.
+* **lecturer_id**: Ref -> `users` (Lab Manager)
+* **items**: Array `[{ device_id: Ref, quantity: Number }]`
+* **status**: Enum ["pending", "approved", "rejected"]
+* **processed_at**: Date (Ngày duyệt)
+
+### 2.6. `borrowlabs` (Mượn phòng Lab)
+Phiếu mượn thiết bị của Sinh viên.
+* **student_id**: Ref -> `users`
+* **items**: Array `[{ device_id: Ref, quantity: Number }]`
+* **return_due_date**: Date (Hạn trả)
+* **status**: String (Default: "approved")
+* **returned**: Boolean (Đã trả hết chưa?)
+
+### 2.7. `returnlabs` (Trả phòng Lab)
+Phiếu ghi nhận sinh viên trả đồ (có kiểm tra hỏng hóc).
+* **borrow_id**: Ref -> `borrowlabs`
+* **student_id**: Ref -> `users`
+* **items**: Array `[{ device_id: Ref, quantity: Number, broken: Number }]`
+    * *Lưu ý: Trường `broken` dùng để báo số lượng hỏng khi trả.*
+* **status**: Enum ["pending_check", "done"]
+
+### 2.8. `repairs` (Sửa chữa)
+Theo dõi thiết bị hỏng đang được mang đi sửa.
+* **device_id**: Ref -> `devices`
+* **quantity**: Number
+* **status**: Enum ["pending", "done"]
+* **completed_at**: Date
+
+### 2.9. `notifications` (Thông báo)
+* **user_id**: Ref -> `users`
+* **message**: String
+* **type**: String (VD: "alert", "info")
+* **read**: Boolean
+
+### 2.10. `activitylogs` (Lịch sử)
+* **action**: String (VD: "BORROW_CREATE", "RETURN_CHECK")
+* **user_id**: Ref -> `users` (Người thực hiện)
+* **related_id**: String (ID của phiếu mượn/trả liên quan)
+
+---
+
+## 3. Luồng nghiệp vụ (Workflows)
+
+### Luồng 1: Điều chuyển thiết bị (Kho tổng -> Lab)
+1.  **Lab Manager** tạo `requestswarehouses`.
+2.  **School Admin** duyệt đơn.
+3.  **Hệ thống tự động:**
+    * Trừ `available` trong `inventories` (Warehouse).
+    * Cộng `available` trong `inventories` (Lab).
+
+### Luồng 2: Sinh viên mượn đồ (Tại Lab)
+1.  **Student** xem danh sách thiết bị (lọc theo `categories`).
+2.  **Student** tạo `borrowlabs`.
+3.  **Hệ thống:**
+    * Tự động duyệt (status: approved).
+    * Trừ `available` trong `inventories` (Lab).
+
+### Luồng 3: Sinh viên trả đồ
+1.  **Student** mang thiết bị đến trả.
+2.  **Lab Manager** kiểm tra và tạo `returnlabs`.
+    * Nếu nguyên vẹn: `broken = 0`.
+    * Nếu hỏng: Nhập số lượng vào `broken`.
+3.  **Hệ thống:**
+    * Cộng lại số lượng tốt vào `available` (Lab).
+    * Cộng số lượng hỏng vào `broken` (Lab).
+    * Đánh dấu `borrowlabs` là `returned: true`.
+
+### Luồng 4: Xử lý sự cố (Sửa chữa)
+1.  **Lab Manager** tạo phiếu `repairs` cho các thiết bị hỏng.
+2.  Khi sửa xong, cập nhật trạng thái `done`.
+3.  **Hệ thống:**
+    * Trừ `broken` trong `inventories`.
+    * Cộng lại `available` (đã sửa xong).
+
+---
+
+## 4. Hướng dẫn Dữ liệu mẫu (Seed Data)
+
+Dự án đi kèm bộ file JSON chuẩn để import vào MongoDB:
+
+1.  **`users.json`**: Chứa 1 Admin, 1 Lab Manager, 1 Student (đầy đủ username, password hash: `123456`).
+2.  **`categories.json`**: Danh mục Laptop, Linh kiện.
+3.  **`devices.json`**: Dell XPS, Arduino Uno (đã map category_id).
+4.  **`inventories.json`**: Số lượng tồn kho (đã map device_id).
+5.  **`borrowlabs.json`**: Đơn mượn mẫu (đã map student_id, device_id).
+
+**Lưu ý:** Import theo đúng thứ tự trên để đảm bảo các liên kết ID hoạt động chính xác.
+
+---
+
+## 5. Mở rộng (Future Work)
+* Thêm chức năng quét QR Code trên thiết bị để trả nhanh.
+* Thêm bảng `locations` nếu mở rộng nhiều phòng Lab khác nhau.
+* Tích hợp gửi Email thông báo nhắc lịch trả.
