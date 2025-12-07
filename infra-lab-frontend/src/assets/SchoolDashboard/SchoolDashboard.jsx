@@ -132,26 +132,26 @@ function SchoolDashboard() {
           </div>
 
           <div>
-            <div className="sidebar-menu-title">School</div>
+            <div className="sidebar-menu-title">Trường học</div>
             <div className="menu-list">
               <div
                 className={`menu-item ${activeSection === 'overview' ? 'active' : ''}`}
                 onClick={() => setActiveSection('overview')}
               >               
-                <span>📊 Tong quan</span>
+                <span>📊 Tổng quan</span>
               </div>
               <div
                 className={`menu-item ${activeSection === 'inventory' ? 'active' : ''}`}
                 onClick={() => setActiveSection('inventory')}
               >
                
-                <span>📦 Kho Thiet Bi</span>
+                <span>📦 Kho Thiết Bị</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="sidebar-footer">Dang xuat</div>
+        <div className="sidebar-footer">Đăng xuất</div>
       </aside>
 
       {/* Main */}
@@ -159,7 +159,7 @@ function SchoolDashboard() {
         <header className="main-header">
           <div className="main-title">Trung Tam Ung Dung Thiet Bi InFraLab</div>
           <div className="main-user">
-            <span>Xin chao, School Admin!</span>
+            <span>Xin chào, Quản trị viên!</span>
             <div className="user-avatar" />
           </div>
         </header>
@@ -169,17 +169,17 @@ function SchoolDashboard() {
         {activeSection === 'inventory' && (
           <section className="inventory-section">
             <div className="inventory-toolbar">
-              <button className="inventory-side-btn">View list of devices</button>
+              <button className="inventory-side-btn">Xem danh sách thiết bị</button>
 
               <div className="inventory-actions">
                 <div className="category-dropdown">
-                  <label htmlFor="categorySelect">Loai linh kien:</label>
+                  <label htmlFor="categorySelect">Loại linh kiện:</label>
                   <select
                     id="categorySelect"
                     value={selectedCategoryKey}
                     onChange={(e) => setSelectedCategoryKey(e.target.value)}
                   >
-                    <option value="all">Tat Ca</option>
+                    <option value="all">Tất Cả</option>
                     {categories.map((cat) => (
                       <option key={cat._id || cat.name} value={cat._id || ''}>
                         {cat.name}
@@ -193,28 +193,28 @@ function SchoolDashboard() {
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="search"
+                    placeholder="Tìm kiếm"
                   />
                 </div>
 
                 <div className="inventory-sort">
-                  <span>Sap Xep Theo</span>
+                  <span>Sắp Xếp Theo</span>
                   <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                    <option value="newest">Moi Nhat</option>
-                    <option value="oldest">Cu Nhat</option>
+                    <option value="newest">Mới Nhất</option>
+                    <option value="oldest">Cũ Nhất</option>
                   </select>
                 </div>
 
                 <button className="button-primary add-device-btn" onClick={() => setShowAddModal(true)}>
-                  Them Thiet Bi
+                  Thêm Thiết Bị
                 </button>
               </div>
             </div>
 
-            {loading && <div className="inventory-status">Dang tai du lieu...</div>}
+            {loading && <div className="inventory-status">Đang tải dữ liệu...</div>}
             {error && !loading && <div className="inventory-status error">{error}</div>}
             {!loading && !error && filteredDevices.length === 0 && (
-              <div className="inventory-status">Khong co thiet bi phu hop</div>
+              <div className="inventory-status">Không có thiết bị phù hợp</div>
             )}
 
             {!loading && !error && filteredDevices.length > 0 && (
@@ -223,12 +223,12 @@ function SchoolDashboard() {
                   <thead>
                     <tr>
                       <th>#</th>
-                      <th>Ten Thiet Bi</th>
-                      <th>Danh Muc</th>
-                      <th>Tong</th>
-                      <th>Dang Ranh</th>
-                      <th>Dang Muon</th>
-                      <th>Hong</th>
+                      <th>Tên Thiết Bị</th>
+                      <th>Danh Mục</th>
+                      <th>Tổng</th>
+                      <th>Đang Rảnh</th>
+                      <th>Đang Mượn</th>
+                      <th>Hỏng</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -242,7 +242,7 @@ function SchoolDashboard() {
                       const available = inv?.available ?? 0;
                       const broken = inv?.broken ?? 0;
                       const borrowing = Math.max(total - available - broken, 0);
-                      const categoryName = device.category_id?.name || 'N/A';
+                      const categoryName = device.category_id?.name || 'Không có';
 
                       return (
                         <tr key={devId}>
@@ -256,7 +256,7 @@ function SchoolDashboard() {
                           <td>
                             <div className="table-actions">
                               <button className="btn-view">Xem</button>
-                              <button className="btn-edit">Sua</button>
+                              <button className="btn-edit">Sửa</button>
                             </div>
                           </td>
                         </tr>
@@ -274,30 +274,30 @@ function SchoolDashboard() {
         <div className="modal-backdrop">
           <div className="modal">
             <div className="modal-header">
-              <h3>Them thiet bi</h3>
+              <h3>Thêm thiết bị</h3>
               <button className="modal-close" onClick={() => setShowAddModal(false)}>
                 ×
               </button>
             </div>
             <div className="modal-body">
               <div className="form-row">
-                <label>Ten thiet bi</label>
+                <label>Tên thiết bị</label>
                 <input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Nhap ten"
+                  placeholder="Nhập tên"
                 />
               </div>
               <div className="form-row">
-                <label>Mo ta</label>
+                <label>Mô tả</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Mo ta ngan"
+                  placeholder="Mô tả ngắn"
                 />
               </div>
               <div className="form-row">
-                <label>Hinh anh (URL)</label>
+                <label>Hình ảnh (URL)</label>
                 <input
                   value={formData.image}
                   onChange={(e) => setFormData({ ...formData, image: e.target.value })}
@@ -305,12 +305,12 @@ function SchoolDashboard() {
                 />
               </div>
               <div className="form-row">
-                <label>Loai linh kien</label>
+                <label>Loại linh kiện</label>
                 <select
                   value={formData.category_id}
                   onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                 >
-                  <option value="">Chon loai</option>
+                  <option value="">Chọn loại</option>
                   {categories.map((cat) => (
                     <option key={cat._id || cat.name} value={cat._id || ''}>
                       {cat.name}
@@ -320,7 +320,7 @@ function SchoolDashboard() {
               </div>
               <div className="form-row three-cols">
                 <div>
-                  <label>Tong</label>
+                  <label>Tổng</label>
                   <input
                     type="number"
                     min="0"
@@ -329,7 +329,7 @@ function SchoolDashboard() {
                   />
                 </div>
                 <div>
-                  <label>Dang ranh</label>
+                  <label>Đang rảnh</label>
                   <input
                     type="number"
                     min="0"
@@ -338,7 +338,7 @@ function SchoolDashboard() {
                   />
                 </div>
                 <div>
-                  <label>Hong</label>
+                  <label>Hỏng</label>
                   <input
                     type="number"
                     min="0"
@@ -348,23 +348,23 @@ function SchoolDashboard() {
                 </div>
               </div>
               <div className="form-row">
-                <label>Vi tri</label>
+                <label>Vị trí</label>
                 <select
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 >
-                  <option value="warehouse">warehouse</option>
-                  <option value="lab">lab</option>
+                  <option value="warehouse">Kho</option>
+                  <option value="lab">Phòng lab</option>
                 </select>
               </div>
               {error && <div className="inventory-status error">{error}</div>}
             </div>
             <div className="modal-footer">
-              <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
-                Huy
+                <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
+                Hủy
               </button>
               <button className="button-primary" disabled={saving} onClick={handleSubmit}>
-                {saving ? 'Dang luu...' : 'Luu'}
+                {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
             </div>
           </div>
