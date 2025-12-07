@@ -20,6 +20,7 @@ export const getLabDevices = async (req, res) => {
         broken: i.broken || 0,
         borrowed: borrowed < 0 ? 0 : borrowed,
         device: {
+          _id: i.device_id._id,
           name: i.device_id?.name || "N/A",
           image: i.device_id?.image || "",
           category: i.device_id?.category_id?.name || "Không rõ"

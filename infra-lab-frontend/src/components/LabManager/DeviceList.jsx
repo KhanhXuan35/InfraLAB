@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import "./deviceList.css";
+import { useNavigate } from "react-router-dom";
 
 function DeviceList() {
   const [devices, setDevices] = useState([]);
   const [allDevices, setAllDevices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // FILTER STATES
   const [search, setSearch] = useState("");
@@ -187,8 +189,22 @@ function DeviceList() {
                 <td className="warn center">{item.borrowed}</td>
                 <td className="error center">{item.broken}</td>
                 <td className="center">
-                  <button className="btn-view">Xem</button>
-                  <button className="btn-edit">Sửa</button>
+                  <button
+                    onClick={() => {
+                      const id = item?.inventoryId || item?._id; // <-- dùng _id của Inventory
+                      if (!id) {
+                        console.error("Inventory ID is missing!", item);
+                        alert("Thiết bị không có ID hợp lệ!");
+                        return;
+                      }
+                      navigate(`/device/${id}`);  // 👈 dùng deviceId thật
+                    }}
+                    className="btn-view"
+                  >
+                    Chi tiết
+                  </button>
+
+
                 </td>
               </tr>
             ))}
