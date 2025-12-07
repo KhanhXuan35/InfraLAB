@@ -1,7 +1,7 @@
 import React from 'react';
 import UserDashboard from './UserDashboard';
 import TeacherDashboard from './TeacherDashboard';
-import SchoolDashboard from './assets/SchoolDashboard/SchoolDashboard.jsx';
+import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
 
 function App() {
   /**

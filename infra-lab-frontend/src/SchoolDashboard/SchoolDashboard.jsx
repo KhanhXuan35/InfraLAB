@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import '../../dashboard.css';
+import '../dashboard.css';
 import DashboardOverview from './dashboard.jsx';
 
 function SchoolDashboard() {
-  const [activeSection, setActiveSection] = useState('overview'); // overview | inventory
+  const [activeSection, setActiveSection] = useState('overview'); 
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('newest'); // newest | oldest
+  const [sort, setSort] = useState('newest'); 
   const [categories, setCategories] = useState([]);
   const [devices, setDevices] = useState([]);
   const [inventories, setInventories] = useState([]);
@@ -14,6 +14,7 @@ function SchoolDashboard() {
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -24,6 +25,11 @@ function SchoolDashboard() {
     broken: 0,
     location: 'warehouse'
   });
+
+
+  // init state: khoi tao init
+  // useeffect : call api be luu vao state
+  // show state ra la dc
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -93,6 +99,48 @@ function SchoolDashboard() {
       location: 'warehouse'
     });
 
+  const openEdit = (device) => {
+    const devId = device._id || device.id || '';
+    const inv = inventories.find((i) => {
+      const iDev = i.device_id?._id || i.device_id || '';
+      return String(iDev) === String(devId);
+    });
+
+    setFormData({
+      name: device.name || '',
+      description: device.description || '',
+      image: device.image || '',
+      category_id: device.category_id?._id || '',
+      total: inv?.total ?? 0,
+      available: inv?.available ?? '',
+      broken: inv?.broken ?? 0,
+      location: inv?.location || 'warehouse'
+    });
+    setEditingId(devId);
+    setShowAddModal(true);
+  };
+
+  const handleDelete = async (device) => {
+    const devId = device._id || device.id || '';
+    if (!devId) return;
+    const ok = window.confirm(`Xoa thiet bi "${device.name}"?`);
+    if (!ok) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/devices/${devId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const msg = (await res.json().catch(() => ({}))).message || 'Khong xoa duoc thiet bi';
+        throw new Error(msg);
+      }
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Da co loi xay ra');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setSaving(true);
     setError(null);
@@ -103,8 +151,11 @@ function SchoolDashboard() {
         available: formData.available === '' ? undefined : Math.max(Number(formData.available) || 0, 0),
         broken: Number(formData.broken) || 0
       };
-      const res = await fetch(`${API_BASE}/devices`, {
-        method: 'POST',
+      const method = editingId ? 'PUT' : 'POST';
+      const url = editingId ? `${API_BASE}/devices/${editingId}` : `${API_BASE}/devices`;
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
@@ -114,6 +165,7 @@ function SchoolDashboard() {
       }
       setShowAddModal(false);
       resetForm();
+      setEditingId(null);
       await loadData();
     } catch (err) {
       setError(err.message || 'Da co loi xay ra');
@@ -256,7 +308,8 @@ function SchoolDashboard() {
                           <td>
                             <div className="table-actions">
                               <button className="btn-view">Xem</button>
-                              <button className="btn-edit">Sua</button>
+                              <button className="btn-edit" onClick={() => openEdit(device)}>Sua</button>
+                              <button className="btn-delete" onClick={() => handleDelete(device)}>Xoa</button>
                             </div>
                           </td>
                         </tr>
