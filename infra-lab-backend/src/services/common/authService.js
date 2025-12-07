@@ -13,15 +13,65 @@ export const registerService = async (body) => {
     try {
         const { name, email, username, password, role, student_code } = body;
 
-        if (!username || !email || !password) {
-            return { status: 400, success: false, message: "Thiếu thông tin bắt buộc!" };
+        // 1. Check rỗng
+        if (!username || !email || !password || !name) {
+            return { status: 400, success: false, message: "Vui lòng nhập đầy đủ thông tin!" };
         }
 
+        // --- VALIDATE USERNAME ---
+        // Giải thích Regex:
+        // (?=.*[a-zA-Z]): Phải chứa ít nhất 1 chữ cái
+        // (?=.*\d): Phải chứa ít nhất 1 số
+        // [a-zA-Z0-9]{1,8}: Chỉ chấp nhận chữ và số, độ dài từ 1 đến 8
+        const usernameRegex = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z0-9]{8,15}$/;
+
+        if (!usernameRegex.test(username)) {
+            return {
+                status: 400,
+                success: false,
+                message: "Username phải từ 8-15 ký tự, chứa cả chữ và số, không ký tự đặc biệt!"
+            };
+        }
+
+        // --- VALIDATE FULL NAME ---
+        // Giải thích Regex:
+        // a-zA-Z: Chữ cái không dấu
+        // À-ỹ: Các ký tự tiếng Việt có dấu
+        // \s: Khoảng trắng
+        const nameRegex = /^[a-zA-ZÀ-ỹ\s]+$/;
+
+        if (!nameRegex.test(name)) {
+            return {
+                status: 400,
+                success: false,
+                message: "Họ tên chỉ được chứa chữ cái và khoảng trắng (không được có số hay ký tự đặc biệt)!"
+            };
+        }
+
+        // --- VALIDATE EMAIL ---
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return { status: 400, success: false, message: "Email không hợp lệ!" };
+        }
+
+        // --- VALIDATE PASSWORD ---
+        // Ít nhất 8 ký tự, 1 hoa, 1 thường, 1 số, 1 ký tự đặc biệt
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+        if (!passwordRegex.test(password)) {
+            return {
+                status: 400,
+                success: false,
+                message: "Mật khẩu quá yếu! (Cần 8 ký tự, Hoa, Thường, Số, Ký tự đặc biệt)"
+            };
+        }
+
+        // 4. Check trùng lặp
         const existingUser = await User.findOne({ $or: [{ email }, { username }] });
         if (existingUser) {
             return { status: 400, success: false, message: "Username hoặc Email đã tồn tại!" };
         }
 
+        // ... (Phần tạo token, hash password và lưu vào DB giữ nguyên như cũ) ...
         const emailToken = crypto.randomBytes(32).toString("hex");
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -38,9 +88,8 @@ export const registerService = async (body) => {
             emailToken: emailToken
         });
 
-        // Link trỏ về Frontend
+        // ... (Phần gửi mail giữ nguyên) ...
         const verifyUrl = `${process.env.CLIENT_URL}/verify-email/${emailToken}`;
-
         const htmlContent = `
             <h3>Xin chào ${newUser.name},</h3>
             <p>Vui lòng xác thực email bằng cách bấm vào link dưới đây:</p>
@@ -51,6 +100,7 @@ export const registerService = async (body) => {
         sendEmail(newUser.email, "Xác thực tài khoản", "Verify Email", htmlContent);
 
         return { status: 201, success: true, message: "Đăng ký thành công! Vui lòng kiểm tra email." };
+
     } catch (error) {
         return { status: 500, success: false, message: error.message };
     }
