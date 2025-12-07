@@ -1,26 +1,27 @@
-import React from 'react';
-import UserDashboard from './UserDashboard';
-import TeacherDashboard from './TeacherDashboard';
-import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
+import React from "react";
+import { Outlet } from "react-router-dom";
 
-function App() {
-  /**
-   * Chọn giao diện cần xem:
-   *  - 'user'    : người dùng/sinh viên
-   *  - 'teacher' : giáo viên/lab manager
-   *  - 'school'  : nhà cung cấp thiết bị
-   */
-  const currentView = 'school'; // Thay đổi giá trị này để chuyển giao diện
+// Dashboard pages
+import UserDashboard from "./UserDashboard";
+import TeacherDashboard from "./TeacherDashboard";
+import SchoolDashboard from "./SchoolDashboard";
 
-  if (currentView === 'teacher') {
-    return <TeacherDashboard />;
-  }
+export default function App() {
+  const currentView = "school"; // Tạm set cứng để test UI
 
-  if (currentView === 'school') {
-    return <SchoolDashboard />;
-  }
+  return (
+    <div style={{ display: "flex" }}>
 
-  return <UserDashboard />;
+      {/* Dashboard cố định bên trái */}
+      {currentView === "teacher" && <TeacherDashboard />}
+      {currentView === "school" && <SchoolDashboard />}
+      {currentView === "user" && <UserDashboard />}
+
+      {/* Nơi load từng trang */}
+      <div style={{ flex: 1 }}>
+        <Outlet />
+      </div>
+
+    </div>
+  );
 }
-
-export default App;
