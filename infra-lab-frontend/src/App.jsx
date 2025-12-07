@@ -4,7 +4,7 @@ import { Outlet } from "react-router-dom";
 // Dashboard pages
 import UserDashboard from "./UserDashboard";
 import TeacherDashboard from "./TeacherDashboard";
-import SchoolDashboard from "./SchoolDashboard";
+import SchoolDashboard from "./assets/SchoolDashboard/SchoolDashboard.jsx";
 
 export default function App() {
   const currentView = "user"; // Tạm set cứng để test UI

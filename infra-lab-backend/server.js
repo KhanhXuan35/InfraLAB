@@ -9,7 +9,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 const startServer = async () => {
   try {
-    // Connect Database
+    // Connect DatabaseS
     await connectDB();
 
     // Start Server
@@ -21,5 +21,6 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
 
 startServer();

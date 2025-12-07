@@ -7,4 +7,4 @@ const deviceSchema = new mongoose.Schema({
     image: { type: String, default: "" }
 }, { timestamps: true });
 
-export default mongoose.model("Device", deviceSchema);
+export default mongoose.model("Device", deviceSchema,"devices");
