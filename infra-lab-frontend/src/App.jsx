@@ -25,6 +25,13 @@ import RegisterBorrow from "./pages/student/RegisterBorrow/RegisterBorrow";
 import RegisterBorrowMultiple from "./pages/student/RegisterBorrowMultiple/RegisterBorrowMultiple";
 import Cart from "./pages/student/Cart/Cart";
 
+// Lab Manager pages
+import DeviceList from "./components/LabManager/DeviceList";
+import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
+
+// School pages
+import RepairRequestList from "./pages/School/RepairRequestList";
+
 import "./App.css";
 
 function App() {
@@ -52,6 +59,13 @@ function App() {
             <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
               <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
             </Route>
+
+            {/* --- LAB MANAGER PAGES --- */}
+            <Route path="/devices" element={<DeviceList />} />
+            <Route path="/device/:id" element={<DeviceDetailPage />} />
+
+            {/* --- SCHOOL PAGES --- */}
+            <Route path="/repairs" element={<RepairRequestList />} />
 
             {/* --- STUDENT PAGES --- */}
             <Route path="/" element={<ViewListDevices />} />

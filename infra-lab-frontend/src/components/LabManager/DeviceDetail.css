@@ -415,3 +415,37 @@
     width: 100%;
   }
 }
+/* Warning & Success messages */
+.alert-warning {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.15);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.alert-success {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.broken-info {
+  margin: 8px 0 12px;
+  font-size: 15px;
+  color: #d4d4d4;
+}
+
+.modal textarea {
+  width: 100%;
+  padding: 10px;
+  background: #111;
+  border: 1px solid #333;
+  color: white;
+  border-radius: 6px;
+  margin-top: 6px;
+}

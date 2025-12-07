@@ -12,6 +12,8 @@ import userDashboardRoutes from "./routes/User/userDashboardRoutes.js";
 import schoolInventoryRoutes from "./routes/device_school/inventories.routes.js";
 import deviceCategoryRoutes from "./routes/device_school/device_categories.routes.js";
 import deviceRoutes from "./routes/device_school/devices.routes.js";
+import repairRoutes from "./routes/LabManager/repairRoutes.js";
+import repairCheckRoutes from "./routes/repairs/checkExisting.js";
 
 const app = express();
 
@@ -54,6 +56,10 @@ app.use("/api/user-dashboard", userDashboardRoutes);
 app.use("/api/inventories", schoolInventoryRoutes);
 app.use("/api/device-categories", deviceCategoryRoutes);
 app.use("/api/devices", deviceRoutes);
+
+// Repair routes
+app.use("/api/repairs", repairRoutes);  
+app.use("/api/repairs", repairCheckRoutes);
 
 // 4. Xử lý lỗi 404 (Không tìm thấy route)
 app.use((req, res, next) => {
