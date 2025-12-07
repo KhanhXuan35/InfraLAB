@@ -8,12 +8,7 @@ import {
   Statistic, 
   Typography, 
   Button, 
-  Space, 
-  Avatar,
-  Empty,
-  List,
-  Tag,
-  Divider
+  Space
 } from 'antd';
 import { 
   SearchOutlined, 
@@ -27,14 +22,13 @@ import {
   ArrowDownOutlined,
   RightOutlined
 } from '@ant-design/icons';
-import Header from '../../components/Header/Header';
 import WelcomeModal from '../../components/WelcomeModal/WelcomeModal';
 import api from '../../services/api';
 import { STUDENT_ROUTES } from '../../constants/routes';
 import * as S from './StudentHomePage.styles';
 
 const { Content } = Layout;
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 
 const StudentHomePage = () => {
   const navigate = useNavigate();
@@ -127,7 +121,6 @@ const StudentHomePage = () => {
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
-      <Header />
       <WelcomeModal userName={user?.name} />
       
       <Content>

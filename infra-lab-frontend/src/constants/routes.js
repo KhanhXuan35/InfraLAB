@@ -17,7 +17,7 @@ export const STUDENT_BASE_PATH = "/student";
 
 // Student Pages
 export const STUDENT_ROUTES = {
-  HOME: `${STUDENT_BASE_PATH}/dashboard`,
+  HOME: "/user-dashboard", // Đồng bộ với route trong App.jsx
   DEVICES: `${STUDENT_BASE_PATH}/devices`,
   DEVICE_DETAIL: (id) => `${STUDENT_BASE_PATH}/device/${id}`,
 
@@ -31,7 +31,7 @@ export const STUDENT_ROUTES = {
 
   BORROW_MULTIPLE: `${STUDENT_BASE_PATH}/borrow/multiple`,
 
-  // Extra features (giữ nguyên từ HEAD)
+  // Extra features
   BORROWED: `${STUDENT_BASE_PATH}/borrowed`,
   REQUESTS: `${STUDENT_BASE_PATH}/requests`,
   HISTORY: `${STUDENT_BASE_PATH}/history`,

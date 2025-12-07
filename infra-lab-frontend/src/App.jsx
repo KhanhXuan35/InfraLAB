@@ -16,7 +16,7 @@ import SchoolAdminHomePage from "./pages/SchoolAdmin/SchoolAdminHomePage";
 
 // Components
 import PrivateRoute from "./components/PrivateRoute";
-import Header from "./components/Header/Header";
+import ConditionalHeader from "./components/ConditionalHeader";
 
 // Student pages
 import ViewListDevices from "./pages/student/ViewListDevices/ViewListDevices";
@@ -32,7 +32,7 @@ function App() {
     <ConfigProvider>
       <CartProvider>
         <Router>
-          <Header />
+          <ConditionalHeader />
 
           <Routes>
             {/* --- AUTH --- */}
