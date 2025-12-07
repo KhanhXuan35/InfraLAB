@@ -24,7 +24,13 @@ function SchoolDashboard() {
     usageRate: 0,
   });
   const [loading, setLoading] = useState(true);
-
+  const handleLogout = () => {
+  // Xóa sạch thông tin đăng nhập
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("user");
+  // Chuyển hướng về trang Login
+  navigate("/login");
+};
   // Fetch dữ liệu từ API
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -115,7 +121,7 @@ function SchoolDashboard() {
           </div>
         </div>
 
-        <div className="sidebar-footer">Đăng xuất</div>
+        <div className="sidebar-footer" onClick={handleLogout}>Đăng xuất</div>
       </aside>
 
       {/* Main */}
@@ -176,84 +182,11 @@ function SchoolDashboard() {
                 ))
               )}
             </div>
-
             <div className="supplier-actions">
               <button className="button-primary green">Duyệt nhanh</button>
               <button className="button-secondary">Xem tất cả</button>
             </div>
           </div>
-
-          {/* <div className="panel-card">
-            <div className="panel-title">Trạng thái giao hàng</div>
-            <div className="panel-subtitle">Theo dõi tiến độ xuất kho</div>
-
-            <div className="timeline">
-              {SHIPMENTS.map((step) => (
-                <div className="timeline-row" key={step.title}>
-                  <div className="timeline-step">
-                    <div className="timeline-title">{step.title}</div>
-                    <div className="timeline-meta">{step.info}</div>
-                    <div className="request-date">{step.time}</div>
-                  </div>
-                  <div className="timeline-status">{step.status}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="supplier-bottom">
-          <div className="info-block">
-            <div className="panel-title">Tổng quan kho</div>
-            <div className="inventory-grid">
-              <div>
-                <div className="info-label">Sẵn sàng xuất</div>
-                <div className="info-value">
-                  {loading ? "..." : `${warehouseStats.readyToShip} thiết bị`}
-                </div>
-              </div>
-              <div>
-                <div className="info-label">Đang sửa chữa</div>
-                <div className="info-value">
-                  {loading ? "..." : `${warehouseStats.underRepair} thiết bị`}
-                </div>
-              </div>
-              <div>
-                <div className="info-label">Dự kiến nhập kho</div>
-                <div className="info-value">
-                  {loading ? "..." : `${warehouseStats.expectedIncoming} thiết bị`}
-                </div>
-              </div>
-              <div>
-                <div className="info-label">Tỷ lệ sử dụng</div>
-                <div className="info-value">
-                  {loading ? "..." : `${warehouseStats.usageRate}%`}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* <div className="info-block">
-            <div className="panel-title">Lịch bảo trì tuần này</div>
-            <div className="maintenance-list">
-              <div className="maintenance-item">
-                <span>Máy sắc ký lỏng</span>
-                <span className="maintenance-date">05/12</span>
-              </div>
-              <div className="maintenance-item">
-                <span>Buồng nuôi cấy tế bào</span>
-                <span className="maintenance-date">06/12</span>
-              </div>
-              <div className="maintenance-item">
-                <span>Máy quang phổ FTIR</span>
-                <span className="maintenance-date">08/12</span>
-              </div>
-              <div className="maintenance-item">
-                <span>Tủ lạnh âm sâu</span>
-                <span className="maintenance-date">09/12</span>
-              </div>
-            </div>
-          </div> */}
         </section>
       </main>
     </div>

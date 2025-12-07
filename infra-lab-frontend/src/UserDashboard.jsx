@@ -68,7 +68,7 @@ function UserDashboard() {
             <div className="menu-list">
               <div 
                 className={`menu-item ${isHomePage ? "active" : ""}`} 
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/user-dashboard")}
               >
                 <span className="icon">🏠</span>
                 <span>Trang chủ</span>

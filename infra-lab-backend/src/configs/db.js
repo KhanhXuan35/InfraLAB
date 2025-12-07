@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const connectDB = async () => {
   try {
     const uri = process.env.MONGODB_URI || process.env.DB_CONNECT;
-    const dbName = process.env.DB_NAME || "InfraLab";
+    const dbName = (process.env.DB_NAME || "InfraLab").trim();
 
     if (!uri) throw new Error("Missing MongoDB connection string (DB_CONNECT or MONGODB_URI)");
 

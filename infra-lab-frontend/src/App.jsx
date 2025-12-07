@@ -2,44 +2,51 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ROUTES } from "./constants/routes";
 
-// Import các trang (Cổng và các phòng)
+// Import Auth Pages
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
-import UserDashboard from "./UserDashboard";       // Phòng Sinh viên
-import TeacherDashboard from "./TeacherDashboard"; // Phòng Giáo viên
-import SchoolDashboard from "./SchoolDashboard";   // Phòng Admin
 
-import PrivateRoute from "./components/PrivateRoute"; // Bác bảo vệ
+// Import Dashboards (Các file giao diện chính bạn đã có)
+import UserDashboard from "./UserDashboard";
+import TeacherDashboard from "./TeacherDashboard";
+import SchoolDashboard from "./SchoolDashboard";
+
+// Import Component bảo vệ
+import PrivateRoute from "./components/PrivateRoute";
 import "./App.css";
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* --- KHU VỰC CÔNG CỘNG (Ai cũng vào được) --- */}
+        {/* --- 1. NHÓM ĐĂNG NHẬP/ĐĂNG KÝ --- */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
         <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
 
-        {/* --- KHU VỰC RIÊNG TƯ (Phải có thẻ mới vào được) --- */}
+        {/* --- 2. NHÓM TRANG CHỦ (Được bảo vệ) --- */}
         
-        {/* Phòng Sinh viên (Chỉ role 'student' được vào) */}
+        {/* Sinh viên -> Vào UserDashboard */}
         <Route element={<PrivateRoute allowedRoles={["student"]} />}>
           <Route path="/user-dashboard" element={<UserDashboard />} />
         </Route>
 
-        {/* Phòng Quản lý Lab (Chỉ role 'lab_manager' được vào) */}
+        {/* Quản lý Lab -> Vào TeacherDashboard */}
         <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
           <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
         </Route>
 
-        {/* Phòng Admin Trường (Chỉ role 'school_admin' được vào) */}
+        {/* Admin Trường -> Vào SchoolDashboard */}
         <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
           <Route path="/school-dashboard" element={<SchoolDashboard />} />
         </Route>
 
-        {/* Mặc định: Vào trang chủ thì đá về Login để kiểm tra lại */}
+        {/* --- 3. ĐIỀU HƯỚNG MẶC ĐỊNH --- */}
+        {/* Nếu gõ trang chủ / -> Đẩy về Login để kiểm tra */}
+        <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
+        
+        {/* Gõ linh tinh -> Đẩy về Login */}
         <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
       </Routes>
     </Router>
