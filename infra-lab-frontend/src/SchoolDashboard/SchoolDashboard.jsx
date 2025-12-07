@@ -68,6 +68,7 @@ function SchoolDashboard() {
   }, [API_BASE, activeSection]);
 
   const filteredDevices = useMemo(() => {
+    console.log(devices)
     const list = devices.filter((item) => {
       const nameMatches = (item.name || '').toLowerCase().includes(search.toLowerCase().trim());
 

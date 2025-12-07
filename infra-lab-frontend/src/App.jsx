@@ -1,26 +1,18 @@
 import React from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import UserDashboard from './UserDashboard';
 import TeacherDashboard from './TeacherDashboard';
 import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
 
 function App() {
-  /**
-   * Chọn giao diện cần xem:
-   *  - 'user'    : người dùng/sinh viên
-   *  - 'teacher' : giáo viên/lab manager
-   *  - 'school'  : nhà cung cấp thiết bị
-   */
-  const currentView = 'school'; // Thay đổi giá trị này để chuyển giao diện
-
-  if (currentView === 'teacher') {
-    return <TeacherDashboard />;
-  }
-
-  if (currentView === 'school') {
-    return <SchoolDashboard />;
-  }
-
-  return <UserDashboard />;
+  return (
+    <Routes>
+      <Route path="/school/dashboard" element={<SchoolDashboard />} />
+      <Route path="/teacher" element={<TeacherDashboard />} />
+      <Route path="/" element={<UserDashboard />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 export default App;
