@@ -2,6 +2,7 @@ import Inventory from "../../models/Inventory.js";
 import RequestsWarehouse from "../../models/RequestsWarehouse.js";
 import Device from "../../models/Device.js";
 import User from "../../models/User.js";
+import ActivityLogs from "../../models/ActivityLogs.js";
 
 // Lấy thống kê highlights cho School Dashboard
 export const getSchoolStats = async (req, res) => {
@@ -29,11 +30,35 @@ export const getSchoolStats = async (req, res) => {
       totalReadyToShip += inv.available || 0;
     });
 
-    // Tính số thiết bị tăng so với hôm qua (giả lập - có thể tính từ ActivityLogs)
+    // Tính số thiết bị tăng so với hôm qua từ ActivityLogs
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    // Tạm thời dùng số cố định, có thể cải thiện sau
-    const increaseDevices = 12; // Có thể tính từ ActivityLogs
+    yesterday.setHours(0, 0, 0, 0);
+    
+    // Đếm số thiết bị được thêm vào warehouse trong 24 giờ qua từ ActivityLogs
+    // Tìm các activity có action liên quan đến thêm thiết bị
+    const todayActivities = await ActivityLogs.countDocuments({
+      action: { $regex: /add|create|thêm/i },
+      createdAt: { $gte: yesterday },
+    });
+    
+    // Hoặc tính từ Inventory changes (nếu có updatedAt)
+    let increaseDevices = todayActivities;
+    
+    // Nếu không có ActivityLogs, tính từ Inventory changes
+    if (increaseDevices === 0) {
+      const recentInventories = await Inventory.find({
+        location: "warehouse",
+        updatedAt: { $gte: yesterday },
+      }).lean();
+      increaseDevices = recentInventories.length;
+    }
+
+    // Đếm số lô hàng đang giao (yêu cầu đã approved nhưng chưa hoàn thành)
+    const shipmentsInTransit = await RequestsWarehouse.countDocuments({
+      status: "approved",
+      // Có thể thêm điều kiện khác nếu có trường tracking hoặc delivery status
+    });
 
     res.json({
       success: true,
@@ -42,6 +67,7 @@ export const getSchoolStats = async (req, res) => {
         newRequestsToday: newRequestsToday,
         readyToShip: totalReadyToShip,
         increaseDevices: increaseDevices,
+        shipmentsInTransit: shipmentsInTransit,
       },
     });
   } catch (err) {

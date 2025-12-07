@@ -64,7 +64,7 @@ function UserDashboard() {
           </div>
 
           <div>
-            <div className="sidebar-menu-title">Menu</div>
+            <div className="sidebar-menu-title">Danh mục</div>
             <div className="menu-list">
               <div 
                 className={`menu-item ${isHomePage ? "active" : ""}`} 
@@ -119,7 +119,7 @@ function UserDashboard() {
           </div>
 
           <div>
-            <div className="sidebar-menu-title">Menu</div>
+            <div className="sidebar-menu-title">Danh mục</div>
             <div className="menu-list">
               <div 
                 className={`menu-item ${isHomePage ? "active" : ""}`} 
@@ -167,7 +167,7 @@ function UserDashboard() {
         <header className="main-header">
           <div className="main-title">Chào mừng đến với hệ thống quản lý thiết bị phòng Lab!</div>
           <div className="main-user">
-            <span>Xin chào, User!</span>
+            <span>Xin chào, Người dùng!</span>
             <div className="user-avatar" />
           </div>
         </header>

@@ -64,7 +64,7 @@ export default function TeacherDashboard() {
           </div>
 
           <div>
-            <div className="sidebar-menu-title">Lab Manager</div>
+            <div className="sidebar-menu-title">Quản lý phòng Lab</div>
             <div className="menu-list">
             <div 
                 className={`menu-item ${isHomePage ? "active" : ""}`} 
@@ -92,7 +92,7 @@ export default function TeacherDashboard() {
 
               <div className="menu-item">
                 <span className="icon">🔔</span>
-                <span>Notification</span>
+                <span>Thông báo</span>
               </div>
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function TeacherDashboard() {
           </div>
 
           <div>
-            <div className="sidebar-menu-title">Lab Manager</div>
+            <div className="sidebar-menu-title">Quản lý phòng Lab</div>
             <div className="menu-list">
               {/* 🔥 Bấm vào đây sẽ chuyển sang /devices */}
               <div 
@@ -143,7 +143,7 @@ export default function TeacherDashboard() {
 
               <div className="menu-item">
                 <span className="icon">🔔</span>
-                <span>Notification</span>
+                <span>Thông báo</span>
               </div>
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function TeacherDashboard() {
         <header className="main-header">
           <div className="main-title">InFraLab</div>
           <div className="main-user">
-            <span>Xin chào, Teacher!</span>
+            <span>Xin chào, Giáo viên!</span>
             <div className="user-avatar" />
           </div>
         </header>
@@ -211,11 +211,11 @@ export default function TeacherDashboard() {
             <div className="section-title">Hoạt động gần đây</div>
             <div className="activity-list">
               {loading ? (
-                <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8" }}>
+                <div style={{ padding: "20px", textAlign: "center", color: "#000000" }}>
                   Đang tải...
                 </div>
               ) : activities.length === 0 ? (
-                <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8" }}>
+                <div style={{ padding: "20px", textAlign: "center", color: "#000000" }}>
                   Chưa có hoạt động nào
                 </div>
               ) : (

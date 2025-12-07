@@ -1,23 +1,87 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-const REQUESTS = [
-  { id: 'REQ-245', teacher: 'Thay Minh', device: 'May quang pho UV-Vis', department: 'Hoa phan tich', dueDate: 'Truoc 10/12', status: 'Cho duyet', badge: 'status-pending' },
-  { id: 'REQ-231', teacher: 'Co Lan', device: 'Bo cam bien sinh hoc', department: 'Cong nghe sinh hoc', dueDate: 'Truoc 08/12', status: 'Uu tien cao', badge: 'status-urgent' },
-  { id: 'REQ-227', teacher: 'Thay Huy', device: 'Kinh hien vi dien tu', department: 'Vat lieu', dueDate: 'Truoc 15/12', status: 'San sang xuat', badge: 'status-ready' },
-  { id: 'REQ-225', teacher: 'Co Tram', device: 'May PCR Real-Time', department: 'Sinh hoc phan tu', dueDate: 'Truoc 12/12', status: 'Cho duyet', badge: 'status-pending' },
-];
-
-const HIGHLIGHTS = [
-  { label: 'Yeu cau cho duyet', value: '08', trend: '+2 yeu cau moi hom nay', color: '#fbbf24' },
-  { label: 'Thiet bi san sang xuat', value: '320', trend: 'Tang 12 thiet bi', color: '#34d399' },
-  { label: 'Lo hang dang giao', value: '03', trend: 'Cap nhat 2 gio truoc', color: '#38bdf8' },
-];
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function DashboardOverview() {
+  const [highlights, setHighlights] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch stats và requests song song
+        const [statsRes, requestsRes] = await Promise.all([
+          fetch(`${API_BASE}/school-dashboard/stats`),
+          fetch(`${API_BASE}/school-dashboard/requests?limit=4&status=pending`),
+        ]);
+
+        const statsData = await statsRes.json();
+        const requestsData = await requestsRes.json();
+
+        if (statsData.success) {
+          // Format highlights data
+          const highlightsData = [
+            {
+              label: 'Yêu cầu chờ duyệt',
+              value: String(statsData.data.pendingRequests || 0).padStart(2, '0'),
+              trend: `+${statsData.data.newRequestsToday || 0} yêu cầu mới hôm nay`,
+              color: '#fbbf24',
+            },
+            {
+              label: 'Thiết bị sẵn sàng xuất',
+              value: String(statsData.data.readyToShip || 0),
+              trend: `Tăng ${statsData.data.increaseDevices || 0} thiết bị`,
+              color: '#34d399',
+            },
+            {
+              label: 'Lô hàng đang giao',
+              value: String(statsData.data.shipmentsInTransit || 0).padStart(2, '0'),
+              trend: 'Cập nhật vừa xong',
+              color: '#38bdf8',
+            },
+          ];
+          setHighlights(highlightsData);
+        }
+
+        if (requestsData.success) {
+          setRequests(requestsData.data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: '#000000' }}>
+        Đang tải dữ liệu...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: '#b91c1c' }}>
+        {error}
+      </div>
+    );
+  }
+
   return (
     <>
       <section className="supplier-highlight">
-        {HIGHLIGHTS.map((item) => (
+        {highlights.map((item) => (
           <div className="highlight-card" key={item.label}>
             <div className="highlight-label">
               <span>{item.label}</span>
@@ -35,29 +99,35 @@ function DashboardOverview() {
 
       <section className="supplier-panels">
         <div className="panel-card">
-          <div className="panel-title">Yeu cau moi tu giao vien</div>
-          <div className="panel-subtitle">Uu tien xu ly trong 24 gio</div>
+          <div className="panel-title">Yêu cầu mới từ giáo viên</div>
+          <div className="panel-subtitle">Ưu tiên xử lý trong 24 giờ</div>
 
           <div className="panel-list">
-            {REQUESTS.map((req) => (
-              <div className="request-item" key={req.id}>
-                <div className="request-details">
-                  <div className="request-name">
-                    {req.id} - {req.teacher}
-                  </div>
-                  <div className="request-meta">
-                    {req.device} - {req.department}
-                  </div>
-                  <div className="request-date">{req.dueDate}</div>
-                </div>
-                <div className={`status-pill ${req.badge}`}>{req.status}</div>
+            {requests.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#000000' }}>
+                Chưa có yêu cầu nào
               </div>
-            ))}
+            ) : (
+              requests.map((req) => (
+                <div className="request-item" key={req.id || req._id}>
+                  <div className="request-details">
+                    <div className="request-name">
+                      {req.id} - {req.teacher}
+                    </div>
+                    <div className="request-meta">
+                      {req.device} - {req.department || 'N/A'}
+                    </div>
+                    <div className="request-date">{req.dueDate}</div>
+                  </div>
+                  <div className={`status-pill ${req.badge}`}>{req.status}</div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="supplier-actions">
-            <button className="button-primary green">Duyet nhanh</button>
-            <button className="button-secondary">Xem tat ca</button>
+            <button className="button-primary green">Duyệt nhanh</button>
+            <button className="button-secondary">Xem tất cả</button>
           </div>
         </div>
       </section>
