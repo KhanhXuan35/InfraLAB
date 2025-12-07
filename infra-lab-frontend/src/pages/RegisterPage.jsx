@@ -8,7 +8,6 @@ import "../App.css";
 const RegisterPage = () => {
   const navigate = useNavigate();
   
-  // State lưu trữ dữ liệu form
   const [formData, setFormData] = useState({
     fullName: "",
     username: "",
@@ -17,14 +16,11 @@ const RegisterPage = () => {
     confirmPassword: "",
   });
 
-  // State hiển thị/ẩn mật khẩu
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
-  
-  // State độ mạnh mật khẩu (0-5)
   const [strength, setStrength] = useState(0);
 
-  // Tính toán độ mạnh mật khẩu mỗi khi password thay đổi
+  // Tính điểm độ mạnh mật khẩu (để hiển thị thanh trạng thái)
   useEffect(() => {
     const pass = formData.password;
     let score = 0;
@@ -32,49 +28,69 @@ const RegisterPage = () => {
       setStrength(0);
       return;
     }
-    if (pass.length > 5) score += 1; // Độ dài > 5
-    if (pass.length > 8) score += 1; // Độ dài > 8
-    if (/[A-Z]/.test(pass)) score += 1; // Có chữ hoa
-    if (/[0-9]/.test(pass)) score += 1; // Có số
-    if (/[^A-Za-z0-9]/.test(pass)) score += 1; // Có ký tự đặc biệt
-    setStrength(score);
+    if (pass.length >= 8) score += 1;
+    if (pass.length > 10) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1; // Hoa
+    if (/[0-9]/.test(pass)) score += 1; // Số
+    if (/[^A-Za-z0-9]/.test(pass)) score += 1; // Đặc biệt
+    
+    setStrength(Math.min(score, 5));
   }, [formData.password]);
 
-  // Xử lý khi nhập liệu
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Xử lý Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. Validate cơ bản
+    // 1. Kiểm tra mật khẩu trùng khớp
     if (formData.password !== formData.confirmPassword) {
       alert("Mật khẩu xác nhận không khớp!");
       return;
     }
-    if (strength < 3) {
-      alert("Mật khẩu quá yếu! Vui lòng đặt mật khẩu mạnh hơn.");
+
+    // 2. VALIDATE MẬT KHẨU (YÊU CẦU MỚI: 8-15 ký tự, Hoa, Thường, Số, Đặc biệt)
+    // Regex giải thích:
+    // (?=.*[a-z]): Ít nhất 1 thường
+    // (?=.*[A-Z]): Ít nhất 1 hoa
+    // (?=.*\d): Ít nhất 1 số
+    // (?=.*[\W_]): Ít nhất 1 ký tự đặc biệt
+    // .{8,15}: Độ dài 8-15
+    const strictPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,15}$/;
+    
+    if (!strictPasswordRegex.test(formData.password)) {
+      alert("Mật khẩu phải từ 8-15 ký tự, bao gồm: Chữ Hoa, Chữ Thường, Số và Ký tự đặc biệt!");
+      return;
+    }
+
+    // 3. Validate Username (8-15 ký tự, chữ + số)
+    const usernameRegex = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z0-9]{8,15}$/;
+    if (!usernameRegex.test(formData.username)) {
+      alert("Username phải từ 8-15 ký tự, bao gồm cả chữ và số, không chứa ký tự đặc biệt!");
+      return;
+    }
+
+    // 4. Validate Fullname
+    const nameRegex = /^[a-zA-ZÀ-ỹ\s]+$/;
+    if (!nameRegex.test(formData.fullName)) {
+      alert("Họ tên chỉ được chứa chữ cái và khoảng trắng!");
       return;
     }
 
     try {
-      // 2. Chuẩn bị dữ liệu gửi xuống Backend
       const payload = {
         name: formData.fullName,
         username: formData.username,
         email: formData.email,
         password: formData.password,
-        role: "student", // Mặc định là sinh viên
+        role: "student",
       };
 
-      // 3. Gọi API
       const res = await register(payload);
       
-      // 4. Xử lý thành công
       if (res.success) {
-        alert(res.message); // "Vui lòng kiểm tra email..."
+        alert(res.message);
         navigate(ROUTES.LOGIN);
       }
     } catch (err) {
@@ -89,7 +105,6 @@ const RegisterPage = () => {
         <p className="auth-subtitle">Create your InfraLab account</p>
 
         <form onSubmit={handleSubmit}>
-          {/* Hàng 1: Full Name & User Name */}
           <div className="row">
             <div className="form-group col">
               <label>Full Name</label>
@@ -106,33 +121,31 @@ const RegisterPage = () => {
               <input 
                 name="username" 
                 type="text" 
-                placeholder="nguyenvana"
+                placeholder="nguyenvana123"
                 onChange={handleChange} 
                 required 
               />
             </div>
           </div>
 
-          {/* Email */}
           <div className="form-group">
             <label>Email Address</label>
             <input 
               name="email" 
               type="email" 
-              placeholder="email@fpt.edu.vn" 
+              placeholder="email@example.com" 
               onChange={handleChange} 
               required 
             />
           </div>
 
-          {/* Password */}
           <div className="form-group">
             <label>Password</label>
             <div className="input-wrapper">
               <input
                 type={showPass ? "text" : "password"}
                 name="password"
-                placeholder="8+ Characters required"
+                placeholder="8-15 chars, Upper, Lower, Number & Special" 
                 onChange={handleChange}
                 required
               />
@@ -142,14 +155,13 @@ const RegisterPage = () => {
             </div>
           </div>
 
-          {/* Confirm Password */}
           <div className="form-group">
             <label>Confirm Password</label>
             <div className="input-wrapper">
               <input
                 type={showConfirmPass ? "text" : "password"}
                 name="confirmPassword"
-                placeholder="Re-enter your password"
+                placeholder="Re-enter password"
                 onChange={handleChange}
                 required
               />
@@ -159,7 +171,6 @@ const RegisterPage = () => {
             </div>
           </div>
 
-          {/* --- THANH ĐO ĐỘ MẠNH (CỐ ĐỊNH) --- */}
           <div className="strength-container">
             <div className="strength-meter">
               {[1, 2, 3, 4, 5].map((item) => (
@@ -178,7 +189,6 @@ const RegisterPage = () => {
               <span>Very Strong</span>
             </div>
           </div>
-          {/* ---------------------------------- */}
 
           <button type="submit" className="btn-primary">Sign Up</button>
         </form>
