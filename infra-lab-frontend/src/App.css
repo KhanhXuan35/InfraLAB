@@ -1,42 +1,321 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* src/App.css */
+
+/* --- LAYOUT CHUNG --- */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  /* Màu nền sáng hơn chút */
+}
+
+.auth-card {
+  background: white;
+  padding: 50px;
+  /* Tăng padding để nội dung thoáng hơn */
+  border-radius: 16px;
+  /* Bo góc tròn hơn */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  /* Bóng đổ mềm mại hơn */
+  width: 100%;
+  max-width: 500px;
+  /* Tăng chiều rộng form Login lên 500px */
+  box-sizing: border-box;
+}
+
+/* Form Đăng ký cần rộng hơn vì có 2 cột */
+.auth-card.wide {
+  max-width: 800px;
+  /* Tăng chiều rộng form Register lên 800px */
+}
+
+/* --- LOGO & TIÊU ĐỀ --- */
+.logo-section {
   text-align: center;
+  margin-bottom: 30px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.logo-img {
+  height: 60px;
+  /* Logo to hơn */
+  margin-bottom: 10px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.school-name {
+  color: #F36F21;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin: 0;
+  font-size: 24px;
+  /* Chữ to hơn */
+  letter-spacing: 1px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.auth-title {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 10px;
+  font-size: 32px;
+  /* Tiêu đề to hẳn lên */
+  font-weight: 700;
 }
 
-.card {
-  padding: 2em;
+.auth-subtitle {
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 16px;
+  margin-bottom: 30px;
 }
 
-.read-the-docs {
+/* --- FORM INPUT --- */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 15px;
+  /* Label to hơn */
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.row {
+  display: flex;
+  gap: 20px;
+  /* Khoảng cách giữa 2 cột lớn hơn */
+}
+
+.col {
+  flex: 1;
+}
+
+input {
+  width: 100%;
+  padding: 14px 16px;
+  /* Ô nhập liệu cao và thoáng hơn */
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  /* Cỡ chữ nhập vào to hơn */
+  box-sizing: border-box;
+  transition: all 0.2s;
+  background-color: #fbfbfb;
+}
+
+input:focus {
+  outline: none;
+  border-color: #F36F21;
+  background-color: #fff;
+  box-shadow: 0 0 0 4px rgba(243, 111, 33, 0.1);
+  /* Hiệu ứng focus đẹp */
+}
+
+/* --- INPUT CÓ ICON (MẮT) --- */
+.input-wrapper {
+  position: relative;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #999;
+  font-size: 20px;
+  /* Icon mắt to hơn */
+}
+
+/* --- BUTTONS --- */
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  /* Nút bấm cao hơn */
+  background-color: #333;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  /* Chữ trong nút to hơn */
+  margin-top: 15px;
+  transition: background 0.3s;
+}
+
+.btn-primary:hover {
+  background-color: #000;
+  transform: translateY(-1px);
+}
+
+.btn-google {
+  width: 100%;
+  padding: 14px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #333;
+  font-weight: 600;
+  font-size: 16px;
+  margin-top: 15px;
+  transition: background 0.2s;
+}
+
+.btn-google:hover {
+  background-color: #f5f5f5;
+}
+
+/* --- TIỆN ÍCH KHÁC --- */
+.forgot-pass {
+  text-align: right;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+.forgot-pass a {
+  color: #666;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.forgot-pass a:hover {
+  border-bottom-color: #666;
+}
+
+.divider {
+  text-align: center;
+  margin: 25px 0;
+  color: #999;
+  font-size: 14px;
+  position: relative;
+}
+
+.divider::before, .divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 42%;
+  height: 1px;
+  background: #eee;
+}
+
+.divider::before {
+  left: 0;
+}
+
+.divider::after {
+  right: 0;
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 15px;
+  margin-top: 30px;
+  color: #666;
+}
+
+.auth-footer a {
+  color: #F36F21;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.error-msg {
+  background: #ffebee;
+  color: #c62828;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 20px;
+  text-align: center;
+  border: 1px solid #ffcdd2;
+}
+
+.mt-4 {
+  margin-top: 2rem;
+}
+
+/* --- STRENGTH METER (CỐ ĐỊNH VỊ TRÍ) --- */
+
+/* Container bao quanh để căn khoảng cách trên dưới */
+.strength-container {
+  margin-top: 25px;
+  /* Cách ô Confirm Password ra một chút */
+  margin-bottom: 25px;
+  /* Cách nút Sign Up ra một chút */
+}
+
+.strength-meter {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  /* Khoảng cách giữa vòng tròn và chữ label */
+}
+
+.strength-step {
+  position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* Đường kẻ nối giữa các vòng tròn */
+.strength-step::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: #eee;
+  z-index: 0;
+  transform: translateY(-50%);
+}
+
+/* Bỏ đường kẻ ở vòng tròn cuối cùng */
+.strength-step:last-child::after {
+  display: none;
+}
+
+.circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  z-index: 1;
+  /* Để đè lên đường kẻ */
+  position: relative;
+  color: #ccc;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  /* Hiệu ứng chuyển màu mượt */
+}
+
+.circle.active {
+  border-color: #333;
+  background-color: #333;
+  color: white;
+}
+
+.strength-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
   color: #888;
+  padding: 0 5px;
+  /* Căn chỉnh chữ cho thẳng với vòng tròn */
+  font-weight: 500;
 }
