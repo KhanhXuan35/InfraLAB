@@ -1,21 +1,8 @@
 import express from "express";
+import authRoute from "./common/authRoute.js";
+
+
 const router = express.Router();
-
-// Health check route
-router.get("/", (req, res) => {
-  res.json({ 
-    message: "InfraLAB API is running",
-    version: "1.0.0"
-  });
-});
-
-// Health check endpoint
-router.get("/health", (req, res) => {
-  res.json({ 
-    status: "OK",
-    timestamp: new Date().toISOString()
-  });
-});
+router.use("/auth", authRoute);
 
 export default router;
-
