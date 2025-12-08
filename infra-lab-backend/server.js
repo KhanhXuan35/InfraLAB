@@ -9,7 +9,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 const startServer = async () => {
   try {
-    // Connect DatabaseS
+    // Connect Database
     await connectDB();
 
     // Start Server

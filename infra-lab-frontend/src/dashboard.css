@@ -3,8 +3,12 @@
 /* 通用布局 */
 .app-shell {
   display: flex;
-  min-height: 100vh;
-  background: linear-gradient(180deg, #0a0f1a 0%, #0c1624 100%);
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #f5f7fb;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #e2e8f0;
 }
@@ -12,12 +16,15 @@
 /* 左侧侧边栏 */
 .sidebar {
   width: 230px;
-  background-color: #0c1424;
+  height: 100vh;
+  background-color: #0f172a;
   color: #fff;
   padding: 24px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  flex-shrink: 0;
+  overflow-y: auto;
   box-shadow: inset -1px 0 0 rgba(255,255,255,0.04);
 }
 
@@ -92,10 +99,14 @@
 /* 右侧主区域 */
 .main {
   flex: 1;
-  padding: 24px 28px;
-  display: flex;
+  padding: 0;
+  margin: 0;
+  display: block;
   flex-direction: column;
-  gap: 20px;
+  gap: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .main-header {
@@ -107,6 +118,7 @@
 .main-title {
   font-size: 22px;
   font-weight: 800;
+  color: #000000;
 }
 
 .main-user {
@@ -114,7 +126,7 @@
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  color: #64748b;
+  color: #000000;
 }
 
 .user-avatar {
@@ -136,11 +148,12 @@
   font-size: 20px;
   font-weight: 800;
   margin-bottom: 6px;
+  color: #000000;
 }
 
 .welcome-sub {
   font-size: 14px;
-  color: #6b7280;
+  color: #000000;
   margin-bottom: 18px;
 }
 
@@ -165,6 +178,7 @@
   gap: 10px;
   font-weight: 700;
   font-size: 15px;
+  color: #000000;
 }
 
 .feature-dot {
@@ -186,7 +200,7 @@
 
 .feature-desc {
   font-size: 13px;
-  color: #4b5563;
+  color: #000000;
 }
 
 .button-primary,
@@ -246,6 +260,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  color: #000000;
 }
 
 .stat-value {
@@ -281,6 +296,7 @@
   font-size: 15px;
   font-weight: 700;
   margin-bottom: 10px;
+  color: #000000;
 }
 
 .activity-list {
@@ -291,7 +307,7 @@
   flex-direction: column;
   gap: 8px;
   font-size: 13px;
-  color: #374151;
+  color: #000000;
 }
 
 .activity-item {
@@ -359,7 +375,7 @@ gap: 12px;
 .highlight-label {
 font-size: 13px;
 font-weight: 600;
-color: #475569;
+color: #000000;
 display: flex;
 align-items: center;
 justify-content: space-between;
@@ -402,7 +418,7 @@ color: #0f172a;
 
 .panel-subtitle {
 font-size: 13px;
-color: #64748b;
+color: #000000;
 }
 
 .panel-list {
@@ -435,12 +451,12 @@ color: #0f172a;
 
 .request-meta {
 font-size: 13px;
-color: #475569;
+color: #000000;
 }
 
 .request-date {
 font-size: 12px;
-color: #94a3b8;
+color: #000000;
 }
 
 .status-pill {
@@ -486,7 +502,7 @@ color: #0f172a;
 
 .timeline-meta {
 font-size: 12px;
-color: #94a3b8;
+color: #000000;
 }
 
 .timeline-status {
@@ -526,7 +542,7 @@ gap: 12px;
 
 .info-label {
 font-size: 13px;
-color: #94a3b8;
+color: #000000;
 }
 
 .info-value {
@@ -542,13 +558,13 @@ gap: 8px;
 }
 
 .maintenance-item {
-display: flex;
-justify-content: space-between;
-align-items: center;
-padding: 8px 0;
-border-bottom: 1px dashed #e2e8f0;
-font-size: 13px;
-color: #475569;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 13px;
+  color: #000000;
 }
 
 .maintenance-item:last-child {

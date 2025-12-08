@@ -1,6 +1,7 @@
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config();
 
-module.exports = {
+export default {
   MAILER: process.env.MAIL_MAILER,
   HOST: process.env.MAIL_HOST,
   PORT: process.env.MAIL_PORT,

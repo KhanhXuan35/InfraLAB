@@ -1,21 +1,17 @@
 import express from "express";
+import authRoute from "./common/authRoute.js";
+import { getAllDevices, getDeviceById } from "../controllers/deviceController.js";
+import { getAllCategories, getCategoryById } from "../controllers/categoryController.js";
+
 const router = express.Router();
+router.use("/auth", authRoute);
 
-// Health check route
-router.get("/", (req, res) => {
-  res.json({ 
-    message: "InfraLAB API is running",
-    version: "1.0.0"
-  });
-});
+// Device routes
+router.get("/devices", getAllDevices);
+router.get("/devices/:id", getDeviceById);
 
-// Health check endpoint
-router.get("/health", (req, res) => {
-  res.json({ 
-    status: "OK",
-    timestamp: new Date().toISOString()
-  });
-});
+// Category routes
+router.get("/categories", getAllCategories);
+router.get("/categories/:id", getCategoryById);
 
 export default router;
-

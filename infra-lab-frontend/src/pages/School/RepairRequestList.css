@@ -1,0 +1,135 @@
+/* ============ WRAPPER ============ */
+.content-wrapper {
+  background: linear-gradient(180deg, #0f172a, #020617);
+  min-height: 100vh;
+  padding: 32px;
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ============ HEADER ============ */
+.content-wrapper h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #f8fafc;
+}
+
+/* ============ FILTER ============ */
+.content-wrapper select {
+  background: #020617;
+  border: 1px solid #1e293b;
+  color: #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+}
+
+.content-wrapper select:focus {
+  border-color: #3b82f6;
+}
+
+/* ============ TABLE ============ */
+.device-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #020617;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #1e293b;
+}
+
+/* HEADER */
+.device-table thead {
+  background: linear-gradient(180deg, #020617, #020617);
+}
+
+.device-table th {
+  padding: 12px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5f5;
+  text-transform: uppercase;
+  border-bottom: 1px solid #1e293b;
+}
+
+/* BODY */
+.device-table td {
+  padding: 12px;
+  font-size: 14px;
+  color: #e5e7eb;
+  border-bottom: 1px solid #1e293b;
+}
+
+.device-table tbody tr:hover {
+  background: rgba(59, 130, 246, 0.08);
+  transition: 0.2s;
+}
+
+/* EMPTY ROW */
+.device-table tbody tr td[colspan] {
+  text-align: center;
+  color: #94a3b8;
+  padding: 24px;
+}
+
+/* ============ STATUS TAG ============ */
+.device-table td:nth-child(4) {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* ============ BUTTONS ============ */
+.device-table button {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  border: none;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  margin-right: 6px;
+}
+
+.device-table button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* REJECT BUTTON */
+.device-table button:nth-child(2) {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+}
+
+/* DONE BUTTON */
+.device-table button:last-child {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+}
+
+/* ============ LOADING ============ */
+.content-wrapper > div {
+  font-size: 16px;
+  color: #94a3b8;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  .content-wrapper {
+    padding: 16px;
+  }
+
+  .device-table th,
+  .device-table td {
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  .device-table button {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+}
