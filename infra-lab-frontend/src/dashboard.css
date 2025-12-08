@@ -806,7 +806,8 @@ color: #0f172a;
 }
 
 .btn-view,
-.btn-edit {
+.btn-edit,
+.btn-delete {
   padding: 6px 10px;
   border-radius: 8px;
   border: none;
@@ -823,6 +824,11 @@ color: #0f172a;
 .btn-edit {
   background: #f59e0b;
   color: #111827;
+}
+
+.btn-delete {
+  background: #ef4444;
+  color: #fff;
 }
 
 .inventory-status {

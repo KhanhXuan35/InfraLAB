@@ -8,12 +8,10 @@ import categoryRoutes from "./routes/LabManager/categoryRoutes.js";
 import detailDevice from "./routes/LabManager/detailDevice.js";
 import dashboardRoutes from "./routes/LabManager/dashboardRoutes.js";
 import schoolDashboardRoutes from "./routes/School/schoolDashboardRoutes.js";
-import userDashboardRoutes from "./routes/User/userDashboardRoutes.js";
-import schoolInventoryRoutes from "./routes/device_school/inventories.routes.js";
-import deviceCategoryRoutes from "./routes/device_school/device_categories.routes.js";
-import deviceRoutes from "./routes/device_school/devices.routes.js";
+import userDashboardRoutes from "./routes/User/userDashboardRoimport schimport schoolInventoryRoutes from "./routes/school/inventories.routes.js";
+import deviceCategoryRoutes from "./routes/school/device_categories.routes.js";
+import deviceRoutes from "./routes/school/devices.routes.js";
 import repairRoutes from "./routes/LabManager/repairRoutes.js";
-import repairCheckRoutes from "./routes/repairs/checkExisting.js";
 
 const app = express();
 
@@ -58,8 +56,7 @@ app.use("/api/device-categories", deviceCategoryRoutes);
 app.use("/api/devices", deviceRoutes);
 
 // Repair routes
-app.use("/api/repairs", repairRoutes);  
-app.use("/api/repairs", repairCheckRoutes);
+app.use("/api/repairs", repairRoutes);
 
 // 4. Xử lý lỗi 404 (Không tìm thấy route)
 app.use((req, res, next) => {
@@ -75,6 +72,18 @@ app.use((error, req, res, next) => {
         status: statusCode,
         success: false,
         message: error.message || "Internal Server Error"
+    });
+});
+
+essage: error.message || "Internal Server Error"
+    });
+});
+
+essage: error.message || "Internal Server Error"
+    });
+});
+
+message: error.message || "Internal Server Error"
     });
 });
 
