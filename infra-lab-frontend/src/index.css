@@ -29,10 +29,11 @@ body {
 /* ========== ROOT CONTAINER ========== */
 #root {
   width: 100%;
+  height: 100vh;
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
 /* ========== COMMON ELEMENTS ========== */

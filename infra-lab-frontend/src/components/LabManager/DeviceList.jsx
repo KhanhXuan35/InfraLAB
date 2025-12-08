@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "./deviceList.css";
 import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
 function DeviceList() {
   const [devices, setDevices] = useState([]);
@@ -21,17 +22,30 @@ function DeviceList() {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/inventory/lab")
-      .then((res) => res.json())
-      .then((json) => {
-        setDevices(json.data || []);
-        setAllDevices(json.data || []);
-      })
-      .finally(() => setLoading(false));
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Lấy danh sách thiết bị từ lab
+        const devicesResponse = await api.get('/inventory/lab');
+        if (devicesResponse.data) {
+          setDevices(devicesResponse.data || []);
+          setAllDevices(devicesResponse.data || []);
+        }
 
-    fetch("http://localhost:5000/api/categories")
-      .then((res) => res.json())
-      .then((json) => setCategories(json.data || []));
+        // Lấy danh sách categories
+        const categoriesResponse = await api.get('/categories');
+        if (categoriesResponse.data) {
+          setCategories(categoriesResponse.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
   // 🔍 Realtime Search
   useEffect(() => {
@@ -160,6 +174,7 @@ function DeviceList() {
           <thead>
             <tr>
               <th style={{ width: 40 }}>#</th>
+              <th style={{ width: 100 }}>Ảnh</th>
               <th style={{ width: 220 }}>Tên thiết bị</th>
               <th style={{ width: 180 }}>Danh mục</th>
               <th style={{ width: 70 }}>Tổng</th>
@@ -173,7 +188,7 @@ function DeviceList() {
           <tbody>
             {visibleItems.length === 0 && (
               <tr>
-                <td colSpan="8" className="center" style={{ padding: 16 }}>
+                <td colSpan="9" className="center" style={{ padding: 16 }}>
                   Không có thiết bị phù hợp bộ lọc.
                 </td>
               </tr>
@@ -182,6 +197,24 @@ function DeviceList() {
             {visibleItems.map((item, index) => (
               <tr key={item._id}>
                 <td className="center">{indexOfFirst + index + 1}</td>
+                <td className="center">
+                  <div className="device-image-container">
+                    {item.device.image ? (
+                      <img 
+                        src={item.device.image} 
+                        alt={item.device.name}
+                        className="device-image"
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
+                        }}
+                      />
+                    ) : (
+                      <div className="device-image-placeholder">
+                        <span>No Image</span>
+                      </div>
+                    )}
+                  </div>
+                </td>
                 <td>{item.device.name}</td>
                 <td>{item.device.category}</td>
                 <td className="center">{item.total}</td>
@@ -190,14 +223,11 @@ function DeviceList() {
                 <td className="error center">{item.broken}</td>
                 <td className="center">
                   <button
-                    onClick={() => navigate(`/device/${item._id}`)}   // <<< CHỈ CẦN NÀY
+                    onClick={() => navigate(`/lab-manager/device/${item._id}`)}
                     className="btn-view"
                   >
                     Chi tiết
                   </button>
-
-
-
                 </td>
               </tr>
             ))}

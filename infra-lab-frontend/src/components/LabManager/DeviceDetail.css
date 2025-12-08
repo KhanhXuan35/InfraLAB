@@ -143,8 +143,8 @@
   font-weight: 700;
   color: #ffffff;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 12px;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -222,15 +222,34 @@
 }
 
 .inventory-icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
   color: #ffffff;
-  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.inventory-icon.total-icon {
+  background: #6366f1;
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+}
+
+.inventory-icon.available-icon {
+  background: #10b981;
+  border-radius: 6px;
+}
+
+.inventory-icon.borrowed-icon {
+  background: #f59e0b;
+  border-radius: 6px;
+}
+
+.inventory-icon.broken-icon {
+  background: #ef4444;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
 }
 
 .inventory-info {
@@ -243,14 +262,15 @@
   font-size: 11px;
   color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
   font-weight: 600;
 }
 
 .inventory-value {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #ffffff;
+  line-height: 1.2;
 }
 
 /* Progress Section */
@@ -340,6 +360,19 @@
   background: rgba(255, 255, 255, 0.02);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.btn-warning {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-warning:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
 }
 
 .btn {
@@ -443,9 +476,83 @@
 .modal textarea {
   width: 100%;
   padding: 10px;
-  background: #111;
-  border: 1px solid #333;
+  background: #1f2937;
+  border: 1px solid #374151;
   color: white;
   border-radius: 6px;
   margin-top: 6px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.modal {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  color: #ffffff;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal h3 {
+  color: #ffffff;
+  margin-bottom: 16px;
+  font-size: 20px;
+}
+
+.modal-message {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.modal-message.success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.modal-message.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.modal-warning {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }

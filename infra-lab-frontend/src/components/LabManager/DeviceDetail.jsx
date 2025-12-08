@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./DeviceDetail.css";
+import api from "../../services/api";
 
 export default function DeviceDetail() {
     const { id } = useParams(); // inventoryId
@@ -21,30 +22,40 @@ export default function DeviceDetail() {
     useEffect(() => {
         if (!id) return;
 
-        fetch(`http://localhost:5000/api/device-detail/${id}`)
-            .then((res) => res.json())
-            .then((json) => {
-                if (json.success) {
-                    setDevice(json.data.device);
-                    setInventory(json.data.inventory);
+        const fetchDeviceDetail = async () => {
+            try {
+                setLoading(true);
+                const response = await api.get(`/device-detail/${id}`);
+                if (response.success) {
+                    setDevice(response.data.device);
+                    setInventory(response.data.inventory);
                 }
-            })
-            .catch((err) => console.error("Fetch error:", err))
-            .finally(() => setLoading(false));
+            } catch (err) {
+                console.error("Fetch error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDeviceDetail();
     }, [id]);
 
     // =================== LOAD REPAIR STATUS ===================
     useEffect(() => {
         if (!device?._id) return;
 
-        fetch(`http://localhost:5000/api/repairs/device/${device._id}`)
-            .then(res => res.json())
-            .then(json => {
-                if (json.success && json.data) {
-                    setExistingRepair(json.data);
+        const fetchRepairStatus = async () => {
+            try {
+                const response = await api.get(`/repairs/device/${device._id}`);
+                if (response.success && response.data) {
+                    setExistingRepair(response.data);
                 }
-            })
-            .catch(err => console.error(err));
+            } catch (err) {
+                console.error("Repair status error:", err);
+            }
+        };
+
+        fetchRepairStatus();
     }, [device]);
 
     if (loading) return <p className="loading">Đang tải dữ liệu...</p>;
@@ -80,30 +91,24 @@ export default function DeviceDetail() {
         setRepairMessage("");
 
         try {
-            const res = await fetch("http://localhost:5000/api/repairs", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    device_id: device._id,
-                    quantity: inventory.broken,  // auto số lượng hỏng
-                    reason: repairReason,
-                }),
+            const response = await api.post("/repairs", {
+                device_id: device._id,
+                quantity: inventory.broken,  // auto số lượng hỏng
+                reason: repairReason,
             });
 
-            const json = await res.json();
-
-            if (!json.success) {
-                setRepairMessage(json.message || "❌ Không thể tạo yêu cầu.");
+            if (!response.success) {
+                setRepairMessage(response.message || "❌ Không thể tạo yêu cầu.");
                 return;
             }
 
             setRepairMessage("✅ Đã gửi yêu cầu sửa chữa. Đang chờ duyệt.");
-            setExistingRepair(json.data);
+            setExistingRepair(response.data);
             setRepairReason("");
 
         } catch (err) {
             console.error("create repair error:", err);
-            setRepairMessage("❌ Lỗi hệ thống, vui lòng thử lại sau.");
+            setRepairMessage(err.message || "❌ Lỗi hệ thống, vui lòng thử lại sau.");
         } finally {
             setRepairLoading(false);
         }
@@ -146,38 +151,58 @@ export default function DeviceDetail() {
                     
                     {/* INVENTORY */}
                     <div className="inventory-section">
-                        <h3 className="section-title">Thống kê kho</h3>
+                        <h3 className="section-title">THỐNG KÊ KHO</h3>
 
                         <div className="inventory-grid">
 
                             <div className="inventory-card">
-                                <div className="inventory-icon" style={{ background: getStatusColor("total") }}>📦</div>
+                                <div className="inventory-icon total-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M12 2L2 7L12 12L22 7L12 2Z" />
+                                        <path d="M2 17L12 22L22 17" />
+                                        <path d="M2 12L12 17L22 12" />
+                                    </svg>
+                                </div>
                                 <div className="inventory-info">
-                                    <span className="inventory-label">Tổng</span>
+                                    <span className="inventory-label">TỔNG</span>
                                     <span className="inventory-value">{inventory.total}</span>
                                 </div>
                             </div>
 
                             <div className="inventory-card">
-                                <div className="inventory-icon" style={{ background: getStatusColor("available") }}>✓</div>
+                                <div className="inventory-icon available-icon">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path d="M16.667 5L7.5 14.167L3.333 10" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                </div>
                                 <div className="inventory-info">
-                                    <span className="inventory-label">Có sẵn</span>
+                                    <span className="inventory-label">CÓ SẴN</span>
                                     <span className="inventory-value">{inventory.available}</span>
                                 </div>
                             </div>
 
                             <div className="inventory-card">
-                                <div className="inventory-icon" style={{ background: getStatusColor("borrowed") }}>👤</div>
+                                <div className="inventory-icon borrowed-icon">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M10 10C11.3807 10 12.5 8.88071 12.5 7.5C12.5 6.11929 11.3807 5 10 5C8.61929 5 7.5 6.11929 7.5 7.5C7.5 8.88071 8.61929 10 10 10Z" />
+                                        <path d="M5 17.5C5 14.4624 7.46243 12 10.5 12H9.5C12.5376 12 15 14.4624 15 17.5" strokeLinecap="round"/>
+                                    </svg>
+                                </div>
                                 <div className="inventory-info">
-                                    <span className="inventory-label">Đang mượn</span>
+                                    <span className="inventory-label">ĐANG MƯỢN</span>
                                     <span className="inventory-value">{borrowed}</span>
                                 </div>
                             </div>
 
                             <div className="inventory-card">
-                                <div className="inventory-icon" style={{ background: getStatusColor("broken") }}>⚠️</div>
+                                <div className="inventory-icon broken-icon">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <path d="M10 6V10M10 14H10.01" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <circle cx="10" cy="10" r="8" />
+                                    </svg>
+                                </div>
                                 <div className="inventory-info">
-                                    <span className="inventory-label">Hỏng</span>
+                                    <span className="inventory-label">HỎNG</span>
                                     <span className="inventory-value">{inventory.broken ?? 0}</span>
                                 </div>
                             </div>
@@ -187,7 +212,7 @@ export default function DeviceDetail() {
 
                     {/* PROGRESS BARS */}
                     <div className="progress-section">
-                        <h3 className="section-title">Tỷ lệ sử dụng</h3>
+                        <h3 className="section-title">TỶ LỆ SỬ DỤNG</h3>
 
                         <div className="progress-bars">
 
@@ -237,7 +262,7 @@ export default function DeviceDetail() {
             {/* FOOTER */}
             <div className="detail-actions">
                 <button className="btn btn-secondary" onClick={() => navigate(-1)}>
-                    Quay lại
+                    QUAY LẠI
                 </button>
 
                 {inventory.broken > 0 && (
@@ -245,44 +270,52 @@ export default function DeviceDetail() {
                         className="btn btn-warning"
                         onClick={() => setShowRepairModal(true)}
                     >
-                        Tạo yêu cầu sửa chữa
+                        TẠO YÊU CẦU SỬA CHỮA
                     </button>
                 )}
 
-                <button className="btn btn-primary">Sửa thông tin</button>
+                <button className="btn btn-primary">SỬA THÔNG TIN</button>
             </div>
 
             {/* MODAL */}
             {showRepairModal && (
-                <div className="modal-overlay">
-                    <div className="modal">
+                <div className="modal-overlay" onClick={(e) => {
+                    if (e.target === e.currentTarget) {
+                        setShowRepairModal(false);
+                        setRepairMessage("");
+                    }
+                }}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
 
                         <h3>📌 Tạo yêu cầu sửa chữa</h3>
-                        <p style={{ fontWeight: "bold" }}>{device.name}</p>
+                        <p style={{ fontWeight: "bold", marginBottom: '16px' }}>{device.name}</p>
 
-                        {existingRepair && existingRepair.status === "pending" && (
+                        {existingRepair && (existingRepair.status === "pending" || existingRepair.status === "approved" || existingRepair.status === "in_progress") && (
                             <p className="modal-warning">
-                                ⚠️ Thiết bị này đã có yêu cầu sửa chữa đang chờ duyệt.
+                                Thiết bị này đã có yêu cầu sửa chữa đang được xử lý, không thể tạo thêm!
                             </p>
                         )}
 
                         <div className="modal-field">
-                            <label>Số lượng hỏng:</label>
-                            <p className="broken-display">{inventory.broken}</p>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Số lượng hỏng:</label>
+                            <p className="broken-display" style={{ fontSize: '18px', fontWeight: 'bold', color: '#ef4444' }}>{inventory.broken}</p>
                         </div>
 
-                        <label className="modal-label">
-                            Lý do hỏng
+                        <label className="modal-label" style={{ display: 'block', marginTop: '16px' }}>
+                            <span style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Lý do hỏng</span>
                             <textarea
                                 rows={3}
                                 value={repairReason}
                                 onChange={(e) => setRepairReason(e.target.value)}
                                 placeholder="Mô tả tình trạng hỏng..."
+                                style={{ width: '100%', padding: '10px', background: '#1f2937', border: '1px solid #374151', color: 'white', borderRadius: '6px', marginTop: '6px' }}
                             />
                         </label>
 
                         {repairMessage && (
-                            <p className="modal-message">{repairMessage}</p>
+                            <p className={`modal-message ${repairMessage.includes('✅') ? 'success' : (repairMessage.includes('❌') || repairMessage.includes('⚠️')) ? 'error' : ''}`}>
+                                {repairMessage}
+                            </p>
                         )}
 
                         <div className="modal-actions">
@@ -293,15 +326,15 @@ export default function DeviceDetail() {
                                     setRepairMessage("");
                                 }}
                             >
-                                Đóng
+                                ĐÓNG
                             </button>
 
                             <button
                                 className="btn btn-primary"
-                                disabled={repairLoading || (existingRepair && existingRepair.status === "pending")}
+                                disabled={repairLoading || (existingRepair && (existingRepair.status === "pending" || existingRepair.status === "approved" || existingRepair.status === "in_progress"))}
                                 onClick={handleCreateRepair}
                             >
-                                {repairLoading ? "Đang gửi..." : "Gửi yêu cầu"}
+                                {repairLoading ? "Đang gửi..." : "GỬI YÊU CẦU"}
                             </button>
                         </div>
 

@@ -10,7 +10,10 @@ export const getLabDevices = async (req, res) => {
       })
       .lean();
 
-    const data = inventories.map((i) => {
+    // Lọc bỏ các inventory không có device_id hợp lệ
+    const validInventories = inventories.filter((i) => i.device_id && i.device_id._id);
+
+    const data = validInventories.map((i) => {
       const borrowed = (i.total || 0) - (i.available || 0) - (i.broken || 0);
 
       return {
@@ -20,7 +23,7 @@ export const getLabDevices = async (req, res) => {
         broken: i.broken || 0,
         borrowed: borrowed < 0 ? 0 : borrowed,
         device: {
-          _id: i.device_id._id,
+          _id: i.device_id?._id || null,
           name: i.device_id?.name || "N/A",
           image: i.device_id?.image || "",
           category: i.device_id?.category_id?.name || "Không rõ"
@@ -64,20 +67,24 @@ export const filterInventory = async (req, res) => {
       .populate({
         path: "device_id",
         model: Device,
+        populate: { path: "category_id" }
       })
       .lean();
 
+    // Lọc bỏ các inventory không có device_id hợp lệ
+    const validInventories = inventories.filter((inv) => inv.device_id && inv.device_id._id);
+
     // Map về cùng format với API /lab
-    let data = inventories.map((inv) => {
+    let data = validInventories.map((inv) => {
       const borrowed =
         (inv.total || 0) - (inv.available || 0) - (inv.broken || 0);
 
       return {
         _id: inv._id,
         device: {
-          _id: inv.device_id?._id,
+          _id: inv.device_id?._id || null,
           name: inv.device_id?.name || "",
-          category: inv.device_id?.category || "",
+          category: inv.device_id?.category_id?.name || inv.device_id?.category || "",
         },
         total: inv.total || 0,
         available: inv.available || 0,

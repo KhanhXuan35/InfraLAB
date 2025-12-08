@@ -41,11 +41,12 @@ const LabManagerHomePage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({
-    totalAssets: 292,
-    active: 272,
-    underRepair: 9,
-    broken: 20,
+    totalAssets: 0,
+    active: 0,
+    underRepair: 0,
+    broken: 0,
   });
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMenu, setSelectedMenu] = useState('dashboard');
 
@@ -59,7 +60,23 @@ const LabManagerHomePage = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // TODO: Gọi API để lấy stats
+        
+        // Lấy thống kê
+        const statsResponse = await api.get('/dashboard/stats');
+        if (statsResponse.success) {
+          setStats({
+            totalAssets: statsResponse.data.total || 0,
+            active: statsResponse.data.available || 0,
+            underRepair: statsResponse.data.repair || 0,
+            broken: statsResponse.data.broken || 0,
+          });
+        }
+
+        // Lấy hoạt động gần đây
+        const activitiesResponse = await api.get('/dashboard/activities?limit=10');
+        if (activitiesResponse.success) {
+          setActivities(activitiesResponse.data || []);
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -74,6 +91,45 @@ const LabManagerHomePage = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
     navigate('/login');
+  };
+
+  const handleMenuClick = ({ key }) => {
+    setSelectedMenu(key);
+    switch (key) {
+      case 'devices':
+        navigate('/lab-manager/devices');
+        break;
+      case 'borrow':
+        // Navigate to borrow/return page
+        break;
+      case 'reports':
+        // Navigate to reports page
+        break;
+      case 'notifications':
+        // Navigate to notifications page
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleQuickAction = (key) => {
+    switch (key) {
+      case 'add-device':
+        // Navigate to add device
+        break;
+      case 'record':
+        // Navigate to record borrow/return
+        break;
+      case 'search':
+        navigate('/lab-manager/devices');
+        break;
+      case 'export':
+        // Handle export
+        break;
+      default:
+        break;
+    }
   };
 
   const menuItems = [
@@ -162,7 +218,7 @@ const LabManagerHomePage = () => {
           selectedKeys={[selectedMenu]}
           items={menuItems}
           style={{ borderRight: 0, marginTop: 16 }}
-          onSelect={({ key }) => setSelectedMenu(key)}
+          onClick={handleMenuClick}
         />
         <div
           style={{
@@ -210,7 +266,7 @@ const LabManagerHomePage = () => {
           {/* Stats Cards */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={12} lg={6}>
-              <Card>
+              <Card loading={loading}>
                 <Statistic
                   title="Tổng tài sản"
                   value={stats.totalAssets}
@@ -220,7 +276,7 @@ const LabManagerHomePage = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card>
+              <Card loading={loading}>
                 <Statistic
                   title="Đang hoạt động"
                   value={stats.active}
@@ -230,7 +286,7 @@ const LabManagerHomePage = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card>
+              <Card loading={loading}>
                 <Statistic
                   title="Đang sửa chữa"
                   value={stats.underRepair}
@@ -240,7 +296,7 @@ const LabManagerHomePage = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card>
+              <Card loading={loading}>
                 <Statistic
                   title="Hỏng/Thay thế"
                   value={stats.broken}
@@ -255,10 +311,51 @@ const LabManagerHomePage = () => {
             {/* Recent Activities */}
             <Col xs={24} lg={12}>
               <Card title="Hoạt động gần đây" extra={<Button type="link">Xem tất cả</Button>}>
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="Chưa có hoạt động nào"
-                />
+                {activities.length > 0 ? (
+                  <List
+                    dataSource={activities}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <List.Item.Meta
+                          avatar={
+                            <Avatar
+                              style={{
+                                backgroundColor:
+                                  item.type === 'ok'
+                                    ? '#52c41a'
+                                    : item.type === 'error'
+                                    ? '#f5222d'
+                                    : '#1890ff',
+                              }}
+                              icon={
+                                item.type === 'ok' ? (
+                                  <CheckCircleOutlined />
+                                ) : item.type === 'error' ? (
+                                  <CloseCircleOutlined />
+                                ) : (
+                                  <BellOutlined />
+                                )
+                              }
+                            />
+                          }
+                          title={
+                            <Text style={{ fontSize: 14 }}>{item.message}</Text>
+                          }
+                          description={
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {new Date(item.createdAt).toLocaleString('vi-VN')}
+                            </Text>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Chưa có hoạt động nào"
+                  />
+                )}
               </Card>
             </Col>
 
@@ -270,9 +367,11 @@ const LabManagerHomePage = () => {
                     <Col xs={12} key={index}>
                       <Card
                         hoverable
+                        onClick={() => handleQuickAction(action.key)}
                         style={{
                           textAlign: 'center',
                           background: `linear-gradient(135deg, ${action.color}15 0%, ${action.color}05 100%)`,
+                          cursor: 'pointer',
                         }}
                         bodyStyle={{ padding: '20px 12px' }}
                       >

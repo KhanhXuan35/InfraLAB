@@ -18,7 +18,7 @@ export const SearchResultsContainer = styled.div`
   flex-direction: column;
 `;
 
-const StyledList = styled(List)`
+export const SearchResultsList = styled(List)`
   max-height: 500px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -51,8 +51,6 @@ const StyledList = styled(List)`
   }
 `;
 
-export const SearchResultsList = StyledList;
-
 export const SearchResultItem = styled(List.Item)`
   padding: 12px 16px !important;
   cursor: pointer;
@@ -70,3 +68,6 @@ export const SearchResultItem = styled(List.Item)`
     flex-shrink: 0;
   }
 `;
+
+
+

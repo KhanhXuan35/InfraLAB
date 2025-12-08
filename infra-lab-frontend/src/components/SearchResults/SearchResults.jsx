@@ -1,7 +1,7 @@
-import React from 'react';
-import { List, Avatar, Typography, Space, Tag, Empty } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { SearchResultsContainer, SearchResultItem } from './style';
+import React from "react";
+import { List, Typography, Space, Tag, Empty } from "antd";
+import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { SearchResultsContainer, SearchResultsList, SearchResultItem } from "./style";
 
 const { Text } = Typography;
 
@@ -9,7 +9,7 @@ const SearchResults = ({ results, loading, onSelect, onViewAll }) => {
   if (loading) {
     return (
       <SearchResultsContainer>
-        <div style={{ padding: '16px', textAlign: 'center' }}>
+        <div style={{ padding: "16px", textAlign: "center" }}>
           <Text type="secondary">Đang tìm kiếm...</Text>
         </div>
       </SearchResultsContainer>
@@ -19,10 +19,10 @@ const SearchResults = ({ results, loading, onSelect, onViewAll }) => {
   if (!results || results.length === 0) {
     return (
       <SearchResultsContainer>
-        <Empty 
+        <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description="Không tìm thấy kết quả"
-          style={{ padding: '16px' }}
+          style={{ padding: "16px" }}
         />
       </SearchResultsContainer>
     );
@@ -30,100 +30,91 @@ const SearchResults = ({ results, loading, onSelect, onViewAll }) => {
 
   const getAvailabilityStatus = (inventory) => {
     if (!inventory) {
-      return { status: 'no-data', text: 'Chưa có thông tin', color: 'default' };
+      return { status: "no-data", text: "Chưa có thông tin", color: "default" };
     }
     if (inventory.available > 0) {
-      return { status: 'available', text: 'Có sẵn', color: 'success' };
+      return { status: "available", text: "Có sẵn", color: "success" };
     }
-    return { status: 'unavailable', text: 'Hết hàng', color: 'error' };
+    return { status: "unavailable", text: "Hết hàng", color: "error" };
   };
 
   return (
     <SearchResultsContainer>
-      <List
+      <SearchResultsList
         dataSource={results}
         renderItem={(device) => {
           const availability = getAvailabilityStatus(device.inventory);
           return (
-            <SearchResultItem
-              onClick={() => onSelect(device)}
-            >
+            <SearchResultItem onClick={() => onSelect(device)}>
               <List.Item.Meta
                 avatar={
                   device.image ? (
-                    <div style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                      backgroundColor: '#f5f5f5',
-                      border: '1px solid #e8e8e8',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.06)',
-                      transition: 'transform 0.2s ease'
-                    }}>
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: "4px",
+                        overflow: "hidden",
+                        flexShrink: 0,
+                        backgroundColor: "#f5f5f5",
+                      }}
+                    >
                       <img
                         src={device.image}
                         alt={device.name}
                         style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block'
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
                         }}
                         onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
+                          e.target.style.display = "none";
+                          if (e.target.nextSibling) {
+                            e.target.nextSibling.style.display = "flex";
+                          }
                         }}
                       />
-                      <div style={{
-                        width: '100%',
-                        height: '100%',
-                        backgroundColor: '#f5f5f5',
-                        display: 'none',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '24px',
-                        color: '#d9d9d9'
-                      }}>
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          backgroundColor: "#f5f5f5",
+                          display: "none",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "24px",
+                          color: "#d9d9d9",
+                        }}
+                      >
                         📦
                       </div>
                     </div>
                   ) : (
-                    <div style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: '8px',
-                      backgroundColor: '#f5f5f5',
-                      border: '1px solid #e8e8e8',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '24px',
-                      color: '#d9d9d9',
-                      flexShrink: 0,
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.06)'
-                    }}>
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: "4px",
+                        backgroundColor: "#f5f5f5",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "24px",
+                        color: "#d9d9d9",
+                        flexShrink: 0,
+                      }}
+                    >
                       📦
                     </div>
                   )
                 }
                 title={
-                  <Space direction="vertical" size={6} style={{ width: '100%' }}>
-                    <Text strong style={{ fontSize: '15px', lineHeight: '1.4', color: '#262626' }}>
+                  <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                    <Text strong style={{ fontSize: "16px" }}>
                       {device.name}
                     </Text>
                     {device.category && (
-                      <Tag 
-                        color="blue" 
-                        style={{ 
-                          margin: 0,
-                          fontSize: '12px',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          border: 'none'
-                        }}
-                      >
+                      <Tag color="blue" style={{ margin: 0 }}>
                         {device.category.name}
                       </Tag>
                     )}
@@ -131,21 +122,21 @@ const SearchResults = ({ results, loading, onSelect, onViewAll }) => {
                 }
                 description={
                   <Space direction="vertical" size={4} style={{ marginTop: 8 }}>
-                    <Tag 
-                      color={availability.color} 
-                      icon={availability.status === 'available' ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
-                      style={{ 
-                        margin: 0,
-                        fontSize: '12px',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        border: 'none'
-                      }}
+                    <Tag
+                      color={availability.color}
+                      icon={
+                        availability.status === "available" ? (
+                          <CheckCircleOutlined />
+                        ) : (
+                          <CloseCircleOutlined />
+                        )
+                      }
+                      style={{ margin: 0 }}
                     >
                       {availability.text}
                     </Tag>
                     {device.inventory && (
-                      <Text type="secondary" style={{ fontSize: '12px', lineHeight: '1.5', color: '#8c8c8c' }}>
+                      <Text type="secondary" style={{ fontSize: "12px" }}>
                         Có sẵn: {device.inventory.available}/{device.inventory.total}
                       </Text>
                     )}
@@ -156,26 +147,20 @@ const SearchResults = ({ results, loading, onSelect, onViewAll }) => {
           );
         }}
       />
+
       {results.length > 0 && onViewAll && (
-        <div 
-          style={{ 
-            padding: '14px 18px', 
-            borderTop: '1px solid #f0f0f0',
-            textAlign: 'center',
-            cursor: 'pointer',
-            backgroundColor: '#fafafa',
-            transition: 'all 0.2s ease',
-            borderRadius: '0 0 12px 12px'
-          }} 
+        <div
+          style={{
+            padding: "12px",
+            borderTop: "1px solid #f0f0f0",
+            textAlign: "center",
+            cursor: "pointer",
+            backgroundColor: "#fafafa",
+            flexShrink: 0,
+          }}
           onClick={onViewAll}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#f0f0f0';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#fafafa';
-          }}
         >
-          <Text strong style={{ color: '#1890ff', fontSize: '14px' }}>
+          <Text strong style={{ color: "#1890ff" }}>
             Xem tất cả kết quả ({results.length})
           </Text>
         </div>

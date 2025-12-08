@@ -61,8 +61,10 @@ function App() {
             </Route>
 
             {/* --- LAB MANAGER PAGES --- */}
-            <Route path="/devices" element={<DeviceList />} />
-            <Route path="/device/:id" element={<DeviceDetailPage />} />
+            <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
+              <Route path="/lab-manager/devices" element={<DeviceList />} />
+              <Route path="/lab-manager/device/:id" element={<DeviceDetailPage />} />
+            </Route>
 
             {/* --- SCHOOL PAGES --- */}
             <Route path="/repairs" element={<RepairRequestList />} />
