@@ -99,29 +99,29 @@ function SchoolDashboard() {
       // Filter by category - handle both populated object and ID string
       let deviceCategoryId = '';
       
-      if (item.category_id) {
+      if (item.category) {
         // If category_id is populated object (from populate) - most common case
-        if (typeof item.category_id === 'object' && item.category_id !== null) {
+        if (typeof item.category === 'object' && item.category !== null) {
           // Check if it has _id property (populated object from MongoDB)
-          if (item.category_id._id) {
+          if (item.category._id) {
             // Handle both ObjectId and string
-            deviceCategoryId = item.category_id._id.toString ? item.category_id._id.toString() : String(item.category_id._id);
+            deviceCategoryId = item.category._id.toString ? item.category._id.toString() : String(item.category._id);
           }
           // If it's an object but no _id, it might be the ID itself
-          else if (item.category_id.toString) {
-            deviceCategoryId = item.category_id.toString();
+          else if (item.category.toString) {
+            deviceCategoryId = item.category.toString();
           }
           else {
-            deviceCategoryId = String(item.category_id);
+            deviceCategoryId = String(item.category._id);
           }
         } 
         // If category_id is just an ID string
-        else if (typeof item.category_id === 'string') {
-          deviceCategoryId = item.category_id;
+        else if (typeof item.category._id === 'string') {
+          deviceCategoryId = item.category._id;
         }
         // Fallback for other formats
         else {
-          deviceCategoryId = String(item.category_id);
+          deviceCategoryId = String(item.category._id);
         }
       }
 
@@ -267,7 +267,7 @@ function SchoolDashboard() {
                 className={`menu-item ${activeSection === 'inventory' ? 'active' : ''}`}
                 onClick={() => setActiveSection('inventory')}
               >
-                <span>📦 Kho Thiet Bi</span>
+                <span>📦 Kho Thiết Bị</span>
               </div>
             </div>
           </div>
@@ -289,7 +289,7 @@ function SchoolDashboard() {
       {/* Main */}
       <main className="main">
         <header className="main-header">
-          <div className="main-title">Trung Tam Ung Dung Thiet Bi InFraLab</div>
+          <div className="main-title">Trung Tâm Quản Lý Linh Kiện InFraLab</div>
           <div className="main-header-right">
             <div className="header-search">
               <input
@@ -318,13 +318,13 @@ function SchoolDashboard() {
 
               <div className="inventory-actions">
                 <div className="category-dropdown">
-                  <label htmlFor="categorySelect">Loai linh kien:</label>
+                  <label htmlFor="categorySelect">Loại linh kiện:</label>
                   <select
                     id="categorySelect"
                     value={selectedCategoryKey}
                     onChange={(e) => setSelectedCategoryKey(e.target.value)}
                   >
-                    <option value="all">Tat Ca</option>
+                    <option value="all">Tất Cả</option>
                     {categories.map((cat) => (
                       <option key={cat._id || cat.name} value={cat._id || ''}>
                         {cat.name}
@@ -343,15 +343,15 @@ function SchoolDashboard() {
                 </div>
 
                 <div className="inventory-sort">
-                  <span>Sap Xep Theo</span>
+                  <span>Sắp Xếp Theo</span>
                   <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                    <option value="newest">Moi Nhat</option>
-                    <option value="oldest">Cu Nhat</option>
+                    <option value="newest">Mới Nhất</option>
+                    <option value="oldest">Cũ Nhất</option>
                   </select>
                 </div>
 
                 <button className="button-primary add-device-btn" onClick={() => setShowAddModal(true)}>
-                  Them Thiet Bi
+                  Thêm Thiết Bị
                 </button>
               </div>
             </div>
@@ -388,13 +388,13 @@ function SchoolDashboard() {
                       const borrowing = Math.max(total - available - broken, 0);
                       // Get category name - handle both populated object and ID
                       let categoryName = 'N/A';
-                      if (device.category_id) {
-                        if (typeof device.category_id === 'object' && device.category_id !== null && device.category_id.name) {
-                          categoryName = device.category_id.name;
+                      if (device.category) {
+                        if (typeof device.category === 'object' && device.category !== null && device.category.name) {
+                          categoryName = device.category.name;
                         } else {
                           // If it's just an ID, try to find in categories list
                           const category = categories.find(cat => 
-                            cat && (String(cat._id) === String(device.category_id))
+                            cat && (String(cat._id) === String(device.category))
                           );
                           categoryName = category?.name || 'N/A';
                         }
