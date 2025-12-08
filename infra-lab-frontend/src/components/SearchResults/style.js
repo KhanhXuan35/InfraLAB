@@ -52,7 +52,7 @@ export const SearchResultsList = styled(List)`
 `;
 
 export const SearchResultItem = styled(List.Item)`
-  padding: 12px 16px !important;
+  padding: 12px 16px 12px 20px !important;
   cursor: pointer;
   transition: background-color 0.2s;
   
@@ -62,6 +62,10 @@ export const SearchResultItem = styled(List.Item)`
   
   .ant-list-item-meta {
     align-items: flex-start;
+  }
+  
+  .ant-list-item-meta-avatar {
+    margin-right: 12px;
   }
   
   .ant-avatar {
