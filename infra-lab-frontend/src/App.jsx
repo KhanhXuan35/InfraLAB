@@ -58,6 +58,7 @@ function App() {
 
             <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
               <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
+              <Route path="/requests" element={<RepairRequestList />} />
             </Route>
 
             {/* --- LAB MANAGER PAGES --- */}

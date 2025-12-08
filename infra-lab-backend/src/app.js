@@ -8,9 +8,10 @@ import categoryRoutes from "./routes/LabManager/categoryRoutes.js";
 import detailDevice from "./routes/LabManager/detailDevice.js";
 import dashboardRoutes from "./routes/LabManager/dashboardRoutes.js";
 import schoolDashboardRoutes from "./routes/School/schoolDashboardRoutes.js";
-import userDashboardRoutes from "./routes/User/userDashboardRoimport schimport schoolInventoryRoutes from "./routes/school/inventories.routes.js";
-import deviceCategoryRoutes from "./routes/school/device_categories.routes.js";
-import deviceRoutes from "./routes/school/devices.routes.js";
+import userDashboardRoutes from "./routes/User/userDashboardRoutes.js";
+import schoolInventoryRoutes from "./routes/device_school/inventories.routes.js";
+import deviceCategoryRoutes from "./routes/device_school/device_categories.routes.js";
+import deviceRoutes from "./routes/device_school/devices.routes.js";
 import repairRoutes from "./routes/LabManager/repairRoutes.js";
 
 const app = express();
@@ -18,14 +19,14 @@ const app = express();
 // 1. Cấu hình CORS (Quan trọng để nhận Cookie)
 app.use(cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173", // URL frontend của bạn
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Thêm PATCH để hỗ trợ cập nhật trạng thái
     credentials: true // <--- Bắt buộc để browser cho phép lưu cookie
 }));
 
 // 2. Middleware xử lý dữ liệu
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // <--- Middleware đọc/ghi cookie
+app.use(cookieParser()); 
 app.use(morgan("dev"));
 
 // Health check
@@ -34,7 +35,7 @@ app.get("/api/health", (req, res) => {
 });
 console.log("DETAIL DEVICE ROUTE LOADED");
 
-// General routes
+
 // 3. Routes
 app.use("/api", routes);
 
@@ -72,18 +73,6 @@ app.use((error, req, res, next) => {
         status: statusCode,
         success: false,
         message: error.message || "Internal Server Error"
-    });
-});
-
-essage: error.message || "Internal Server Error"
-    });
-});
-
-essage: error.message || "Internal Server Error"
-    });
-});
-
-message: error.message || "Internal Server Error"
     });
 });
 

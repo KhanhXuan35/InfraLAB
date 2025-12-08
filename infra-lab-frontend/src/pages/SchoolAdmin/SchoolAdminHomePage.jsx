@@ -77,11 +77,6 @@ const SchoolAdminHomePage = () => {
       label: 'Tổng quan',
     },
     {
-      key: 'schools',
-      icon: <BankOutlined />,
-      label: 'Quản lý trường học',
-    },
-    {
       key: 'devices',
       icon: <ToolOutlined />,
       label: 'Quản lý thiết bị',
@@ -92,11 +87,6 @@ const SchoolAdminHomePage = () => {
       label: 'Duyệt yêu cầu',
     },
     {
-      key: 'users',
-      icon: <UserOutlined />,
-      label: 'Quản lý người dùng',
-    },
-    {
       key: 'reports',
       icon: <FileTextOutlined />,
       label: 'Báo cáo',
@@ -104,7 +94,7 @@ const SchoolAdminHomePage = () => {
     {
       key: 'settings',
       icon: <SettingOutlined />,
-      label: 'Cài đặt',
+      label: 'Thông báo',
     },
   ];
 
@@ -256,7 +246,7 @@ const SchoolAdminHomePage = () => {
             <Col xs={24} sm={12} lg={6}>
               <Card>
                 <Statistic
-                  title="Phòng Lab hoạt động"
+                  title="thiết bị hỏng/sửa"
                   value={stats.activeLabs}
                   prefix={<BankOutlined />}
                   valueStyle={{ color: '#722ed1' }}

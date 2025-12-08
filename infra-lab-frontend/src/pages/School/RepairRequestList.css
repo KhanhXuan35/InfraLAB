@@ -81,9 +81,33 @@
   text-transform: capitalize;
 }
 
+.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-approved {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-in-progress {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.status-done {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
 /* ============ BUTTONS ============ */
 .device-table button {
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
   border: none;
   color: white;
   font-size: 13px;
@@ -95,19 +119,14 @@
   margin-right: 6px;
 }
 
-.device-table button:hover {
+.device-table button:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
 }
 
-/* REJECT BUTTON */
-.device-table button:nth-child(2) {
-  background: linear-gradient(135deg, #dc2626, #ef4444);
-}
-
-/* DONE BUTTON */
-.device-table button:last-child {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
+.device-table button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* ============ LOADING ============ */

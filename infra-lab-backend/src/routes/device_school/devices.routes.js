@@ -4,7 +4,7 @@ import {
   getDevices,
   updateDeviceWithInventory,
   deleteDeviceWithInventory
-} from "../../controllers/School/schoolManagerdevice.controller.js";
+} from "../../controllers/School/schoolDeviceController.js";
 
 const router = express.Router();
 

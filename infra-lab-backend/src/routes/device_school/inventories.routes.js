@@ -1,5 +1,5 @@
 import express from "express";
-import { getInventories } from "../../controllers/School/schoolManagerdevice.controller.js";
+import { getInventories } from "../../controllers/School/schoolDeviceController.js";
 
 const router = express.Router();
 
