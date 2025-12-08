@@ -239,6 +239,12 @@
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.content-wrapper.loading {
+  opacity: 0.7;
 }
 
 /* FILTER BAR */

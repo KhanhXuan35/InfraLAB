@@ -47,8 +47,10 @@ function DeviceList() {
 
     fetchData();
   }, []);
-  // 🔍 Realtime Search
+  // 🔍 Realtime Search - Tối ưu để tránh flicker
   useEffect(() => {
+    if (allDevices.length === 0) return;
+    
     let filtered = [...allDevices];
 
     // Search only (realtime)
@@ -72,7 +74,7 @@ function DeviceList() {
 
     setDevices(filtered);
     setCurrentPage(1);
-  }, [search]);
+  }, [search, category, status, allDevices]);
 
   // -------------------- FILTER FUNCTION --------------------
   const applyFilter = () => {
@@ -123,7 +125,15 @@ function DeviceList() {
 
   const visibleItems = filteredData.slice(indexOfFirst, indexOfLast);
 
-  if (loading) return <div className="content-wrapper">Đang tải...</div>;
+  if (loading) {
+    return (
+      <div className="content-wrapper loading">
+        <div style={{ textAlign: 'center', padding: '40px', fontSize: '16px' }}>
+          Đang tải...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="content-wrapper">
