@@ -20,6 +20,13 @@ const ConditionalHeader = () => {
       '/lab-manager/devices',
       '/lab-manager/device',
     ];
+
+    // Danh sách các route của school_admin (không hiển thị Header)
+    const schoolAdminRoutes = [
+      '/school-dashboard',
+      '/school/dashboard',
+      '/requests',
+    ];
     
     const pathname = location.pathname;
     
@@ -34,6 +41,17 @@ const ConditionalHeader = () => {
     });
     
     if (isLabManagerRoute) {
+      return false;
+    }
+
+    // Kiểm tra school_admin routes
+    const isSchoolAdminRoute = schoolAdminRoutes.some(route => pathname.startsWith(route));
+    if (isSchoolAdminRoute) {
+      return false;
+    }
+
+    // Ẩn header trên trang hồ sơ cá nhân (/profile) cho student
+    if (pathname.startsWith('/profile')) {
       return false;
     }
     

@@ -145,7 +145,23 @@ export const loginService = async (body) => {
         return {
             status: 200, success: true, message: "Đăng nhập thành công!",
             accessToken, refreshToken,
-            data: { id: user._id, name: user.name, role: user.role, avatar: user.avatar }
+            data: { 
+                _id: user._id,
+                id: user._id,
+                name: user.name, 
+                username: user.username,
+                email: user.email,
+                role: user.role, 
+                avatar: user.avatar,
+                gender: user.gender,
+                isActive: user.isActive,
+                verified: user.verified,
+                phone: user.phone,
+                department: user.department,
+                address: user.address,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
         };
     } catch (error) {
         return { status: 500, success: false, message: error.message };
@@ -250,7 +266,23 @@ export const googleLoginService = async (token) => {
             message: "Đăng nhập Google thành công!",
             accessToken,
             refreshToken,
-            data: { id: user._id, name: user.name, role: user.role, avatar: user.avatar }
+            data: { 
+                _id: user._id,
+                id: user._id,
+                name: user.name, 
+                username: user.username,
+                email: user.email,
+                role: user.role, 
+                avatar: user.avatar,
+                gender: user.gender,
+                isActive: user.isActive,
+                verified: user.verified,
+                phone: user.phone,
+                department: user.department,
+                address: user.address,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
         };
 
     } catch (error) {

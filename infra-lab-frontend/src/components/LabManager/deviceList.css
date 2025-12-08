@@ -110,9 +110,10 @@
 /* */
 /* PAGE WRAPPER */
 .content-wrapper {
-  padding: 20px;
+  padding: 12px 0 16px 0;
   width: 100%;
   color: #e5e7eb;
+  background: #0c1424;
 }
 
 /* PAGE TITLE */
@@ -120,7 +121,7 @@
   font-size: 22px;
   font-weight: 700;
   margin-bottom: 16px;
-  color: #111;
+  color: #e5e7eb;
 }
 
 /* ==========================
@@ -233,7 +234,7 @@
   background: #1a2234;
 }
 .content-wrapper {
-  padding: 20px;
+  padding: 12px 0 16px 0;
   color: #e5e7eb;
   width: 100%;
   height: 100%;
@@ -241,6 +242,7 @@
   overflow-y: auto;
   opacity: 1;
   transition: opacity 0.2s ease-in-out;
+  background: #0c1424;
 }
 
 .content-wrapper.loading {

@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from "react";
-import "./deviceList.css";
+import { Layout, Menu, Typography, Button } from "antd";
+import {
+  DashboardOutlined,
+  ToolOutlined,
+  SwapOutlined,
+  FileTextOutlined,
+  BellOutlined,
+  LogoutOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import "./deviceList.css";
 
 function DeviceList() {
   const [devices, setDevices] = useState([]);
@@ -125,184 +134,249 @@ function DeviceList() {
 
   const visibleItems = filteredData.slice(indexOfFirst, indexOfLast);
 
-  if (loading) {
-    return (
-      <div className="content-wrapper loading">
-        <div style={{ textAlign: 'center', padding: '40px', fontSize: '16px' }}>
-          Đang tải...
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="content-wrapper">
-
-      <h2 className="page-title">Danh sách thiết bị phòng Lab</h2>
-
-      {/* ---------------- FILTER BAR ---------------- */}
-      <div className="filter-bar">
-
-        <input
-          placeholder="Tìm theo tên thiết bị..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="filter-input"
+    <Layout style={{ minHeight: "100vh" }}>
+      <Layout.Sider
+        width={240}
+        style={{
+          background: "#001529",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          overflow: "auto",
+        }}
+      >
+        <div
+          style={{
+            padding: 24,
+            textAlign: "center",
+            borderBottom: "1px solid #303030",
+          }}
+        >
+          <Typography.Title level={4} style={{ color: "#fff", margin: 0 }}>
+            InFra<span style={{ color: "#1890ff" }}>Lab</span>
+          </Typography.Title>
+          <Typography.Text type="secondary" style={{ color: "#8c8c8c", fontSize: 12 }}>
+            QUẢN LÝ PHÒNG LAB
+          </Typography.Text>
+        </div>
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={["devices"]}
+          items={[
+            { key: "overview", icon: <DashboardOutlined />, label: "Thống kê" },
+            { key: "devices", icon: <ToolOutlined />, label: "Quản lý thiết bị" },
+            { key: "borrow", icon: <SwapOutlined />, label: "Mượn/Trả" },
+            { key: "reports", icon: <FileTextOutlined />, label: "Báo cáo" },
+            { key: "notifications", icon: <BellOutlined />, label: "Thông báo" },
+          ]}
+          style={{ borderRight: 0, marginTop: 16 }}
+          onSelect={({ key }) => {
+            if (key === "overview") navigate("/teacher-dashboard");
+            else if (key === "devices") navigate("/lab-manager/devices");
+            else if (key === "borrow") navigate("/lab-manager/devices");
+            else if (key === "reports") navigate("/reports");
+            else if (key === "notifications") navigate("/notifications");
+          }}
         />
-
-        <select
-          className="filter-select"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: 16,
+            borderTop: "1px solid #303030",
+            cursor: "pointer",
+          }}
+          onClick={() => {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("user");
+            navigate("/login");
+          }}
         >
-          <option value="all">Tất cả danh mục</option>
-          {categories.map((c) => (
-            <option key={c._id} value={c.name}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+          <Button
+            type="text"
+            icon={<LogoutOutlined />}
+            style={{ width: "100%", color: "#fff" }}
+          >
+            Đăng xuất
+          </Button>
+        </div>
+      </Layout.Sider>
 
-        <select
-          className="filter-select"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="available">Đang rảnh &gt; 0</option>
-          <option value="borrowed">Đang mượn &gt; 0</option>
-          <option value="broken">Hỏng &gt; 0</option>
-        </select>
+      <Layout style={{ marginLeft: 240, background: "#0c1424" }}>
+        <Layout.Content style={{ padding: "16px 24px", background: "#0c1424" }}>
+          <div className="content-wrapper">
+            <h2 className="page-title">Danh sách thiết bị phòng Lab</h2>
 
-        <button className="btn-filter" onClick={applyFilter}>Lọc</button>
-        <button className="btn-reset" onClick={resetFilter}>Reset</button>
-      </div>
+            {/* ---------------- FILTER BAR ---------------- */}
+            <div className="filter-bar">
 
-      {/* ---------------- TABLE ---------------- */}
-      <div className="device-table">
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: 40 }}>#</th>
-              <th style={{ width: 100 }}>Ảnh</th>
-              <th style={{ width: 220 }}>Tên thiết bị</th>
-              <th style={{ width: 180 }}>Danh mục</th>
-              <th style={{ width: 70 }}>Tổng</th>
-              <th style={{ width: 90 }}>Đang rảnh</th>
-              <th style={{ width: 90 }}>Đang mượn</th>
-              <th style={{ width: 70 }}>Hỏng</th>
-              <th style={{ width: 120 }}>Hành động</th>
-            </tr>
-          </thead>
+              <input
+                placeholder="Tìm theo tên thiết bị..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="filter-input"
+              />
 
-          <tbody>
-            {visibleItems.length === 0 && (
-              <tr>
-                <td colSpan="9" className="center" style={{ padding: 16 }}>
-                  Không có thiết bị phù hợp bộ lọc.
-                </td>
-              </tr>
-            )}
+              <select
+                className="filter-select"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="all">Tất cả danh mục</option>
+                {categories.map((c) => (
+                  <option key={c._id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
 
-            {visibleItems.map((item, index) => (
-              <tr key={item._id}>
-                <td className="center">{indexOfFirst + index + 1}</td>
-                <td className="center">
-                  <div className="device-image-container">
-                    {item.device.image ? (
-                      <img 
-                        src={item.device.image} 
-                        alt={item.device.name}
-                        className="device-image"
-                        onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
-                        }}
-                      />
-                    ) : (
-                      <div className="device-image-placeholder">
-                        <span>No Image</span>
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td>{item.device.name}</td>
-                <td>{item.device.category}</td>
-                <td className="center">{item.total}</td>
-                <td className="ok center">{item.available}</td>
-                <td className="warn center">{item.borrowed}</td>
-                <td className="error center">{item.broken}</td>
-                <td className="center">
+              <select
+                className="filter-select"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="all">Tất cả trạng thái</option>
+                <option value="available">Đang rảnh &gt; 0</option>
+                <option value="borrowed">Đang mượn &gt; 0</option>
+                <option value="broken">Hỏng &gt; 0</option>
+              </select>
+
+              <button className="btn-filter" onClick={applyFilter}>Lọc</button>
+              <button className="btn-reset" onClick={resetFilter}>Reset</button>
+            </div>
+
+            {/* ---------------- TABLE ---------------- */}
+            <div className="device-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: 40 }}>#</th>
+                    <th style={{ width: 100 }}>Ảnh</th>
+                    <th style={{ width: 220 }}>Tên thiết bị</th>
+                    <th style={{ width: 180 }}>Danh mục</th>
+                    <th style={{ width: 70 }}>Tổng</th>
+                    <th style={{ width: 90 }}>Đang rảnh</th>
+                    <th style={{ width: 90 }}>Đang mượn</th>
+                    <th style={{ width: 70 }}>Hỏng</th>
+                    <th style={{ width: 120 }}>Hành động</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {visibleItems.length === 0 && (
+                    <tr>
+                      <td colSpan="9" className="center" style={{ padding: 16 }}>
+                        Không có thiết bị phù hợp bộ lọc.
+                      </td>
+                    </tr>
+                  )}
+
+                  {visibleItems.map((item, index) => (
+                    <tr key={item._id}>
+                      <td className="center">{indexOfFirst + index + 1}</td>
+                      <td className="center">
+                        <div className="device-image-container">
+                          {item.device.image ? (
+                            <img 
+                              src={item.device.image} 
+                              alt={item.device.name}
+                              className="device-image"
+                              onError={(e) => {
+                                e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
+                              }}
+                            />
+                          ) : (
+                            <div className="device-image-placeholder">
+                              <span>No Image</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td>{item.device.name}</td>
+                      <td>{item.device.category}</td>
+                      <td className="center">{item.total}</td>
+                      <td className="ok center">{item.available}</td>
+                      <td className="warn center">{item.borrowed}</td>
+                      <td className="error center">{item.broken}</td>
+                      <td className="center">
+                        <button
+                          onClick={() => navigate(`/lab-manager/device/${item._id}`)}
+                          className="btn-view"
+                        >
+                          Chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ---------------- PAGINATION ---------------- */}
+            <div className="pagination-container">
+
+              <div className="page-left">
+                <span>Show</span>
+                <select
+                  className="page-size-select"
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span>items per page</span>
+              </div>
+
+              <div className="page-right">
+                <span>
+                  {filteredData.length === 0
+                    ? "0 items"
+                    : `${indexOfFirst + 1} - ${Math.min(indexOfLast, filteredData.length)} of ${filteredData.length} items`}
+                </span>
+
+                <button
+                  className="page-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
+                  Previous
+                </button>
+
+                {[...Array(totalPages)].map((_, i) => (
                   <button
-                    onClick={() => navigate(`/lab-manager/device/${item._id}`)}
-                    className="btn-view"
+                    key={i}
+                    className={`page-number ${currentPage === i + 1 ? "active" : ""}`}
+                    onClick={() => setCurrentPage(i + 1)}
                   >
-                    Chi tiết
+                    {i + 1}
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                ))}
 
-      {/* ---------------- PAGINATION ---------------- */}
-      <div className="pagination-container">
+                <button
+                  className="page-btn"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
+                  Next
+                </button>
+              </div>
 
-        <div className="page-left">
-          <span>Show</span>
-          <select
-            className="page-size-select"
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-          </select>
-          <span>items per page</span>
-        </div>
-
-        <div className="page-right">
-          <span>
-            {filteredData.length === 0
-              ? "0 items"
-              : `${indexOfFirst + 1} - ${Math.min(indexOfLast, filteredData.length)} of ${filteredData.length} items`}
-          </span>
-
-          <button
-            className="page-btn"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(currentPage - 1)}
-          >
-            Previous
-          </button>
-
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i}
-              className={`page-number ${currentPage === i + 1 ? "active" : ""}`}
-              onClick={() => setCurrentPage(i + 1)}
-            >
-              {i + 1}
-            </button>
-          ))}
-
-          <button
-            className="page-btn"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(currentPage + 1)}
-          >
-            Next
-          </button>
-        </div>
-
-      </div>
-
-    </div>
+            </div>
+          </div>
+        </Layout.Content>
+      </Layout>
+    </Layout>
   );
 }
 

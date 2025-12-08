@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../dashboard.css';
-import DashboardOverview from './dashboard.jsx';
 
 function SchoolDashboard() {
-  const [activeSection, setActiveSection] = useState('overview'); 
+  const navigate = useNavigate();
+  const [activeSection, setActiveSection] = useState('inventory'); 
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('newest'); 
   const [categories, setCategories] = useState([]);
@@ -48,13 +49,29 @@ function SchoolDashboard() {
 
       const catData = await catRes.json();
       const devData = await devRes.json();
-      setCategories(catData || []);
-      setDevices(devData || []);
+      
+      // Handle different response formats
+      const categoriesList = Array.isArray(catData) ? catData : (catData?.data || []);
+      const devicesList = Array.isArray(devData) ? devData : (devData?.data || []);
+      
+      // Debug: Log để kiểm tra category_id có được populate không
+      console.log('=== DEBUG DEVICES DATA ===');
+      console.log('First device:', devicesList[0]);
+      console.log('First device category_id:', devicesList[0]?.category_id);
+      console.log('First device category_id type:', typeof devicesList[0]?.category_id);
+      console.log('First device category_id name:', devicesList[0]?.category_id?.name);
+      console.log('Categories list:', categoriesList);
+      console.log('========================');
+      
+      setCategories(categoriesList);
+      setDevices(devicesList);
 
       const invRes = await fetch(`${API_BASE}/inventories`);
       if (invRes.ok) {
         const invData = await invRes.json();
-        setInventories(invData || []);
+        // Handle different response formats
+        const inventoriesList = Array.isArray(invData) ? invData : (invData?.data || []);
+        setInventories(inventoriesList);
       }
     } catch (err) {
       setError(err.message || 'Da co loi xay ra');
@@ -65,18 +82,56 @@ function SchoolDashboard() {
 
   useEffect(() => {
     loadData();
-  }, [API_BASE, activeSection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection]);
 
   const filteredDevices = useMemo(() => {
+    if (!devices || !Array.isArray(devices)) {
+      return [];
+    }
+    
     const list = devices.filter((item) => {
-      const nameMatches = (item.name || '').toLowerCase().includes(search.toLowerCase().trim());
+      if (!item) return false;
+      
+      // Filter by name
+      const nameMatches = (item.name || '').toLowerCase().includes((search || '').toLowerCase().trim());
 
-      const deviceCategoryKey = String(
-        item.category_id?._id || item.category_id || item.categoryId?._id || item.categoryId || item.category || ''
-      ).toLowerCase();
+      // Filter by category - handle both populated object and ID string
+      let deviceCategoryId = '';
+      
+      if (item.category_id) {
+        // If category_id is populated object (from populate) - most common case
+        if (typeof item.category_id === 'object' && item.category_id !== null) {
+          // Check if it has _id property (populated object from MongoDB)
+          if (item.category_id._id) {
+            // Handle both ObjectId and string
+            deviceCategoryId = item.category_id._id.toString ? item.category_id._id.toString() : String(item.category_id._id);
+          }
+          // If it's an object but no _id, it might be the ID itself
+          else if (item.category_id.toString) {
+            deviceCategoryId = item.category_id.toString();
+          }
+          else {
+            deviceCategoryId = String(item.category_id);
+          }
+        } 
+        // If category_id is just an ID string
+        else if (typeof item.category_id === 'string') {
+          deviceCategoryId = item.category_id;
+        }
+        // Fallback for other formats
+        else {
+          deviceCategoryId = String(item.category_id);
+        }
+      }
+
+      // Normalize both IDs for comparison - remove any whitespace and convert to string
+      const normalizedDeviceCategoryId = deviceCategoryId ? deviceCategoryId.trim().toLowerCase() : '';
+      const normalizedSelectedCategoryKey = selectedCategoryKey ? String(selectedCategoryKey).trim().toLowerCase() : '';
 
       const categoryMatches =
-        selectedCategoryKey === 'all' || deviceCategoryKey === String(selectedCategoryKey).toLowerCase();
+        selectedCategoryKey === 'all' || 
+        (normalizedDeviceCategoryId && normalizedDeviceCategoryId === normalizedSelectedCategoryKey);
 
       return nameMatches && categoryMatches;
     });
@@ -179,7 +234,29 @@ function SchoolDashboard() {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-top">
-          <div className="brand">
+          <div 
+            className="brand" 
+            onClick={() => {
+              // Navigate về trang chủ theo role
+              const userString = localStorage.getItem('user');
+              if (userString) {
+                const userData = JSON.parse(userString);
+                const role = userData?.role;
+                if (role === 'school_admin') {
+                  navigate('/school-dashboard');
+                } else if (role === 'lab_manager') {
+                  navigate('/teacher-dashboard');
+                } else if (role === 'student') {
+                  navigate('/user-dashboard');
+                } else {
+                  navigate('/school-dashboard'); // Default
+                }
+              } else {
+                navigate('/school-dashboard'); // Default nếu không có user
+              }
+            }}
+            style={{ cursor: 'pointer' }}
+          >
             InFra<span>Lab</span>
           </div>
 
@@ -187,36 +264,52 @@ function SchoolDashboard() {
             <div className="sidebar-menu-title">School</div>
             <div className="menu-list">
               <div
-                className={`menu-item ${activeSection === 'overview' ? 'active' : ''}`}
-                onClick={() => setActiveSection('overview')}
-              >               
-                <span>📊 Tong quan</span>
-              </div>
-              <div
                 className={`menu-item ${activeSection === 'inventory' ? 'active' : ''}`}
                 onClick={() => setActiveSection('inventory')}
               >
-               
                 <span>📦 Kho Thiet Bi</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="sidebar-footer">Dang xuat</div>
+        <div
+          className="sidebar-footer"
+          onClick={() => {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('user');
+            navigate('/login');
+          }}
+          style={{ cursor: 'pointer' }}
+        >
+          Đăng xuất
+        </div>
       </aside>
 
       {/* Main */}
       <main className="main">
         <header className="main-header">
           <div className="main-title">Trung Tam Ung Dung Thiet Bi InFraLab</div>
-          <div className="main-user">
-            <span>Xin chao, School Admin!</span>
-            <div className="user-avatar" />
+          <div className="main-header-right">
+            <div className="header-search">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm kiếm thiết bị theo tên..."
+                className="header-search-input"
+              />
+            </div>
+            <div 
+              className="main-user"
+              onClick={() => navigate('/profile')}
+              style={{ cursor: 'pointer' }}
+            >
+              <span>Xin chao, School Admin!</span>
+              <div className="user-avatar" />
+            </div>
           </div>
         </header>
-
-        {activeSection === 'overview' && <DashboardOverview />}
 
         {activeSection === 'inventory' && (
           <section className="inventory-section">
@@ -268,7 +361,6 @@ function SchoolDashboard() {
             {!loading && !error && filteredDevices.length === 0 && (
               <div className="inventory-status">Khong co thiet bi phu hop</div>
             )}
-
             {!loading && !error && filteredDevices.length > 0 && (
               <div className="device-table-wrapper">
                 <table className="device-table">
@@ -294,7 +386,19 @@ function SchoolDashboard() {
                       const available = inv?.available ?? 0;
                       const broken = inv?.broken ?? 0;
                       const borrowing = Math.max(total - available - broken, 0);
-                      const categoryName = device.category_id?.name || 'N/A';
+                      // Get category name - handle both populated object and ID
+                      let categoryName = 'N/A';
+                      if (device.category_id) {
+                        if (typeof device.category_id === 'object' && device.category_id !== null && device.category_id.name) {
+                          categoryName = device.category_id.name;
+                        } else {
+                          // If it's just an ID, try to find in categories list
+                          const category = categories.find(cat => 
+                            cat && (String(cat._id) === String(device.category_id))
+                          );
+                          categoryName = category?.name || 'N/A';
+                        }
+                      }
 
                       return (
                         <tr key={devId}>
@@ -413,7 +517,7 @@ function SchoolDashboard() {
               {error && <div className="inventory-status error">{error}</div>}
             </div>
             <div className="modal-footer">
-              <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
+            <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
                 Huy
               </button>
               <button className="button-primary" disabled={saving} onClick={handleSubmit}>

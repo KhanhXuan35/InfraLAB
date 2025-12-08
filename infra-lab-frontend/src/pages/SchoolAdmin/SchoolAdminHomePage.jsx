@@ -36,9 +36,9 @@ const SchoolAdminHomePage = () => {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({
     totalDevices: 0,
-    totalSchools: 0,
     pendingRequests: 0,
-    activeLabs: 0,
+    activeDevices: 0,
+    brokenDevices: 0,
   });
   const [loading, setLoading] = useState(true);
   const [selectedMenu, setSelectedMenu] = useState('overview');
@@ -53,7 +53,15 @@ const SchoolAdminHomePage = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // TODO: Gọi API để lấy stats
+        const response = await api.get('/school-dashboard/stats');
+        if (response.success && response.data) {
+          setStats({
+            totalDevices: response.data.totalDevices || 0,
+            pendingRequests: response.data.pendingRequests || 0,
+            activeDevices: response.data.activeDevices || 0,
+            brokenDevices: response.data.brokenDevices || 0,
+          });
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -103,7 +111,7 @@ const SchoolAdminHomePage = () => {
       title: 'Quản lý thiết bị',
       icon: <ToolOutlined />,
       color: '#1890ff',
-      onClick: () => navigate('/devices'),
+      onClick: () => navigate('/school/dashboard'),
     },
     {
       title: 'Duyệt yêu cầu',
@@ -142,7 +150,28 @@ const SchoolAdminHomePage = () => {
           overflow: 'auto',
         }}
       >
-        <div style={{ padding: 24, textAlign: 'center', borderBottom: '1px solid #303030' }}>
+        <div 
+          style={{ padding: 24, textAlign: 'center', borderBottom: '1px solid #303030', cursor: 'pointer' }}
+          onClick={() => {
+            // Navigate về trang chủ theo role
+            const userString = localStorage.getItem('user');
+            if (userString) {
+              const userData = JSON.parse(userString);
+              const role = userData?.role;
+              if (role === 'school_admin') {
+                navigate('/school-dashboard');
+              } else if (role === 'lab_manager') {
+                navigate('/teacher-dashboard');
+              } else if (role === 'student') {
+                navigate('/user-dashboard');
+              } else {
+                navigate('/school-dashboard'); // Default
+              }
+            } else {
+              navigate('/school-dashboard'); // Default nếu không có user
+            }
+          }}
+        >
           <Title level={4} style={{ color: '#fff', margin: 0 }}>
             InFra<span style={{ color: '#1890ff' }}>Lab</span>
           </Title>
@@ -156,7 +185,23 @@ const SchoolAdminHomePage = () => {
           selectedKeys={[selectedMenu]}
           items={menuItems}
           style={{ borderRight: 0, marginTop: 16 }}
-          onSelect={({ key }) => setSelectedMenu(key)}
+          onSelect={({ key }) => {
+            setSelectedMenu(key);
+            // Navigate based on menu key
+            if (key === 'overview') {
+              navigate('/school-dashboard');
+            } else if (key === 'devices') {
+              navigate('/school/dashboard');
+            } else if (key === 'requests') {
+              navigate('/requests');
+            } else if (key === 'reports') {
+              navigate('/reports');
+            } else if (key === 'settings') {
+              navigate('/settings');
+            } else if (key === 'profile') {
+              navigate('/profile');
+            }
+          }}
         />
         <div
           style={{
@@ -226,9 +271,9 @@ const SchoolAdminHomePage = () => {
             <Col xs={24} sm={12} lg={6}>
               <Card>
                 <Statistic
-                  title="Tổng trường học"
-                  value={stats.totalSchools}
-                  prefix={<BankOutlined />}
+                  title="Thiết bị đang hoạt động"
+                  value={stats.activeDevices}
+                  prefix={<CheckCircleOutlined />}
                   valueStyle={{ color: '#52c41a' }}
                 />
               </Card>
@@ -246,10 +291,10 @@ const SchoolAdminHomePage = () => {
             <Col xs={24} sm={12} lg={6}>
               <Card>
                 <Statistic
-                  title="thiết bị hỏng/sửa"
-                  value={stats.activeLabs}
-                  prefix={<BankOutlined />}
-                  valueStyle={{ color: '#722ed1' }}
+                  title="Thiết bị hỏng/sửa"
+                  value={stats.brokenDevices}
+                  prefix={<ToolOutlined />}
+                  valueStyle={{ color: '#ff4d4f' }}
                 />
               </Card>
             </Col>

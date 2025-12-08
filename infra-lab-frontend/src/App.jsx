@@ -30,7 +30,11 @@ import DeviceList from "./components/LabManager/DeviceList";
 import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
 
 // School pages
+import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
 import RepairRequestList from "./pages/School/RepairRequestList";
+
+// Profile page
+import UserProfile from "./pages/Profile/UserProfile";
 
 import "./App.css";
 
@@ -59,7 +63,10 @@ function App() {
             <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
               <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
               <Route path="/requests" element={<RepairRequestList />} />
+              <Route path="/school/dashboard" element={<SchoolDashboard />} />
             </Route>
+          
+
 
             {/* --- LAB MANAGER PAGES --- */}
             <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
@@ -77,6 +84,11 @@ function App() {
             <Route path={`${STUDENT_BASE_PATH}/borrow/:id`} element={<RegisterBorrow />} />
             <Route path={`${STUDENT_BASE_PATH}/borrow/multiple`} element={<RegisterBorrowMultiple />} />
             <Route path={`${STUDENT_BASE_PATH}/cart`} element={<Cart />} />
+
+            {/* --- PROFILE PAGE (Protected) --- */}
+            <Route element={<PrivateRoute allowedRoles={["student"]} />}>
+              <Route path="/profile" element={<UserProfile />} />
+            </Route>
 
             {/* --- DEFAULT ROUTES --- */}
             <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />

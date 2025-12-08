@@ -5,9 +5,9 @@ import Device from "../../models/Device.js";
 export const getInventories = async (req, res) => {
   try {
     const inventories = await Inventory.find({ location: "warehouse" });
-    res.json(inventories);
+    res.json({ success: true, data: inventories });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch inventories", error: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch inventories", error: error.message });
   }
 };
 
@@ -66,14 +66,15 @@ export const getDeviceCategories = async (req, res) => {
     //   }
     // ]
     
-    res.json(
-      categories.map((cat) => ({
+    res.json({
+      success: true,
+      data: categories.map((cat) => ({
         ...cat,
         devices: grouped[cat._id.toString()] || []
       }))
-    );
+    });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch device categories", error: error.message });
+    res.status(500).json({ success: false, message: "Failed to fetch device categories", error: error.message });
   }
 };
 
@@ -81,10 +82,62 @@ export const getDevices = async (req, res) => {
   try {
     const location = req.query.location || "warehouse";
     const deviceIds = await Inventory.find({ location }).distinct("device_id");
-    const devices = await Device.find({ _id: { $in: deviceIds } }).populate("category_id");
-    res.json(devices);
+    
+    if (!deviceIds || deviceIds.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+    
+    // Populate category_id với Category
+    // Không dùng lean() trước populate để đảm bảo populate hoạt động đúng
+    const devicesQuery = Device.find({ _id: { $in: deviceIds } })
+      .populate({
+        path: "category_id",
+        select: "_id name description",
+        model: "Category"
+      });
+    
+    const devices = await devicesQuery.exec();
+    
+    // Convert sang plain objects sau khi populate
+    const devicesPlain = devices.map(device => {
+      const deviceObj = device.toObject ? device.toObject() : device;
+      // Đảm bảo category_id được populate đúng
+      if (deviceObj.category_id && typeof deviceObj.category_id === 'object') {
+        // Nếu đã được populate, giữ nguyên
+        if (deviceObj.category_id._id && deviceObj.category_id.name) {
+          // OK, đã populate đúng
+        } else {
+          // Nếu chưa populate, log để debug
+          console.warn(`Device ${deviceObj.name} has category_id but not populated correctly:`, deviceObj.category_id);
+        }
+      }
+      return deviceObj;
+    });
+    
+    // Debug: Log để kiểm tra
+    console.log('=== DEVICES WITH CATEGORY ===');
+    devicesPlain.slice(0, 3).forEach(d => {
+      console.log(`Device: ${d.name}`);
+      console.log(`  category_id exists: ${!!d.category_id}`);
+      console.log(`  category_id type: ${typeof d.category_id}`);
+      if (d.category_id) {
+        console.log(`  category_id:`, d.category_id);
+        console.log(`  category name: ${d.category_id?.name || 'N/A'}`);
+      }
+    });
+    console.log('============================');
+    
+    // Filter out devices without category_id
+    const validDevices = devicesPlain.filter(d => d.category_id !== null && d.category_id !== undefined);
+    
+    if (validDevices.length !== devicesPlain.length) {
+      console.warn(`Warning: ${devicesPlain.length - validDevices.length} devices without category_id found`);
+    }
+    
+    res.json({ success: true, data: validDevices });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch devices", error: error.message });
+    console.error('Error in getDevices:', error);
+    res.status(500).json({ success: false, message: "Failed to fetch devices", error: error.message });
   }
 };
 
@@ -123,9 +176,9 @@ export const createDeviceWithInventory = async (req, res) => {
       broken: parsedBroken
     });
 
-    res.status(201).json({ device, inventory });
+    res.status(201).json({ success: true, data: { device, inventory } });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create device", error: error.message });
+    res.status(500).json({ success: false, message: "Failed to create device", error: error.message });
   }
 };
 
@@ -179,9 +232,9 @@ export const updateDeviceWithInventory = async (req, res) => {
     }
 
     const updatedDevice = await Device.findById(id).populate("category_id");
-    return res.json({ device: updatedDevice, inventory });
+    return res.json({ success: true, data: { device: updatedDevice, inventory } });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update device", error: error.message });
+    res.status(500).json({ success: false, message: "Failed to update device", error: error.message });
   }
 };
 
@@ -189,13 +242,13 @@ export const deleteDeviceWithInventory = async (req, res) => {
   try {
     const { id } = req.params;
     const device = await Device.findById(id);
-    if (!device) return res.status(404).json({ message: "Device not found" });
+    if (!device) return res.status(404).json({ success: false, message: "Device not found" });
 
     await Inventory.deleteMany({ device_id: id });
     await Device.deleteOne({ _id: id });
 
-    res.json({ message: "Deleted device and related inventories" });
+    res.json({ success: true, message: "Deleted device and related inventories" });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete device", error: error.message });
+    res.status(500).json({ success: false, message: "Failed to delete device", error: error.message });
   }
 };

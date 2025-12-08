@@ -183,7 +183,11 @@ const Header = () => {
   };
 
   const handleMenuClick = ({ key }) => {
-    if (key === 'logout') {
+    if (key === 'profile') {
+      navigate('/profile');
+    } else if (key === 'settings') {
+      navigate('/settings');
+    } else if (key === 'logout') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
       navigate('/login');

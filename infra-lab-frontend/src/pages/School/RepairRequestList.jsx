@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
+import { Layout, Menu, Typography, Button } from "antd";
+import {
+  DashboardOutlined,
+  ToolOutlined,
+  CheckCircleOutlined,
+  FileTextOutlined,
+  SettingOutlined,
+  LogoutOutlined,
+  BellOutlined
+} from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import "./RepairRequestList.css";
 
 export default function RepairRequestList() {
+  const navigate = useNavigate();
   const [repairs, setRepairs] = useState([]);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [loading, setLoading] = useState(true);
@@ -128,8 +140,6 @@ export default function RepairRequestList() {
     }
   };
 
-  if (loading) return <div style={{ padding: "20px", textAlign: "center" }}>Đang tải...</div>;
-
   const getStatusText = (status) => {
     const statusMap = {
       pending: "Đang chờ duyệt",
@@ -153,183 +163,260 @@ export default function RepairRequestList() {
   };
 
   return (
-    <div className="content-wrapper">
-      <h2>Yêu cầu sửa chữa thiết bị</h2>
-
-      {/* Thông báo */}
-      {message.text && (
+    <Layout style={{ minHeight: "100vh" }}>
+      <Layout.Sider
+        width={240}
+        style={{
+          background: "#001529",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          overflow: "auto",
+        }}
+      >
         <div
           style={{
-            padding: "12px 16px",
-            marginBottom: "16px",
-            borderRadius: "4px",
-            backgroundColor: message.type === "success" 
-              ? "#d4edda" 
-              : message.type === "info"
-              ? "#d1ecf1"
-              : "#f8d7da",
-            color: message.type === "success" 
-              ? "#155724" 
-              : message.type === "info"
-              ? "#0c5460"
-              : "#721c24",
-            border: `1px solid ${
-              message.type === "success" 
-                ? "#c3e6cb" 
-                : message.type === "info"
-                ? "#bee5eb"
-                : "#f5c6cb"
-            }`,
+            padding: 24,
+            textAlign: "center",
+            borderBottom: "1px solid #303030",
           }}
         >
-          {message.text}
+          <Typography.Title level={4} style={{ color: "#fff", margin: 0 }}>
+            InFra<span style={{ color: "#1890ff" }}>Lab</span>
+          </Typography.Title>
+          <Typography.Text type="secondary" style={{ color: "#8c8c8c", fontSize: 12 }}>
+            QUẢN TRỊ HỆ THỐNG
+          </Typography.Text>
         </div>
-      )}
-
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ marginRight: "8px", fontWeight: "500" }}>Lọc theo trạng thái:</label>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={["requests"]}
+          items={[
+            { key: "overview", icon: <DashboardOutlined />, label: "Tổng quan" },
+            { key: "devices", icon: <ToolOutlined />, label: "Quản lý thiết bị" },
+            { key: "requests", icon: <CheckCircleOutlined />, label: "Duyệt yêu cầu" },
+            { key: "reports", icon: <FileTextOutlined />, label: "Báo cáo" },
+            { key: "notifications", icon: <BellOutlined />, label: "Thông báo" },
+          ]}
+          style={{ borderRight: 0, marginTop: 16 }}
+          onSelect={({ key }) => {
+            if (key === "overview") navigate("/school-dashboard");
+            else if (key === "devices") navigate("/school/dashboard");
+            else if (key === "requests") navigate("/requests");
+            else if (key === "reports") navigate("/reports");
+            else if (key === "notifications") navigate("/notifications");
+          }}
+        />
+        <div
           style={{
-            padding: "8px 12px",
-            borderRadius: "4px",
-            border: "1px solid #ddd",
-            fontSize: "14px",
-            minWidth: "200px"
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: 16,
+            borderTop: "1px solid #303030",
+            cursor: "pointer",
+          }}
+          onClick={() => {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("user");
+            navigate("/login");
           }}
         >
-          <option value="pending">Đang chờ duyệt</option>
-          <option value="approved">Đã duyệt</option>
-          <option value="in_progress">Đang sửa</option>
-          <option value="done">Đã sửa xong</option>
-          <option value="rejected">Đã từ chối</option>
-          <option value="all">Tất cả</option>
-        </select>
-      </div>
+          <Button
+            type="text"
+            icon={<LogoutOutlined />}
+            style={{ width: "100%", color: "#fff" }}
+          >
+            Đăng xuất
+          </Button>
+        </div>
+      </Layout.Sider>
 
-      <table className="device-table">
-        <thead>
-          <tr>
-            <th>Thiết bị</th>
-            <th>Số lượng</th>
-            <th>Lý do</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {repairs.map((r) => (
-            <tr key={r._id}>
-              <td>{r.device_id?.name || "N/A"}</td>
-              <td>{r.quantity || 1}</td>
-              <td>{r.reason || "Không có"}</td>
-              <td>
-                <span className={getStatusBadgeClass(r.status)} style={{
-                  padding: "4px 12px",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  display: "inline-block"
-                }}>
-                  {getStatusText(r.status)}
-                </span>
-              </td>
-              <td>
-                {r.status === "pending" && (
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      onClick={() => updateStatus(r._id, "approved")}
-                      disabled={updating === r._id}
-                      style={{
-                        padding: "6px 16px",
-                        backgroundColor: "#1890ff",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: updating === r._id ? "not-allowed" : "pointer",
-                        opacity: updating === r._id ? 0.6 : 1,
-                        fontSize: "14px",
-                        fontWeight: "500"
-                      }}
-                    >
-                      {updating === r._id ? "Đang xử lý..." : "Duyệt"}
-                    </button>
-                    <button
-                      onClick={() => updateStatus(r._id, "rejected")}
-                      disabled={updating === r._id}
-                      style={{
-                        padding: "6px 16px",
-                        backgroundColor: "#ff4d4f",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: updating === r._id ? "not-allowed" : "pointer",
-                        opacity: updating === r._id ? 0.6 : 1,
-                        fontSize: "14px",
-                        fontWeight: "500"
-                      }}
-                    >
-                      {updating === r._id ? "Đang xử lý..." : "Từ chối"}
-                    </button>
-                  </div>
-                )}
-                {r.status === "approved" && (
-                  <button
-                    onClick={() => updateStatus(r._id, "in_progress")}
-                    disabled={updating === r._id}
-                    style={{
-                      padding: "6px 16px",
-                      backgroundColor: "#52c41a",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: updating === r._id ? "not-allowed" : "pointer",
-                      opacity: updating === r._id ? 0.6 : 1,
-                      fontSize: "14px",
-                      fontWeight: "500"
-                    }}
-                  >
-                    {updating === r._id ? "Đang xử lý..." : "Bắt đầu sửa"}
-                  </button>
-                )}
-                {r.status === "in_progress" && (
-                  <button
-                    onClick={() => updateStatus(r._id, "done")}
-                    disabled={updating === r._id}
-                    style={{
-                      padding: "6px 16px",
-                      backgroundColor: "#722ed1",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      cursor: updating === r._id ? "not-allowed" : "pointer",
-                      opacity: updating === r._id ? 0.6 : 1,
-                      fontSize: "14px",
-                      fontWeight: "500"
-                    }}
-                  >
-                    {updating === r._id ? "Đang xử lý..." : "Đánh dấu hoàn thành"}
-                  </button>
-                )}
-                {(r.status === "done" || r.status === "rejected") && (
-                  <span style={{ color: "#999", fontSize: "14px" }}>
-                    {r.status === "done" ? "Đã hoàn thành" : "Đã từ chối"}
-                  </span>
-                )}
-              </td>
-            </tr>
-          ))}
+      <Layout style={{ marginLeft: 240, background: "#0c1424", minHeight: "100vh" }}>
+        <Layout.Content style={{ padding: "24px" }}>
+          <div className="content-wrapper">
+            <h2>Yêu cầu sửa chữa thiết bị</h2>
 
-          {repairs.length === 0 && (
-            <tr>
-              <td colSpan="5" style={{ textAlign: "center" }}>
-                Không có yêu cầu nào.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+            {/* Thông báo */}
+            {message.text && (
+              <div
+                style={{
+                  padding: "12px 16px",
+                  marginBottom: "16px",
+                  borderRadius: "4px",
+                  backgroundColor: message.type === "success" 
+                    ? "#d4edda" 
+                    : message.type === "info"
+                    ? "#d1ecf1"
+                    : "#f8d7da",
+                  color: message.type === "success" 
+                    ? "#155724" 
+                    : message.type === "info"
+                    ? "#0c5460"
+                    : "#721c24",
+                  border: `1px solid ${
+                    message.type === "success" 
+                      ? "#c3e6cb" 
+                      : message.type === "info"
+                      ? "#bee5eb"
+                      : "#f5c6cb"
+                  }`,
+                }}
+              >
+                {message.text}
+              </div>
+            )}
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ marginRight: "8px", fontWeight: "500" }}>Lọc theo trạng thái:</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  border: "1px solid #ddd",
+                  fontSize: "14px",
+                  minWidth: "200px"
+                }}
+              >
+                <option value="pending">Đang chờ duyệt</option>
+                <option value="approved">Đã duyệt</option>
+                <option value="in_progress">Đang sửa</option>
+                <option value="done">Đã sửa xong</option>
+                <option value="rejected">Đã từ chối</option>
+                <option value="all">Tất cả</option>
+              </select>
+            </div>
+
+            <table className="device-table">
+              <thead>
+                <tr>
+                  <th>Thiết bị</th>
+                  <th>Số lượng</th>
+                  <th>Lý do</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {repairs.map((r) => (
+                  <tr key={r._id}>
+                    <td>{r.device_id?.name || "N/A"}</td>
+                    <td>{r.quantity || 1}</td>
+                    <td>{r.reason || "Không có"}</td>
+                    <td>
+                      <span className={getStatusBadgeClass(r.status)} style={{
+                        padding: "4px 12px",
+                        borderRadius: "12px",
+                        fontSize: "12px",
+                        fontWeight: "500",
+                        display: "inline-block"
+                      }}>
+                        {getStatusText(r.status)}
+                      </span>
+                    </td>
+                    <td>
+                      {r.status === "pending" && (
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            onClick={() => updateStatus(r._id, "approved")}
+                            disabled={updating === r._id}
+                            style={{
+                              padding: "6px 16px",
+                              backgroundColor: "#1890ff",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "4px",
+                              cursor: updating === r._id ? "not-allowed" : "pointer",
+                              opacity: updating === r._id ? 0.6 : 1,
+                              fontSize: "14px",
+                              fontWeight: "500"
+                            }}
+                          >
+                            {updating === r._id ? "Đang xử lý..." : "Duyệt"}
+                          </button>
+                          <button
+                            onClick={() => updateStatus(r._id, "rejected")}
+                            disabled={updating === r._id}
+                            style={{
+                              padding: "6px 16px",
+                              backgroundColor: "#ff4d4f",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "4px",
+                              cursor: updating === r._id ? "not-allowed" : "pointer",
+                              opacity: updating === r._id ? 0.6 : 1,
+                              fontSize: "14px",
+                              fontWeight: "500"
+                            }}
+                          >
+                            {updating === r._id ? "Đang xử lý..." : "Từ chối"}
+                          </button>
+                        </div>
+                      )}
+                      {r.status === "approved" && (
+                        <button
+                          onClick={() => updateStatus(r._id, "in_progress")}
+                          disabled={updating === r._id}
+                          style={{
+                            padding: "6px 16px",
+                            backgroundColor: "#52c41a",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: updating === r._id ? "not-allowed" : "pointer",
+                            opacity: updating === r._id ? 0.6 : 1,
+                            fontSize: "14px",
+                            fontWeight: "500"
+                          }}
+                        >
+                          {updating === r._id ? "Đang xử lý..." : "Bắt đầu sửa"}
+                        </button>
+                      )}
+                      {r.status === "in_progress" && (
+                        <button
+                          onClick={() => updateStatus(r._id, "done")}
+                          disabled={updating === r._id}
+                          style={{
+                            padding: "6px 16px",
+                            backgroundColor: "#722ed1",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: updating === r._id ? "not-allowed" : "pointer",
+                            opacity: updating === r._id ? 0.6 : 1,
+                            fontSize: "14px",
+                            fontWeight: "500"
+                          }}
+                        >
+                          {updating === r._id ? "Đang xử lý..." : "Đánh dấu hoàn thành"}
+                        </button>
+                      )}
+                      {(r.status === "done" || r.status === "rejected") && (
+                        <span style={{ color: "#999", fontSize: "14px" }}>
+                          {r.status === "done" ? "Đã hoàn thành" : "Đã từ chối"}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+
+                {repairs.length === 0 && (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "center" }}>
+                      Không có yêu cầu nào.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Layout.Content>
+      </Layout>
+    </Layout>
   );
 }

@@ -3,71 +3,55 @@ import RequestsWarehouse from "../../models/RequestsWarehouse.js";
 import Device from "../../models/Device.js";
 import User from "../../models/User.js";
 import ActivityLogs from "../../models/ActivityLogs.js";
+import Repair from "../../models/Repair.js";
 
 // Lấy thống kê highlights cho School Dashboard
 export const getSchoolStats = async (req, res) => {
   try {
-    // Đếm yêu cầu chờ duyệt
-    const pendingRequests = await RequestsWarehouse.countDocuments({
-      status: "pending",
-    });
-
-    // Đếm yêu cầu mới hôm nay
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const newRequestsToday = await RequestsWarehouse.countDocuments({
-      status: "pending",
-      createdAt: { $gte: today },
-    });
-
-    // Tính tổng thiết bị sẵn sàng xuất trong warehouse
+    // Lọc dữ liệu chỉ cho location = warehouse (theo yêu cầu school_admin)
     const warehouseInventories = await Inventory.find({
       location: "warehouse",
     }).lean();
 
-    let totalReadyToShip = 0;
-    warehouseInventories.forEach((inv) => {
-      totalReadyToShip += inv.available || 0;
-    });
+    // 1. Tổng thiết bị = tổng trường "total" của tất cả inventory ở warehouse
+    const totalDevices = warehouseInventories.reduce(
+      (sum, inv) => sum + (inv.total || 0),
+      0
+    );
 
-    // Tính số thiết bị tăng so với hôm qua từ ActivityLogs
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
-    
-    // Đếm số thiết bị được thêm vào warehouse trong 24 giờ qua từ ActivityLogs
-    // Tìm các activity có action liên quan đến thêm thiết bị
-    const todayActivities = await ActivityLogs.countDocuments({
-      action: { $regex: /add|create|thêm/i },
-      createdAt: { $gte: yesterday },
-    });
-    
-    // Hoặc tính từ Inventory changes (nếu có updatedAt)
-    let increaseDevices = todayActivities;
-    
-    // Nếu không có ActivityLogs, tính từ Inventory changes
-    if (increaseDevices === 0) {
-      const recentInventories = await Inventory.find({
-        location: "warehouse",
-        updatedAt: { $gte: yesterday },
-      }).lean();
-      increaseDevices = recentInventories.length;
-    }
+    // 2. Thiết bị đang hoạt động = tổng "available" ở warehouse
+    const activeDevices = warehouseInventories.reduce(
+      (sum, inv) => sum + (inv.available || 0),
+      0
+    );
 
-    // Đếm số lô hàng đang giao (yêu cầu đã approved nhưng chưa hoàn thành)
-    const shipmentsInTransit = await RequestsWarehouse.countDocuments({
-      status: "approved",
-      // Có thể thêm điều kiện khác nếu có trường tracking hoặc delivery status
+    // 3. Yêu cầu chờ duyệt - Đếm repairs có status pending hoặc requests warehouse pending
+    const pendingRepairs = await Repair.countDocuments({
+      status: { $in: ['pending', 'waiting'] }
     });
+    const pendingWarehouseRequests = await RequestsWarehouse.countDocuments({
+      status: "pending",
+    });
+    const pendingRequests = pendingRepairs + pendingWarehouseRequests;
+
+    // 4. Thiết bị hỏng/sửa - Tổng số broken trong inventories + repairs đang sửa
+    let brokenDevices = warehouseInventories.reduce(
+      (sum, inv) => sum + (inv.broken || 0),
+      0
+    );
+    // Thêm số thiết bị đang trong quá trình sửa chữa
+    const devicesInRepair = await Repair.countDocuments({
+      status: { $in: ['in_progress', 'approved'] }
+    });
+    brokenDevices += devicesInRepair;
 
     res.json({
       success: true,
       data: {
-        pendingRequests: pendingRequests,
-        newRequestsToday: newRequestsToday,
-        readyToShip: totalReadyToShip,
-        increaseDevices: increaseDevices,
-        shipmentsInTransit: shipmentsInTransit,
+        totalDevices,
+        activeDevices,
+        pendingRequests,
+        brokenDevices,
       },
     });
   } catch (err) {
@@ -75,6 +59,7 @@ export const getSchoolStats = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
+      error: err.message,
     });
   }
 };
