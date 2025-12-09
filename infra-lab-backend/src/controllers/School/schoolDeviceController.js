@@ -45,26 +45,7 @@ export const getDeviceCategories = async (req, res) => {
     //     { name: "B", category_id: { _id: 2 } }
     //   ]
     // }
-
-
-
-
     const categories = await DeviceCategory.find({ _id: { $in: Object.keys(grouped) } }).lean();
-
-    // categories = [
-    //   {
-    //     "_id": "65bf7b329c8f2b1a3d4e6a21",
-    //     "name": "Laptop & PC",
-    //     "description": "Máy tính phục vụ thực hành code",
-    //     "createdAt": "2024-01-01T00:00:00.000Z",
-    //   },
-    //   {
-    //      "_id": "65bf7b329c8f2b1a3d4e6a01",
-    //     "name": "Laptop & PC",
-    //     "description": "Máy tính phục vụ thực hành code",
-    //     "createdAt": "2024-01-01T00:00:00.000Z",
-    //   }
-    // ]
     
     res.json({
       success: true,
@@ -107,14 +88,14 @@ export const getDevices = async (req, res) => {
         if (deviceObj.category_id._id && deviceObj.category_id.name) {
           // OK, đã populate đúng
         } else {
-          // Nếu chưa populate, log để debug
+          
           console.warn(`Device ${deviceObj.name} has category_id but not populated correctly:`, deviceObj.category_id);
         }
       }
       return deviceObj;
     });
     
-    // Debug: Log để kiểm tra
+
     console.log('=== DEVICES WITH CATEGORY ===');
     devicesPlain.slice(0, 3).forEach(d => {
       console.log(`Device: ${d.name}`);
@@ -208,7 +189,7 @@ export const updateDeviceWithInventory = async (req, res) => {
     if (name !== undefined) device.name = name;
     if (description !== undefined) device.description = description;
     if (image !== undefined) device.image = image;
-    await device.save();
+    await device.save();  // check và cập nhật 
 
     const invUpdate = {};
     if (total !== undefined) invUpdate.total = Number(total) || 0;
@@ -252,3 +233,17 @@ export const deleteDeviceWithInventory = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete device", error: error.message });
   }
 };
+// categories = [
+    //   {
+    //     "_id": "65bf7b329c8f2b1a3d4e6a21",
+    //     "name": "Laptop & PC",
+    //     "description": "Máy tính phục vụ thực hành code",
+    //     "createdAt": "2024-01-01T00:00:00.000Z",
+    //   },
+    //   {
+    //      "_id": "65bf7b329c8f2b1a3d4e6a01",
+    //     "name": "Laptop & PC",
+    //     "description": "Máy tính phục vụ thực hành code",
+    //     "createdAt": "2024-01-01T00:00:00.000Z",
+    //   }
+    // ]
