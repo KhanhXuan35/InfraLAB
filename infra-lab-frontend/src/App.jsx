@@ -31,6 +31,7 @@ import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
 
 // School pages
 import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
+import ViewDetailDevice from './SchoolDashboard/viewdetailDevice.jsx';
 import RepairRequestList from "./pages/School/RepairRequestList";
 
 // Profile page
@@ -64,6 +65,7 @@ function App() {
               <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
               <Route path="/requests" element={<RepairRequestList />} />
               <Route path="/school/dashboard" element={<SchoolDashboard />} />
+              <Route path="/school/device/:id" element={<ViewDetailDevice />} />
             </Route>
           
 

@@ -16,6 +16,7 @@ function SchoolDashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -142,7 +143,7 @@ function SchoolDashboard() {
     });
   }, [devices, search, sort, selectedCategoryKey]);
 
-  const resetForm = () =>
+  const resetForm = () => {
     setFormData({
       name: '',
       description: '',
@@ -153,6 +154,32 @@ function SchoolDashboard() {
       broken: 0,
       location: 'warehouse'
     });
+    clearImagePreview();
+  };
+
+  const clearImagePreview = () => setImagePreview('');
+
+  const handleImageChange = (file) => {
+    setError(null);
+    if (!file) {
+      setFormData((prev) => ({ ...prev, image: '' }));
+      clearImagePreview();
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setError('Vui lòng chọn tệp ảnh hợp lệ');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result || '';
+      setFormData((prev) => ({ ...prev, image: dataUrl }));
+      setImagePreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const openEdit = (device) => {
     const devId = device._id || device.id || '';
@@ -171,6 +198,7 @@ function SchoolDashboard() {
       broken: inv?.broken ?? 0,
       location: inv?.location || 'warehouse'
     });
+    setImagePreview(device.image || '');
     setEditingId(devId);
     setShowAddModal(true);
   };
@@ -350,7 +378,14 @@ function SchoolDashboard() {
                   </select>
                 </div>
 
-                <button className="button-primary add-device-btn" onClick={() => setShowAddModal(true)}>
+                <button
+                  className="button-primary add-device-btn"
+                  onClick={() => {
+                    setEditingId(null);
+                    resetForm();
+                    setShowAddModal(true);
+                  }}
+                >
                   Thêm Thiết Bị
                 </button>
               </div>
@@ -366,13 +401,14 @@ function SchoolDashboard() {
                 <table className="device-table">
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>Ten Thiet Bi</th>
-                      <th>Danh Muc</th>
-                      <th>Tong</th>
-                      <th>Dang Ranh</th>
-                      <th>Dang Muon</th>
-                      <th>Hong</th>
+                      <th>STT</th>
+                      <th>Tên Linh Kiện</th>
+                      <th>Danh Mục</th>
+                      <th>Tổng</th>
+                      <th>Đang Rảnh</th>
+                      <th>Đang Mượn</th>
+                      <th>Hỏng</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -411,9 +447,14 @@ function SchoolDashboard() {
                           <td className="text-danger">{broken}</td>
                           <td>
                             <div className="table-actions">
-                              <button className="btn-view">Xem</button>
-                              <button className="btn-edit" onClick={() => openEdit(device)}>Sua</button>
-                              <button className="btn-delete" onClick={() => handleDelete(device)}>Xoa</button>
+                              <button
+                                className="btn-view"
+                                onClick={() => navigate(`/school/device/${devId}`)}
+                              >
+                                Xem
+                              </button>
+                              <button className="btn-edit" onClick={() => openEdit(device)}>Sửa</button>
+                              <button className="btn-delete" onClick={() => handleDelete(device)}>Xóa</button>
                             </div>
                           </td>
                         </tr>
@@ -431,43 +472,52 @@ function SchoolDashboard() {
         <div className="modal-backdrop">
           <div className="modal">
             <div className="modal-header">
-              <h3>Them thiet bi</h3>
+              <h3>Thêm Thiết Bị</h3>
               <button className="modal-close" onClick={() => setShowAddModal(false)}>
                 ×
               </button>
             </div>
             <div className="modal-body">
               <div className="form-row">
-                <label>Ten thiet bi</label>
+                <label>Tên thiết bị</label>
                 <input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Nhap ten"
+                  placeholder="Nhập tên"
                 />
               </div>
               <div className="form-row">
-                <label>Mo ta</label>
+                <label>Mô tả</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Mo ta ngan"
+                  placeholder="Mô tả ngắn"
                 />
               </div>
               <div className="form-row">
-                <label>Hinh anh (URL)</label>
-                <input
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  placeholder="https://..."
-                />
+                <label>Hình Ảnh</label>
+                <div className="image-upload">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageChange(e.target.files?.[0])}
+                  />
+                  {imagePreview || formData.image ? (
+                    <div className="image-upload-preview">
+                      <img src={imagePreview || formData.image} alt="Preview" />
+                    </div>
+                  ) : (
+                    <div className="image-upload-hint">Chọn file từ máy (png, jpg, webp...)</div>
+                  )}
+                </div>
               </div>
               <div className="form-row">
-                <label>Loai linh kien</label>
+                <label>Loại Linh Kiện</label>
                 <select
                   value={formData.category_id}
                   onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                 >
-                  <option value="">Chon loai</option>
+                  <option value="">Chọn loại</option>
                   {categories.map((cat) => (
                     <option key={cat._id || cat.name} value={cat._id || ''}>
                       {cat.name}
@@ -477,7 +527,7 @@ function SchoolDashboard() {
               </div>
               <div className="form-row three-cols">
                 <div>
-                  <label>Tong</label>
+                  <label>Tổng</label>
                   <input
                     type="number"
                     min="0"
@@ -486,7 +536,7 @@ function SchoolDashboard() {
                   />
                 </div>
                 <div>
-                  <label>Dang ranh</label>
+                  <label>Đang Còn</label>
                   <input
                     type="number"
                     min="0"
@@ -511,17 +561,16 @@ function SchoolDashboard() {
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 >
                   <option value="warehouse">warehouse</option>
-                  <option value="lab">lab</option>
                 </select>
               </div>
               {error && <div className="inventory-status error">{error}</div>}
             </div>
             <div className="modal-footer">
             <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
-                Huy
+                Hủy
               </button>
               <button className="button-primary" disabled={saving} onClick={handleSubmit}>
-                {saving ? 'Dang luu...' : 'Luu'}
+                {saving ? 'Đang lưu...' : 'ưu'}
               </button>
             </div>
           </div>
