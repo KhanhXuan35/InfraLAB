@@ -1,6 +1,6 @@
-import Device from "../models/Device.js";
-import Category from "../models/Category.js";
-import Inventory from "../models/Inventory.js";
+import Device from "../../models/Device.js";
+import Category from "../../models/Category.js";
+import Inventory from "../../models/Inventory.js";
 
 // Get all devices with category and inventory info
 export const getAllDevices = async (req, res) => {

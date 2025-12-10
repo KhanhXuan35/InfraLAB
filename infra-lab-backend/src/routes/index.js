@@ -1,7 +1,7 @@
 import express from "express";
 import authRoute from "./common/authRoute.js";
-import { getAllDevices, getDeviceById } from "../controllers/deviceController.js";
-import { getAllCategories, getCategoryById } from "../controllers/categoryController.js";
+import { getAllDevices, getDeviceById } from "../controllers/User/deviceController.js";
+import { getAllCategories, getCategoryById } from "../controllers/User/categoryController.js";
 
 const router = express.Router();
 router.use("/auth", authRoute);
