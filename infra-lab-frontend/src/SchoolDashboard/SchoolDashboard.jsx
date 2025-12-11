@@ -33,25 +33,29 @@ function SchoolDashboard() {
   // useeffect : call api be luu vao state
   // show state ra la dc
 
+  // Base URL cho tất cả API (ưu tiên biến môi trường Vite)
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+  // Tải danh mục, thiết bị, và tồn kho (chỉ khi đang ở tab inventory)
+   //1.lấy ra dữ liệu từ api và set vào user state(loại linh kiện, linh kiện ở kho schooll, và inventory tồn kho)
   const loadData = async () => {
     if (activeSection !== 'inventory') return;
     setLoading(true);
-    setError(null);
+    setError(null);  // load khi người dùng muốn lấy dữ liệu ở kho sẽ chuyển xuống bên dưới 
     try {
       const locationFilter = 'warehouse';
       const [catRes, devRes] = await Promise.all([
-        fetch(`${API_BASE}/device-categories`),
-        fetch(`${API_BASE}/devices?location=${locationFilter}`)
+        fetch(`${API_BASE}/device-categories`), // lấy ra danh mục linh kiện
+        fetch(`${API_BASE}/devices?location=${locationFilter}`)  // lấy ra danh sách thiết bị với filter location
       ]);
+      console.log(catRes, devRes);// Debug: Kiểm tra response
       if (!catRes.ok) throw new Error('Khong lay duoc danh sach loai linh kien');
       if (!devRes.ok) throw new Error('Khong lay duoc danh sach thiet bi');
 
-      const catData = await catRes.json();
+      const catData = await catRes.json();  // chuyển đổi response thành JSON
       const devData = await devRes.json();
       
-      // Handle different response formats
+      // đảm bảo xử lý cả hai trường hợp response là mảng trực tiếp hoặc đối tượng có trường data
       const categoriesList = Array.isArray(catData) ? catData : (catData?.data || []);
       const devicesList = Array.isArray(devData) ? devData : (devData?.data || []);
       
@@ -81,24 +85,25 @@ function SchoolDashboard() {
     }
   };
 
+  // Khi đổi tab (activeSection) thì tải lại dữ liệu
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection]);
 
+  //2. Lọc và sắp xếp danh sách thiết bị theo tìm kiếm, danh mục, và thứ tự
   const filteredDevices = useMemo(() => {
     if (!devices || !Array.isArray(devices)) {
       return [];
-    }
+    }   // kiểm tra xem devices có hợp lệ không
     
     const list = devices.filter((item) => {
-      if (!item) return false;
-      
-      // Filter by name
+      if (!item) return false; // loại bỏ mục không hợp lệ , gán callback vào item
+      // tìm kiếm theo tên
       const nameMatches = (item.name || '').toLowerCase().includes((search || '').toLowerCase().trim());
 
       // Filter by category - handle both populated object and ID string
-      let deviceCategoryId = '';
+      let deviceCategoryId = ''; // logic xử lý lọc theo loại linh kiện
       
       if (item.category) {
         // If category_id is populated object (from populate) - most common case
@@ -159,6 +164,7 @@ function SchoolDashboard() {
 
   const clearImagePreview = () => setImagePreview('');
 
+  // Đọc file ảnh, chuyển sang data URL để preview và lưu vào form
   const handleImageChange = (file) => {
     setError(null);
     if (!file) {
@@ -181,6 +187,7 @@ function SchoolDashboard() {
     reader.readAsDataURL(file);
   };
 
+  // Mở modal chỉnh sửa: đổ dữ liệu thiết bị + tồn kho vào form
   const openEdit = (device) => {
     const devId = device._id || device.id || '';
     const inv = inventories.find((i) => {
@@ -203,6 +210,7 @@ function SchoolDashboard() {
     setShowAddModal(true);
   };
 
+  // Xóa thiết bị và tải lại danh sách
   const handleDelete = async (device) => {
     const devId = device._id || device.id || '';
     if (!devId) return;
@@ -224,6 +232,7 @@ function SchoolDashboard() {
     }
   };
 
+  // Tạo mới / cập nhật thiết bị từ form, rồi tải lại danh sách
   const handleSubmit = async () => {
     setSaving(true);
     setError(null);
@@ -396,7 +405,7 @@ function SchoolDashboard() {
             {!loading && !error && filteredDevices.length === 0 && (
               <div className="inventory-status">Khong co thiet bi phu hop</div>
             )}
-            {!loading && !error && filteredDevices.length > 0 && (
+            {!loading && !error && filteredDevices.length > 0 && ( // list ra danh sach thiet bi
               <div className="device-table-wrapper">
                 <table className="device-table">
                   <thead>
@@ -570,7 +579,7 @@ function SchoolDashboard() {
                 Hủy
               </button>
               <button className="button-primary" disabled={saving} onClick={handleSubmit}>
-                {saving ? 'Đang lưu...' : 'ưu'}
+                {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
             </div>
           </div>
