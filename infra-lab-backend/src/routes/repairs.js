@@ -1,6 +1,8 @@
 import express from "express";
 import Repair from "../models/Repair.js";
+import multer from "multer";
 
+const upload = multer({ storage: multer.memoryStorage() });
 const router = express.Router();
 
 /* ---------------------------------------
@@ -50,6 +52,7 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.post("/", upload.single("image"), createRepairRequest);
 
 /* ---------------------------------------
    GET LIST OF REPAIR REQUESTS (School)

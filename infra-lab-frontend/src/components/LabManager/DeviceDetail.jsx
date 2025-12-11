@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./DeviceDetail.css";
 import api from "../../services/api";
+import { Button, Card, Tag, Space, Statistic } from "antd";
 
 export default function DeviceDetail() {
     const { id } = useParams(); // inventoryId
@@ -10,6 +11,9 @@ export default function DeviceDetail() {
     const [device, setDevice] = useState(null);
     const [inventory, setInventory] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [openReport, setOpenReport] = useState(false);
+    const [image, setImage] = useState(null);
+    const [loadingSubmit, setLoadingSubmit] = useState(false);
 
     // repair states
     const [showRepairModal, setShowRepairModal] = useState(false);
@@ -73,6 +77,34 @@ export default function DeviceDetail() {
             total: "#6366f1",
         };
         return colors[type] || "#6b7280";
+    };
+    const handleReport = async (values) => {
+        setLoadingSubmit(true);
+        const formData = new FormData();
+        formData.append("device_id", device._id);
+        formData.append("quantity", values.quantity);
+        formData.append("reason", values.reason);
+        if (image) formData.append("image", image);
+
+        try {
+            const res = await fetch(`${API_BASE}/repairs`, {
+                method: "POST",
+                body: formData,
+            });
+
+            const json = await res.json();
+            if (json.success) {
+                message.success("Đã báo thiết bị hỏng");
+                setOpenReport(false);
+                fetchDevice(); // refresh dữ liệu
+            } else {
+                message.error(json.message);
+            }
+        } catch (err) {
+            message.error("Lỗi server");
+        }
+
+        setLoadingSubmit(false);
     };
 
     // =================== CREATE REPAIR REQUEST ===================
@@ -138,7 +170,7 @@ export default function DeviceDetail() {
                     <div className="device-info">
                         <h2 className="device-name">{device.name}</h2>
                         <p className="device-category">{device.category_id?.name}</p>
-                        <p className="device-location">📍 Phòng Lab – Kho A</p>
+
 
                         <p className="device-description">
                             {device.description || "Không có mô tả."}
@@ -148,7 +180,7 @@ export default function DeviceDetail() {
 
                 {/* RIGHT */}
                 <div className="detail-right">
-                    
+
                     {/* INVENTORY */}
                     <div className="inventory-section">
                         <h3 className="section-title">THỐNG KÊ KHO</h3>
@@ -172,7 +204,7 @@ export default function DeviceDetail() {
                             <div className="inventory-card">
                                 <div className="inventory-icon available-icon">
                                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path d="M16.667 5L7.5 14.167L3.333 10" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M16.667 5L7.5 14.167L3.333 10" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                 </div>
                                 <div className="inventory-info">
@@ -185,7 +217,7 @@ export default function DeviceDetail() {
                                 <div className="inventory-icon borrowed-icon">
                                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M10 10C11.3807 10 12.5 8.88071 12.5 7.5C12.5 6.11929 11.3807 5 10 5C8.61929 5 7.5 6.11929 7.5 7.5C7.5 8.88071 8.61929 10 10 10Z" />
-                                        <path d="M5 17.5C5 14.4624 7.46243 12 10.5 12H9.5C12.5376 12 15 14.4624 15 17.5" strokeLinecap="round"/>
+                                        <path d="M5 17.5C5 14.4624 7.46243 12 10.5 12H9.5C12.5376 12 15 14.4624 15 17.5" strokeLinecap="round" />
                                     </svg>
                                 </div>
                                 <div className="inventory-info">
@@ -197,7 +229,7 @@ export default function DeviceDetail() {
                             <div className="inventory-card">
                                 <div className="inventory-icon broken-icon">
                                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path d="M10 6V10M10 14H10.01" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M10 6V10M10 14H10.01" strokeLinecap="round" strokeLinejoin="round" />
                                         <circle cx="10" cy="10" r="8" />
                                     </svg>
                                 </div>
@@ -273,9 +305,57 @@ export default function DeviceDetail() {
                         TẠO YÊU CẦU SỬA CHỮA
                     </button>
                 )}
+                <Button
+                    type="primary"
+                    style={{ width: "100%", marginTop: 16 }}
+                    onClick={() => setOpenReport(true)}
+                >
+                    Báo thiết bị hỏng
+                </Button>
 
                 <button className="btn btn-primary">SỬA THÔNG TIN</button>
             </div>
+            <Modal
+                title="Báo thiết bị hỏng"
+                open={openReport}
+                onCancel={() => setOpenReport(false)}
+                footer={null}
+            >
+                <Form layout="vertical" onFinish={handleReport}>
+                    <Form.Item
+                        label="Số lượng hỏng"
+                        name="quantity"
+                        rules={[{ required: true, message: "Vui lòng nhập số lượng" }]}
+                    >
+                        <InputNumber min={1} max={device.total} style={{ width: "100%" }} />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Lý do"
+                        name="reason"
+                        rules={[{ required: true, message: "Vui lòng nhập lý do" }]}
+                    >
+                        <Input.TextArea rows={3} placeholder="Mô tả lỗi..." />
+                    </Form.Item>
+
+                    <Form.Item label="Ảnh minh chứng">
+                        <Upload
+                            beforeUpload={(file) => {
+                                setImage(file);
+                                return false; // không upload ngay
+                            }}
+                            maxCount={1}
+                            accept="image/*"
+                        >
+                            <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+                        </Upload>
+                    </Form.Item>
+
+                    <Button type="primary" htmlType="submit" block loading={loadingSubmit}>
+                        Gửi yêu cầu
+                    </Button>
+                </Form>
+            </Modal>
 
             {/* MODAL */}
             {showRepairModal && (

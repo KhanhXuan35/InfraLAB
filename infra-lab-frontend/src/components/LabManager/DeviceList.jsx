@@ -169,6 +169,7 @@ function DeviceList() {
             { key: "overview", icon: <DashboardOutlined />, label: "Thống kê" },
             { key: "devices", icon: <ToolOutlined />, label: "Quản lý thiết bị" },
             { key: "borrow", icon: <SwapOutlined />, label: "Mượn/Trả" },
+            { key: "repairs", icon: <ToolOutlined />, label: "Danh sách sửa chữa" },
             { key: "reports", icon: <FileTextOutlined />, label: "Báo cáo" },
             { key: "notifications", icon: <BellOutlined />, label: "Thông báo" },
           ]}
@@ -177,6 +178,7 @@ function DeviceList() {
             if (key === "overview") navigate("/teacher-dashboard");
             else if (key === "devices") navigate("/lab-manager/devices");
             else if (key === "borrow") navigate("/lab-manager/devices");
+            else if (key === "repairs") navigate("/lab-manager/repairs");
             else if (key === "reports") navigate("/reports");
             else if (key === "notifications") navigate("/notifications");
           }}

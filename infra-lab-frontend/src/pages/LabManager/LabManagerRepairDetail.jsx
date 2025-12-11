@@ -1,0 +1,157 @@
+// src/pages/LabManager/LabManagerRepairDetail.jsx
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  Layout,
+  Typography,
+  Card,
+  Tag,
+  Spin,
+  Divider,
+  Button,
+} from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
+import { LAB_MANAGER_ROUTES } from "../../constants/routes";
+
+const { Header, Content } = Layout;
+const { Title, Text } = Typography;
+
+export default function LabManagerRepairDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [repair, setRepair] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+  const fetchDetail = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/repairs/${id}`);
+      const json = await res.json();
+      if (json.success) setRepair(json.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDetail();
+  }, [id]);
+
+  const statusColors = {
+    pending: "gold",
+    approved: "blue",
+    in_progress: "purple",
+    done: "green",
+    rejected: "red",
+  };
+
+  const statusText = {
+    pending: "Đang chờ duyệt",
+    approved: "Đã duyệt",
+    in_progress: "Đang sửa",
+    done: "Đã hoàn thành",
+    rejected: "Đã từ chối",
+  };
+
+  if (loading || !repair)
+    return (
+      <div style={{ display: "flex", height: "100vh", justifyContent: "center", alignItems: "center" }}>
+        <Spin size="large" />
+      </div>
+    );
+
+  return (
+    <Layout style={{ background: "#f5f7fb", minHeight: "100vh" }}>
+      <Header
+        style={{
+          background: "#fff",
+          padding: "0 24px",
+          borderBottom: "1px solid #e5e7eb",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(LAB_MANAGER_ROUTES.REPAIRS)}
+        >
+          Quay lại
+        </Button>
+        <Title level={4} style={{ margin: 0 }}>
+          Chi tiết yêu cầu sửa chữa
+        </Title>
+      </Header>
+
+      <Content style={{ padding: 32 }}>
+        <Card
+          style={{
+            maxWidth: 800,
+            margin: "0 auto",
+            borderRadius: 12,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+          }}
+        >
+          <Title level={4}>{repair.device_id?.name}</Title>
+
+          {repair.device_id?.image && (
+            <img
+              src={repair.device_id.image}
+              alt="Device"
+              style={{
+                width: "100%",
+                maxHeight: 260,
+                objectFit: "cover",
+                borderRadius: 8,
+                marginBottom: 20,
+              }}
+            />
+          )}
+
+          <Divider />
+
+          <Text strong>Số lượng hỏng: </Text>
+          <Text>{repair.quantity}</Text>
+          <br />
+
+          <Text strong>Lý do: </Text>
+          <Text>{repair.reason}</Text>
+          <br />
+
+          <Text strong>Trạng thái hiện tại: </Text>
+          <Tag color={statusColors[repair.status]}>
+            {statusText[repair.status]}
+          </Tag>
+          <br />
+
+          <Divider />
+
+          <Text>
+            <strong>Ngày tạo:</strong>{" "}
+            {new Date(repair.createdAt).toLocaleString()}
+          </Text>
+          <br />
+
+          {repair.reviewed_at && (
+            <Text>
+              <strong>Ngày duyệt:</strong>{" "}
+              {new Date(repair.reviewed_at).toLocaleString()}
+            </Text>
+          )}
+          <br />
+
+          {repair.completed_at && (
+            <Text>
+              <strong>Ngày hoàn thành:</strong>{" "}
+              {new Date(repair.completed_at).toLocaleString()}
+            </Text>
+          )}
+        </Card>
+      </Content>
+    </Layout>
+  );
+}

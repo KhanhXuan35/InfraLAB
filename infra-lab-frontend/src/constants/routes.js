@@ -7,7 +7,8 @@ export const ROUTES = {
   REGISTER: "/register",
   VERIFY_EMAIL: "/verify-email/:token",
 };
-
+export const SCHOOL_BASE_PATH = "/school";
+export const LAB_MANAGER_BASE_PATH = "/lab-manager";
 // =====================
 // STUDENT ROUTES
 // =====================
@@ -36,4 +37,19 @@ export const STUDENT_ROUTES = {
   REQUESTS: `${STUDENT_BASE_PATH}/requests`,
   HISTORY: `${STUDENT_BASE_PATH}/history`,
   NOTIFICATIONS: `${STUDENT_BASE_PATH}/notifications`,
+};
+
+export const SCHOOL_ROUTES = {
+  DASHBOARD: "/school-dashboard",
+  DEVICES: "/school/dashboard",
+  REPAIRS: `${SCHOOL_BASE_PATH}/repairs`,
+  REPAIR_DETAIL: (id) => `${SCHOOL_BASE_PATH}/repairs/${id}`,
+};
+
+export const LAB_MANAGER_ROUTES = {
+  DASHBOARD: "/teacher-dashboard",
+  DEVICES: `${LAB_MANAGER_BASE_PATH}/devices`,
+  DEVICE_DETAIL: (id) => `${LAB_MANAGER_BASE_PATH}/device/${id}`,
+  REPAIRS: `${LAB_MANAGER_BASE_PATH}/repairs`,
+  REPAIR_DETAIL: (id) => `${LAB_MANAGER_BASE_PATH}/repairs/${id}`,
 };

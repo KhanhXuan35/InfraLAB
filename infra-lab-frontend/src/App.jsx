@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ConfigProvider } from "antd";
 import { CartProvider } from "./contexts/CartContext";
-import { ROUTES, STUDENT_BASE_PATH } from "./constants/routes";
+import { ROUTES, STUDENT_BASE_PATH, SCHOOL_ROUTES, LAB_MANAGER_ROUTES } from "./constants/routes";
 
 // Auth pages
 import LoginPage from "./pages/LoginPage";
@@ -28,11 +28,13 @@ import Cart from "./pages/student/Cart/Cart";
 // Lab Manager pages
 import DeviceList from "./components/LabManager/DeviceList";
 import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
+import LabManagerRepairDetail from "./pages/LabManager/LabManagerRepairDetail";
 
 // School pages
 import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
 import RepairRequestList from "./pages/School/RepairRequestList";
-
+import LabManagerRepairList from "./pages/LabManager/LabManagerRepairList";
+import SchoolRepairDetail from "./pages/School/SchoolRepairDetail";
 // Profile page
 import UserProfile from "./pages/Profile/UserProfile";
 
@@ -58,20 +60,26 @@ function App() {
 
             <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
               <Route path="/teacher-dashboard" element={<LabManagerHomePage />} />
+              <Route path="/lab-manager/repairs/:id" element={<LabManagerRepairDetail />} />
+
             </Route>
 
             <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
               <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
               <Route path="/requests" element={<RepairRequestList />} />
               <Route path="/school/dashboard" element={<SchoolDashboard />} />
+              <Route path={SCHOOL_ROUTES.REPAIRS} element={<RepairRequestList />} />
+              <Route path={SCHOOL_ROUTES.REPAIR_DETAIL(":id")} element={<SchoolRepairDetail />} />
             </Route>
-          
+
 
 
             {/* --- LAB MANAGER PAGES --- */}
             <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
               <Route path="/lab-manager/devices" element={<DeviceList />} />
               <Route path="/lab-manager/device/:id" element={<DeviceDetailPage />} />
+              <Route path={LAB_MANAGER_ROUTES.REPAIRS} element={<LabManagerRepairList />} />
+              <Route path="/lab-manager/repairs/:id" element={<LabManagerRepairDetail />} />
             </Route>
 
             {/* --- SCHOOL PAGES --- */}

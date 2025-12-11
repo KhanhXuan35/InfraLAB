@@ -60,7 +60,7 @@ const LabManagerHomePage = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        
+
         // Lấy thống kê
         const statsResponse = await api.get('/dashboard/stats');
         if (statsResponse.success) {
@@ -98,6 +98,9 @@ const LabManagerHomePage = () => {
     switch (key) {
       case 'devices':
         navigate('/lab-manager/devices');
+        break;
+      case 'repairs':
+        navigate('/lab-manager/repairs');
         break;
       case 'borrow':
         // Navigate to borrow/return page
@@ -143,6 +146,7 @@ const LabManagerHomePage = () => {
       icon: <ToolOutlined />,
       label: 'Quản lý thiết bị',
     },
+    { key: 'repairs', icon: <ToolOutlined />, label: 'Danh sách sửa chữa' },
     {
       key: 'borrow',
       icon: <ShoppingOutlined />,
@@ -243,8 +247,8 @@ const LabManagerHomePage = () => {
       </Sider>
 
       <Layout style={{ marginLeft: 250 }}>
-        <LayoutHeader style={{ 
-          background: '#fff', 
+        <LayoutHeader style={{
+          background: '#fff',
           padding: '0 24px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           display: 'flex',
@@ -324,8 +328,8 @@ const LabManagerHomePage = () => {
                                   item.type === 'ok'
                                     ? '#52c41a'
                                     : item.type === 'error'
-                                    ? '#f5222d'
-                                    : '#1890ff',
+                                      ? '#f5222d'
+                                      : '#1890ff',
                               }}
                               icon={
                                 item.type === 'ok' ? (
