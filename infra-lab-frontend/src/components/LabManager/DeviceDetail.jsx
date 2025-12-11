@@ -2,7 +2,21 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./DeviceDetail.css";
 import api from "../../services/api";
-import { Button, Card, Tag, Space, Statistic } from "antd";
+import {
+    Button,
+    Card,
+    Tag,
+    Space,
+    Statistic,
+    Modal,
+    Form,
+    Input,
+    InputNumber,
+    Upload,
+    message
+} from "antd";
+
+import { UploadOutlined } from "@ant-design/icons";
 
 export default function DeviceDetail() {
     const { id } = useParams(); // inventoryId
@@ -78,34 +92,44 @@ export default function DeviceDetail() {
         };
         return colors[type] || "#6b7280";
     };
+
+
     const handleReport = async (values) => {
-        setLoadingSubmit(true);
-        const formData = new FormData();
-        formData.append("device_id", device._id);
-        formData.append("quantity", values.quantity);
-        formData.append("reason", values.reason);
-        if (image) formData.append("image", image);
+    setLoadingSubmit(true);
 
-        try {
-            const res = await fetch(`${API_BASE}/repairs`, {
-                method: "POST",
-                body: formData,
-            });
+    const formData = new FormData();
+    formData.append("device_id", device._id);
+    formData.append("quantity", values.quantity);
+    formData.append("reason", values.reason);
+    if (image) formData.append("image", image);
 
-            const json = await res.json();
-            if (json.success) {
-                message.success("Đã báo thiết bị hỏng");
-                setOpenReport(false);
-                fetchDevice(); // refresh dữ liệu
-            } else {
-                message.error(json.message);
+    try {
+        const response = await api.post(
+            "/repairs",
+            formData,
+            {
+                headers: {
+                    "Content-Type": "multipart/form-data", // override header JSON
+                }
             }
-        } catch (err) {
-            message.error("Lỗi server");
+        );
+
+        if (response.success) {
+            message.success("Đã tạo yêu cầu sửa chữa.");
+            setOpenReport(false);
+        } else {
+            message.error(response.message);
         }
 
-        setLoadingSubmit(false);
-    };
+    } catch (err) {
+        console.error("Report error:", err);
+        message.error("Lỗi server");
+    }
+
+    setLoadingSubmit(false);
+};
+
+
 
     // =================== CREATE REPAIR REQUEST ===================
     const handleCreateRepair = async () => {
@@ -297,26 +321,18 @@ export default function DeviceDetail() {
                     QUAY LẠI
                 </button>
 
-                {inventory.broken > 0 && (
-                    <button
-                        className="btn btn-warning"
-                        onClick={() => setShowRepairModal(true)}
-                    >
-                        TẠO YÊU CẦU SỬA CHỮA
-                    </button>
-                )}
+               
                 <Button
                     type="primary"
                     style={{ width: "100%", marginTop: 16 }}
                     onClick={() => setOpenReport(true)}
                 >
-                    Báo thiết bị hỏng
+                    Tạo yêu cầu sửa chữa
                 </Button>
 
-                <button className="btn btn-primary">SỬA THÔNG TIN</button>
             </div>
             <Modal
-                title="Báo thiết bị hỏng"
+                title="Tạo yêu cầu sửa chữa"
                 open={openReport}
                 onCancel={() => setOpenReport(false)}
                 footer={null}

@@ -2,6 +2,7 @@
 import Repair from "../../models/Repair.js";
 import Device from "../../models/Device.js";
 import Inventory from "../../models/Inventory.js";
+import uploadToCloud from "../../utils/uploadToCloud.js";
 
 /**
  * POST /api/repairs
@@ -217,4 +218,26 @@ export const updateRepairStatus = async (req, res) => {
   }
 };
 
+export const getRepairByDevice = async (req, res) => {
+    try {
+        const repair = await Repair.findOne({ device_id: req.params.deviceId })
+            .sort({ createdAt: -1 });
 
+        if (!repair)
+            return res.status(404).json({
+                success: false,
+                message: "Not Found"
+            });
+
+        res.json({
+            success: true,
+            data: repair
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
