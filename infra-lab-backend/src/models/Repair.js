@@ -1,24 +1,29 @@
 import mongoose from "mongoose";
 
 const repairSchema = new mongoose.Schema({
-    device_id: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: "Device", 
-        required: true 
+    device_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Device",
+        required: true
     },
 
-    reason: { 
-        type: String, 
-        required: true 
+    reason: {
+        type: String,
+        required: true
     }, // Lý do hỏng
 
-    quantity: { 
-        type: Number, 
-        default: 1 
+    quantity: {
+        type: Number,
+        default: 1
+    },
+    inventory_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Inventory",
+        required: true,
     },
 
-    status: { 
-        type: String, 
+    status: {
+        type: String,
         enum: ["pending", "approved", "in_progress", "done", "rejected"],
         default: "pending"
     }, // mặc định trường phải duyệt

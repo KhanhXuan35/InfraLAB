@@ -12,14 +12,15 @@ import uploadToCloud from "../../utils/uploadToCloud.js";
 // FINAL VERSION – DO NOT DUPLICATE
 export const createRepairRequest = async (req, res) => {
   try {
-    const { device_id, quantity, reason } = req.body;
+    const { device_id, quantity, reason, inventory_id } = req.body;
 
-    if (!device_id || !reason) {
+    if (!device_id || !reason || !inventory_id) {
       return res.status(400).json({
         success: false,
-        message: "device_id và reason là bắt buộc",
+        message: "device_id, inventory_id và reason là bắt buộc",
       });
     }
+
 
     // 1. Kiểm tra thiết bị tồn tại
     const device = await Device.findById(device_id);
@@ -56,11 +57,12 @@ export const createRepairRequest = async (req, res) => {
       reason,
       image: imageUrl,
       status: "pending",
+      inventory_id: req.body.inventory_id,
     });
 
     // 5. Cập nhật tồn kho
-    await Inventory.findOneAndUpdate(
-      { device_id },
+    await Inventory.findByIdAndUpdate(
+      repair.inventory_id,
       {
         $inc: {
           broken: repair.quantity,
@@ -185,16 +187,14 @@ export const updateRepairStatus = async (req, res) => {
     if (status === "done") {
       repair.completed_at = new Date();
 
-      const inventory = await Inventory.findOne({
-        device_id: repair.device_id,
-        location: "lab",
-      });
+      const inventory = await Inventory.findById(repair.inventory_id);
+
 
       if (!inventory)
         return res.json({ success: false, message: "Không tìm thấy inventory." });
 
       inventory.broken = Math.max(0, inventory.broken - repair.quantity);
-      inventory.available = (inventory.available || 0) + repair.quantity;
+      inventory.available = Math.min(inventory.total, inventory.available + repair.quantity);
 
       await inventory.save();
     }
@@ -219,25 +219,25 @@ export const updateRepairStatus = async (req, res) => {
 };
 
 export const getRepairByDevice = async (req, res) => {
-    try {
-        const repair = await Repair.findOne({ device_id: req.params.deviceId })
-            .sort({ createdAt: -1 });
+  try {
+    const repair = await Repair.findOne({ device_id: req.params.deviceId })
+      .sort({ createdAt: -1 });
 
-        if (!repair)
-            return res.status(404).json({
-                success: false,
-                message: "Not Found"
-            });
+    if (!repair)
+      return res.status(404).json({
+        success: false,
+        message: "Not Found"
+      });
 
-        res.json({
-            success: true,
-            data: repair
-        });
+    res.json({
+      success: true,
+      data: repair
+    });
 
-    } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
-    }
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };

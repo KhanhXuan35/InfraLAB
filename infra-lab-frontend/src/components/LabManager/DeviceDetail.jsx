@@ -95,39 +95,40 @@ export default function DeviceDetail() {
 
 
     const handleReport = async (values) => {
-    setLoadingSubmit(true);
+        setLoadingSubmit(true);
 
-    const formData = new FormData();
-    formData.append("device_id", device._id);
-    formData.append("quantity", values.quantity);
-    formData.append("reason", values.reason);
-    if (image) formData.append("image", image);
+        const formData = new FormData();
+        formData.append("device_id", device._id);
+        formData.append("inventory_id", inventory._id); 
+        formData.append("quantity", values.quantity);
+        formData.append("reason", values.reason);
+        if (image) formData.append("image", image);
 
-    try {
-        const response = await api.post(
-            "/repairs",
-            formData,
-            {
-                headers: {
-                    "Content-Type": "multipart/form-data", // override header JSON
+        try {
+            const response = await api.post(
+                "/repairs",
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data", // override header JSON
+                    }
                 }
-            }
-        );
+            );
 
-        if (response.success) {
-            message.success("Đã tạo yêu cầu sửa chữa.");
-            setOpenReport(false);
-        } else {
-            message.error(response.message);
+            if (response.success) {
+                message.success("Đã tạo yêu cầu sửa chữa.");
+                setOpenReport(false);
+            } else {
+                message.error(response.message);
+            }
+
+        } catch (err) {
+            console.error("Report error:", err);
+            message.error("Lỗi server");
         }
 
-    } catch (err) {
-        console.error("Report error:", err);
-        message.error("Lỗi server");
-    }
-
-    setLoadingSubmit(false);
-};
+        setLoadingSubmit(false);
+    };
 
 
 
@@ -151,6 +152,7 @@ export default function DeviceDetail() {
                 device_id: device._id,
                 quantity: inventory.broken,  // auto số lượng hỏng
                 reason: repairReason,
+                 inventory_id: inventory._id,
             });
 
             if (!response.success) {
@@ -321,7 +323,7 @@ export default function DeviceDetail() {
                     QUAY LẠI
                 </button>
 
-               
+
                 <Button
                     type="primary"
                     style={{ width: "100%", marginTop: 16 }}
@@ -341,9 +343,22 @@ export default function DeviceDetail() {
                     <Form.Item
                         label="Số lượng hỏng"
                         name="quantity"
-                        rules={[{ required: true, message: "Vui lòng nhập số lượng" }]}
+                        rules={[
+                            { required: true, message: "Vui lòng nhập số lượng" },
+                            {
+                                validator(_, value) {
+                                    if (!value) return Promise.resolve();
+                                    if (value > inventory.available) {
+                                        return Promise.reject(
+                                            new Error(`Không được vượt quá ${inventory.available} thiết bị có sẵn`)
+                                        );
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
+                        ]}
                     >
-                        <InputNumber min={1} max={device.total} style={{ width: "100%" }} />
+                        <InputNumber min={1} max={inventory.available} style={{ width: "100%" }} />
                     </Form.Item>
 
                     <Form.Item
@@ -373,71 +388,7 @@ export default function DeviceDetail() {
                 </Form>
             </Modal>
 
-            {/* MODAL */}
-            {showRepairModal && (
-                <div className="modal-overlay" onClick={(e) => {
-                    if (e.target === e.currentTarget) {
-                        setShowRepairModal(false);
-                        setRepairMessage("");
-                    }
-                }}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-
-                        <h3>📌 Tạo yêu cầu sửa chữa</h3>
-                        <p style={{ fontWeight: "bold", marginBottom: '16px' }}>{device.name}</p>
-
-                        {existingRepair && (existingRepair.status === "pending" || existingRepair.status === "approved" || existingRepair.status === "in_progress") && (
-                            <p className="modal-warning">
-                                Thiết bị này đã có yêu cầu sửa chữa đang được xử lý, không thể tạo thêm!
-                            </p>
-                        )}
-
-                        <div className="modal-field">
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Số lượng hỏng:</label>
-                            <p className="broken-display" style={{ fontSize: '18px', fontWeight: 'bold', color: '#ef4444' }}>{inventory.broken}</p>
-                        </div>
-
-                        <label className="modal-label" style={{ display: 'block', marginTop: '16px' }}>
-                            <span style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Lý do hỏng</span>
-                            <textarea
-                                rows={3}
-                                value={repairReason}
-                                onChange={(e) => setRepairReason(e.target.value)}
-                                placeholder="Mô tả tình trạng hỏng..."
-                                style={{ width: '100%', padding: '10px', background: '#1f2937', border: '1px solid #374151', color: 'white', borderRadius: '6px', marginTop: '6px' }}
-                            />
-                        </label>
-
-                        {repairMessage && (
-                            <p className={`modal-message ${repairMessage.includes('✅') ? 'success' : (repairMessage.includes('❌') || repairMessage.includes('⚠️')) ? 'error' : ''}`}>
-                                {repairMessage}
-                            </p>
-                        )}
-
-                        <div className="modal-actions">
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    setShowRepairModal(false);
-                                    setRepairMessage("");
-                                }}
-                            >
-                                ĐÓNG
-                            </button>
-
-                            <button
-                                className="btn btn-primary"
-                                disabled={repairLoading || (existingRepair && (existingRepair.status === "pending" || existingRepair.status === "approved" || existingRepair.status === "in_progress"))}
-                                onClick={handleCreateRepair}
-                            >
-                                {repairLoading ? "Đang gửi..." : "GỬI YÊU CẦU"}
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-            )}
-
+           
         </div>
     );
 }
