@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Layout, Menu, Typography, Button } from "antd";
+import { Layout, Menu, Typography, Button, Modal } from "antd";
 import {
   DashboardOutlined,
   ToolOutlined,
@@ -17,8 +17,10 @@ export default function RepairRequestList() {
   const [repairs, setRepairs] = useState([]);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(null); 
+  const [updating, setUpdating] = useState(null);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [previewImage, setPreviewImage] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -32,21 +34,21 @@ export default function RepairRequestList() {
           : "";
       const url = `${API_BASE}/repairs${query}`;
       console.log("Fetching repairs from:", url);
-      
+
       const res = await fetch(url, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
-      
+
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
-      
+
       const json = await res.json();
       console.log("Repairs response:", json);
-      
+
       if (json.success) {
         setRepairs(json.data || []);
         if ((json.data || []).length === 0) {
@@ -58,13 +60,13 @@ export default function RepairRequestList() {
     } catch (error) {
       console.error("Error fetching repairs:", error);
       let errorMessage = "Lỗi kết nối đến server";
-      
+
       if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
         errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra xem backend đã chạy chưa.";
       } else if (error.message.includes("HTTP error")) {
         errorMessage = `Lỗi server: ${error.message}`;
       }
-      
+
       setMessage({ type: "error", text: errorMessage });
       setRepairs([]); // Clear repairs on error
     } finally {
@@ -79,11 +81,11 @@ export default function RepairRequestList() {
   const updateStatus = async (id, status) => {
     setUpdating(id);
     setMessage({ type: "", text: "" });
-    
+
     try {
       const url = `${API_BASE}/repairs/${id}/status`;
       console.log("Updating repair status:", url, { status });
-      
+
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -104,35 +106,35 @@ export default function RepairRequestList() {
           in_progress: "đã bắt đầu sửa",
           done: "đã hoàn thành"
         }[status] || "đã cập nhật";
-        
-        setMessage({ 
-          type: "success", 
-          text: `Yêu cầu đã được ${statusText} thành công!` 
+
+        setMessage({
+          type: "success",
+          text: `Yêu cầu đã được ${statusText} thành công!`
         });
-        
+
         // Tự động ẩn thông báo sau 3 giây
         setTimeout(() => setMessage({ type: "", text: "" }), 3000);
-        
+
         // Làm mới danh sách
         await fetchRepairs();
       } else {
-        setMessage({ 
-          type: "error", 
-          text: json.message || "Không thể cập nhật trạng thái" 
+        setMessage({
+          type: "error",
+          text: json.message || "Không thể cập nhật trạng thái"
         });
       }
     } catch (error) {
       console.error("Error updating status:", error);
       let errorMessage = "Lỗi kết nối đến server. Vui lòng thử lại.";
-      
+
       if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
         errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra xem backend đã chạy chưa.";
       } else if (error.message.includes("HTTP error")) {
         errorMessage = `Lỗi server: ${error.message}`;
       }
-      
-      setMessage({ 
-        type: "error", 
+
+      setMessage({
+        type: "error",
         text: errorMessage
       });
     } finally {
@@ -196,7 +198,7 @@ export default function RepairRequestList() {
           items={[
             { key: "overview", icon: <DashboardOutlined />, label: "Tổng quan" },
             { key: "devices", icon: <ToolOutlined />, label: "Quản lý thiết bị" },
-            { key: "requests", icon: <CheckCircleOutlined />, label: "Duyệt yêu cầu" },
+            { key: "requests", icon: <CheckCircleOutlined />, label: "Danh sách sửa chữa" },
             { key: "reports", icon: <FileTextOutlined />, label: "Báo cáo" },
             { key: "notifications", icon: <BellOutlined />, label: "Thông báo" },
           ]}
@@ -247,23 +249,22 @@ export default function RepairRequestList() {
                   padding: "12px 16px",
                   marginBottom: "16px",
                   borderRadius: "4px",
-                  backgroundColor: message.type === "success" 
-                    ? "#d4edda" 
+                  backgroundColor: message.type === "success"
+                    ? "#d4edda"
                     : message.type === "info"
-                    ? "#d1ecf1"
-                    : "#f8d7da",
-                  color: message.type === "success" 
-                    ? "#155724" 
+                      ? "#d1ecf1"
+                      : "#f8d7da",
+                  color: message.type === "success"
+                    ? "#155724"
                     : message.type === "info"
-                    ? "#0c5460"
-                    : "#721c24",
-                  border: `1px solid ${
-                    message.type === "success" 
-                      ? "#c3e6cb" 
-                      : message.type === "info"
+                      ? "#0c5460"
+                      : "#721c24",
+                  border: `1px solid ${message.type === "success"
+                    ? "#c3e6cb"
+                    : message.type === "info"
                       ? "#bee5eb"
                       : "#f5c6cb"
-                  }`,
+                    }`,
                 }}
               >
                 {message.text}
@@ -300,6 +301,7 @@ export default function RepairRequestList() {
                   <th>Lý do</th>
                   <th>Trạng thái</th>
                   <th>Hành động</th>
+                  <th>Ảnh</th>
                 </tr>
               </thead>
               <tbody>
@@ -397,11 +399,34 @@ export default function RepairRequestList() {
                         </button>
                       )}
                       {(r.status === "done" || r.status === "rejected") && (
-                        <span style={{ color: "#999", fontSize: "14px" }}>
+                        <span style={{ color: "#d8c9c9ff", fontSize: "14px" }}>
                           {r.status === "done" ? "Đã hoàn thành" : "Đã từ chối"}
                         </span>
                       )}
                     </td>
+                    <td>
+                      {r.image ? (
+                        <img
+                          src={r.image}
+                          onClick={() => {
+                            setPreviewImage(r.image);
+                            setPreviewOpen(true);
+                          }}
+                          style={{
+                            width: "60px",
+                            height: "60px",
+                            borderRadius: "6px",
+                            objectFit: "cover",
+                            border: "1px solid #444",
+                            cursor: "pointer"
+                          }}
+                        />
+                      ) : (
+                        <span style={{ color: "#888" }}>Không có ảnh</span>
+                      )}
+                    </td>
+
+
                   </tr>
                 ))}
 
@@ -415,6 +440,25 @@ export default function RepairRequestList() {
               </tbody>
             </table>
           </div>
+          
+          {/* Modal xem ảnh */}
+          <Modal
+            open={previewOpen}
+            footer={null}
+            onCancel={() => setPreviewOpen(false)}
+            width={700}
+          >
+            <img
+              src={previewImage}
+              style={{
+                width: "100%",
+                borderRadius: "10px",
+                objectFit: "contain",
+              }}
+              alt="preview"
+            />
+          </Modal>
+
         </Layout.Content>
       </Layout>
     </Layout>

@@ -12,6 +12,8 @@ const repairSchema = new mongoose.Schema({
         required: true
     }, // Lý do hỏng
 
+    image: { type: String, default: null },
+
     quantity: {
         type: Number,
         default: 1

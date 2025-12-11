@@ -92,7 +92,7 @@ const SchoolAdminHomePage = () => {
     {
       key: 'requests',
       icon: <CheckCircleOutlined />,
-      label: 'Duyệt yêu cầu',
+      label: 'Danh sách sửa chữa',
     },
     {
       key: 'reports',
@@ -114,7 +114,7 @@ const SchoolAdminHomePage = () => {
       onClick: () => navigate('/school/dashboard'),
     },
     {
-      title: 'Duyệt yêu cầu',
+      title: 'Danh sach sửa chữa',
       icon: <CheckCircleOutlined />,
       color: '#52c41a',
       onClick: () => navigate('/requests'),

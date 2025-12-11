@@ -98,18 +98,23 @@ export default function LabManagerRepairDetail() {
         >
           <Title level={4}>{repair.device_id?.name}</Title>
 
-          {repair.device_id?.image && (
-            <img
-              src={repair.device_id.image}
-              alt="Device"
-              style={{
-                width: "100%",
-                maxHeight: 260,
-                objectFit: "cover",
-                borderRadius: 8,
-                marginBottom: 20,
-              }}
-            />
+          {repair.image && (
+            <>
+              <Text strong>Ảnh minh chứng:</Text>
+              <img
+                src={repair.image}
+                alt="repair proof"
+                style={{
+                  width: "100%",
+                  maxHeight: 300,
+                  objectFit: "contain",
+                  borderRadius: 8,
+                  marginBottom: 20,
+                  marginTop: 10
+                }}
+              />
+              <Divider />
+            </>
           )}
 
           <Divider />

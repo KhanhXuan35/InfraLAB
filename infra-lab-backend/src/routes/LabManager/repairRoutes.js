@@ -1,5 +1,6 @@
-// routes/LabManager/repairRoutes.js
 import express from "express";
+import multer from "multer";
+
 import {
   createRepairRequest,
   getRepairs,
@@ -8,29 +9,26 @@ import {
   updateRepairStatus,
   getRepairByDevice,
 } from "../../controllers/LabManager/repairController.js";
-import multer from "multer";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() }); // hoặc diskStorage
+const upload = multer({ storage: multer.memoryStorage() });
 
+// ⭐ Route tạo yêu cầu sửa chữa (FE gọi POST /api/repairs)
 router.post("/", upload.single("image"), createRepairRequest);
 
-// Lab Manager tạo request
-router.post("/", createRepairRequest);
-
-// Lấy repair theo device (PHẢI ĐƯA LÊN TRƯỚC)
+// ⭐ Lấy repair theo device
 router.get("/device/:deviceId", getRepairByDevice);
 
-// Lấy danh sách yêu cầu theo user
+// ⭐ Yêu cầu của người dùng
 router.get("/my", getMyRepairRequests);
 
-// School Admin/Lab Manager xem list
+// ⭐ Danh sách
 router.get("/", getRepairs);
 
-// Chi tiết 1 request
+// ⭐ Chi tiết yêu cầu
 router.get("/:id", getRepairById);
 
-// Cập nhật trạng thái request
+// ⭐ Admin update status
 router.patch("/:id/status", updateRepairStatus);
 
 export default router;

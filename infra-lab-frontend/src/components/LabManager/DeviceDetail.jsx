@@ -99,10 +99,13 @@ export default function DeviceDetail() {
 
         const formData = new FormData();
         formData.append("device_id", device._id);
-        formData.append("inventory_id", inventory._id); 
+        formData.append("inventory_id", inventory._id);
         formData.append("quantity", values.quantity);
         formData.append("reason", values.reason);
-        if (image) formData.append("image", image);
+
+        if (image) {
+            formData.append("image", image);
+        }
 
         try {
             const response = await api.post(
@@ -124,7 +127,7 @@ export default function DeviceDetail() {
 
         } catch (err) {
             console.error("Report error:", err);
-            message.error("Lỗi server");
+            message.error("Thiết bị này đã có yêu cầu sửa chữa");
         }
 
         setLoadingSubmit(false);
@@ -133,44 +136,6 @@ export default function DeviceDetail() {
 
 
     // =================== CREATE REPAIR REQUEST ===================
-    const handleCreateRepair = async () => {
-        if (existingRepair && existingRepair.status === "pending") {
-            setRepairMessage("⚠️ Thiết bị này đã có yêu cầu sửa chữa đang chờ duyệt.");
-            return;
-        }
-
-        if (!repairReason.trim()) {
-            setRepairMessage("⚠️ Vui lòng nhập lý do hỏng.");
-            return;
-        }
-
-        setRepairLoading(true);
-        setRepairMessage("");
-
-        try {
-            const response = await api.post("/repairs", {
-                device_id: device._id,
-                quantity: inventory.broken,  // auto số lượng hỏng
-                reason: repairReason,
-                 inventory_id: inventory._id,
-            });
-
-            if (!response.success) {
-                setRepairMessage(response.message || "❌ Không thể tạo yêu cầu.");
-                return;
-            }
-
-            setRepairMessage("✅ Đã gửi yêu cầu sửa chữa. Đang chờ duyệt.");
-            setExistingRepair(response.data);
-            setRepairReason("");
-
-        } catch (err) {
-            console.error("create repair error:", err);
-            setRepairMessage(err.message || "❌ Lỗi hệ thống, vui lòng thử lại sau.");
-        } finally {
-            setRepairLoading(false);
-        }
-    };
 
     return (
         <div className="device-detail-container">
@@ -319,10 +284,6 @@ export default function DeviceDetail() {
 
             {/* FOOTER */}
             <div className="detail-actions">
-                <button className="btn btn-secondary" onClick={() => navigate(-1)}>
-                    QUAY LẠI
-                </button>
-
 
                 <Button
                     type="primary"
@@ -331,6 +292,10 @@ export default function DeviceDetail() {
                 >
                     Tạo yêu cầu sửa chữa
                 </Button>
+                <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+                    QUAY LẠI
+                </button>
+
 
             </div>
             <Modal
@@ -372,14 +337,15 @@ export default function DeviceDetail() {
                     <Form.Item label="Ảnh minh chứng">
                         <Upload
                             beforeUpload={(file) => {
+                                console.log("FILE:", file);
                                 setImage(file);
-                                return false; // không upload ngay
+                                return false;
                             }}
-                            maxCount={1}
-                            accept="image/*"
+                            listType="picture"
                         >
                             <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
                         </Upload>
+
                     </Form.Item>
 
                     <Button type="primary" htmlType="submit" block loading={loadingSubmit}>
@@ -388,7 +354,7 @@ export default function DeviceDetail() {
                 </Form>
             </Modal>
 
-           
+
         </div>
     );
 }

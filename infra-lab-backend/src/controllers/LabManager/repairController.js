@@ -2,7 +2,7 @@
 import Repair from "../../models/Repair.js";
 import Device from "../../models/Device.js";
 import Inventory from "../../models/Inventory.js";
-import uploadToCloud from "../../utils/uploadToCloud.js";
+import uploadBufferToCloud from "../../utils/uploadToCloud.js";
 
 /**
  * POST /api/repairs
@@ -47,7 +47,9 @@ export const createRepairRequest = async (req, res) => {
     // 3. Upload ảnh nếu có
     let imageUrl = null;
     if (req.file) {
-      imageUrl = await uploadToCloud(req.file); // tự viết hoặc mình viết giúp bạn
+      console.log("Received file:", req.file);
+      imageUrl = await uploadBufferToCloud(req.file.buffer, req.file.mimetype);
+      console.log("Uploaded URL:", imageUrl);
     }
 
     // 4. Tạo yêu cầu sửa chữa
@@ -97,6 +99,7 @@ export const getRepairs = async (req, res) => {
         path: "device_id",
         select: "name image",
       })
+      .select("device_id quantity reason image status")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -120,6 +123,7 @@ export const getRepairById = async (req, res) => {
         path: "device_id",
         select: "name image description",
       })
+      .select("device_id quantity reason image status")
       .lean();
 
     if (!repair) {

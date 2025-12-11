@@ -1,5 +1,4 @@
 import cloudinary from "cloudinary";
-import fs from "fs";
 
 cloudinary.v2.config({
     cloud_name: process.env.CLOUD_NAME,
@@ -7,19 +6,22 @@ cloudinary.v2.config({
     api_secret: process.env.CLOUD_SECRET,
 });
 
-export default async function uploadToCloud(localPath) {
-    if (!localPath) return null;
+export default function uploadBufferToCloud(buffer, mimetype) {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.v2.uploader.upload_stream(
+            {
+                folder: "infra-lab/repairs",
+                resource_type: "auto",
+            },
+            (error, result) => {
+                if (error) {
+                    console.error("Cloudinary Upload Error:", error);
+                    return reject(error);
+                }
+                resolve(result.secure_url);
+            }
+        );
 
-    try {
-        const result = await cloudinary.v2.uploader.upload(localPath, {
-            folder: "infra-lab/repairs"
-        });
-
-        fs.unlinkSync(localPath); // xoá file local
-        return result.secure_url;
-
-    } catch (err) {
-        console.error("Cloudinary upload error:", err);
-        return null;
-    }
+        stream.end(buffer);
+    });
 }
