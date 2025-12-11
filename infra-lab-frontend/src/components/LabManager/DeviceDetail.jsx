@@ -28,6 +28,8 @@ export default function DeviceDetail() {
     const [openReport, setOpenReport] = useState(false);
     const [image, setImage] = useState(null);
     const [loadingSubmit, setLoadingSubmit] = useState(false);
+    // Form sửa chữa
+    const [form] = Form.useForm();
 
     // repair states
     const [showRepairModal, setShowRepairModal] = useState(false);
@@ -35,6 +37,8 @@ export default function DeviceDetail() {
     const [repairLoading, setRepairLoading] = useState(false);
     const [repairMessage, setRepairMessage] = useState("");
     const [existingRepair, setExistingRepair] = useState(null);
+
+
 
     // =================== LOAD DEVICE DETAIL ===================
     useEffect(() => {
@@ -57,6 +61,16 @@ export default function DeviceDetail() {
 
         fetchDeviceDetail();
     }, [id]);
+
+    useEffect(() => {
+        if (openReport) {
+            // Reset form và set giá trị mặc định
+            form.resetFields();
+            form.setFieldsValue({ quantity: 1, reason: "" });
+            setImage(null);
+        }
+    }, [openReport]); // Bỏ 'form' khỏi dependency vì form instance không thay đổi
+
 
     // =================== LOAD REPAIR STATUS ===================
     useEffect(() => {
@@ -113,7 +127,7 @@ export default function DeviceDetail() {
                 formData,
                 {
                     headers: {
-                        "Content-Type": "multipart/form-data", // override header JSON
+                        "Content-Type": "multipart/form-data",
                     }
                 }
             );
@@ -121,6 +135,8 @@ export default function DeviceDetail() {
             if (response.success) {
                 message.success("Đã tạo yêu cầu sửa chữa.");
                 setOpenReport(false);
+                form.resetFields();
+                setImage(null);
             } else {
                 message.error(response.message);
             }
@@ -128,9 +144,9 @@ export default function DeviceDetail() {
         } catch (err) {
             console.error("Report error:", err);
             message.error("Thiết bị này đã có yêu cầu sửa chữa");
+        } finally {
+            setLoadingSubmit(false);
         }
-
-        setLoadingSubmit(false);
     };
 
 
@@ -292,6 +308,7 @@ export default function DeviceDetail() {
                 >
                     Tạo yêu cầu sửa chữa
                 </Button>
+
                 <button className="btn btn-secondary" onClick={() => navigate(-1)}>
                     QUAY LẠI
                 </button>
@@ -301,21 +318,34 @@ export default function DeviceDetail() {
             <Modal
                 title="Tạo yêu cầu sửa chữa"
                 open={openReport}
-                onCancel={() => setOpenReport(false)}
+                onCancel={() => {
+                    setOpenReport(false);
+                    form.resetFields();
+                    setImage(null);
+                }}
                 footer={null}
+                afterClose={() => {
+                    form.resetFields();
+                    setImage(null);
+                }}
             >
-                <Form layout="vertical" onFinish={handleReport}>
+                <Form form={form} layout="vertical" onFinish={handleReport}>
                     <Form.Item
                         label="Số lượng hỏng"
                         name="quantity"
+                        initialValue={1}
                         rules={[
                             { required: true, message: "Vui lòng nhập số lượng" },
                             {
+                                type: 'number',
+                                min: 1,
+                                message: "Số lượng phải ≥ 1"
+                            },
+                            {
                                 validator(_, value) {
-                                    if (!value) return Promise.resolve();
                                     if (value > inventory.available) {
                                         return Promise.reject(
-                                            new Error(`Không được vượt quá ${inventory.available} thiết bị có sẵn`)
+                                            `Không được vượt quá ${inventory.available} thiết bị có sẵn`
                                         );
                                     }
                                     return Promise.resolve();
@@ -323,8 +353,14 @@ export default function DeviceDetail() {
                             }
                         ]}
                     >
-                        <InputNumber min={1} max={inventory.available} style={{ width: "100%" }} />
+                        <InputNumber 
+                            min={1} 
+                            max={inventory.available} 
+                            style={{ width: "100%" }}
+                            placeholder="Nhập số lượng"
+                        />
                     </Form.Item>
+
 
                     <Form.Item
                         label="Lý do"
@@ -337,7 +373,6 @@ export default function DeviceDetail() {
                     <Form.Item label="Ảnh minh chứng">
                         <Upload
                             beforeUpload={(file) => {
-                                console.log("FILE:", file);
                                 setImage(file);
                                 return false;
                             }}
@@ -345,7 +380,6 @@ export default function DeviceDetail() {
                         >
                             <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
                         </Upload>
-
                     </Form.Item>
 
                     <Button type="primary" htmlType="submit" block loading={loadingSubmit}>

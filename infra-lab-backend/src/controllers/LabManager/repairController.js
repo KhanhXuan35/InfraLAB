@@ -9,7 +9,6 @@ import uploadBufferToCloud from "../../utils/uploadToCloud.js";
  * body: { device_id, reason, quantity }
  * Lab Manager tạo yêu cầu sửa chữa
  */
-// FINAL VERSION – DO NOT DUPLICATE
 export const createRepairRequest = async (req, res) => {
   try {
     const { device_id, quantity, reason, inventory_id } = req.body;
@@ -20,7 +19,6 @@ export const createRepairRequest = async (req, res) => {
         message: "device_id, inventory_id và reason là bắt buộc",
       });
     }
-
 
     // 1. Kiểm tra thiết bị tồn tại
     const device = await Device.findById(device_id);
@@ -44,7 +42,24 @@ export const createRepairRequest = async (req, res) => {
       });
     }
 
-    // 3. Upload ảnh nếu có
+    // 3. Kiểm tra số lượng available
+    const inventory = await Inventory.findById(inventory_id);
+    if (!inventory) {
+      return res.status(404).json({
+        success: false,
+        message: "Inventory not found"
+      });
+    }
+
+    const requestQuantity = parseInt(quantity) || 1;
+    if (requestQuantity > inventory.available) {
+      return res.status(400).json({
+        success: false,
+        message: `Không đủ thiết bị có sẵn. Chỉ còn ${inventory.available} thiết bị.`
+      });
+    }
+
+    // 4. Upload ảnh nếu có
     let imageUrl = null;
     if (req.file) {
       console.log("Received file:", req.file);
@@ -52,17 +67,17 @@ export const createRepairRequest = async (req, res) => {
       console.log("Uploaded URL:", imageUrl);
     }
 
-    // 4. Tạo yêu cầu sửa chữa
+    // 5. Tạo yêu cầu sửa chữa
     const repair = await Repair.create({
       device_id,
-      quantity: quantity || 1,
+      quantity: requestQuantity,
       reason,
       image: imageUrl,
       status: "pending",
-      inventory_id: req.body.inventory_id,
+      inventory_id: inventory_id,
     });
 
-    // 5. Cập nhật tồn kho
+    // 6. Cập nhật tồn kho
     await Inventory.findByIdAndUpdate(
       repair.inventory_id,
       {
@@ -99,7 +114,7 @@ export const getRepairs = async (req, res) => {
         path: "device_id",
         select: "name image",
       })
-      .select("device_id quantity reason image status")
+      .select("device_id quantity reason image status createdAt reviewed_at completed_at")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -123,7 +138,7 @@ export const getRepairById = async (req, res) => {
         path: "device_id",
         select: "name image description",
       })
-      .select("device_id quantity reason image status")
+      .select("device_id quantity reason image status createdAt reviewed_at completed_at")
       .lean();
 
     if (!repair) {
@@ -148,7 +163,7 @@ export const getRepairById = async (req, res) => {
  */
 export const getMyRepairRequests = async (req, res) => {
   try {
-    const userId = req.user?._id; // tuỳ bạn lưu thế nào
+    const userId = req.user?._id;
 
     const filter = {};
     if (userId) {
@@ -185,20 +200,35 @@ export const updateRepairStatus = async (req, res) => {
     if (!repair)
       return res.status(404).json({ success: false, message: "Không tìm thấy yêu cầu." });
 
+    const oldStatus = repair.status;
     repair.status = status;
 
-    // Nếu sửa xong → cập nhật tồn kho
+    // Xử lý inventory khi status thay đổi
+    const inventory = await Inventory.findById(repair.inventory_id);
+    if (!inventory) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy inventory." });
+    }
+
+    // ✅ Nếu sửa xong → hoàn lại available, giảm broken
     if (status === "done") {
       repair.completed_at = new Date();
 
-      const inventory = await Inventory.findById(repair.inventory_id);
-
-
-      if (!inventory)
-        return res.json({ success: false, message: "Không tìm thấy inventory." });
-
       inventory.broken = Math.max(0, inventory.broken - repair.quantity);
-      inventory.available = Math.min(inventory.total, inventory.available + repair.quantity);
+      inventory.available = Math.min(
+        inventory.total - inventory.broken,
+        inventory.available + repair.quantity
+      );
+
+      await inventory.save();
+    }
+
+    // ✅ Nếu reject → hoàn lại available, giảm broken (vì thiết bị không thực sự hỏng)
+    if (status === "rejected" && oldStatus === "pending") {
+      inventory.broken = Math.max(0, inventory.broken - repair.quantity);
+      inventory.available = Math.min(
+        inventory.total - inventory.broken,
+        inventory.available + repair.quantity
+      );
 
       await inventory.save();
     }
@@ -224,13 +254,16 @@ export const updateRepairStatus = async (req, res) => {
 
 export const getRepairByDevice = async (req, res) => {
   try {
-    const repair = await Repair.findOne({ device_id: req.params.deviceId })
+    const repair = await Repair.findOne({
+      device_id: req.params.deviceId,
+      status: { $in: ["pending", "approved", "in_progress"] }
+    })
       .sort({ createdAt: -1 });
 
     if (!repair)
-      return res.status(404).json({
-        success: false,
-        message: "Not Found"
+      return res.status(200).json({
+        success: true,
+        data: null
       });
 
     res.json({
