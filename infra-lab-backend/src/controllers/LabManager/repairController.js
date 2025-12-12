@@ -114,7 +114,7 @@ export const getRepairs = async (req, res) => {
         path: "device_id",
         select: "name image",
       })
-      .select("device_id quantity reason image status createdAt reviewed_at completed_at")
+      .select("device_id quantity reason image status reason_rejected createdAt reviewed_at completed_at")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -138,7 +138,7 @@ export const getRepairById = async (req, res) => {
         path: "device_id",
         select: "name image description",
       })
-      .select("device_id quantity reason image status createdAt reviewed_at completed_at")
+      .select("device_id quantity reason image status reason_rejected createdAt reviewed_at completed_at")
       .lean();
 
     if (!repair) {

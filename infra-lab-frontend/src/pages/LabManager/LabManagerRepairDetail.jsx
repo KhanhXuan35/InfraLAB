@@ -9,6 +9,7 @@ import {
   Spin,
   Divider,
   Button,
+  Alert,
 } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { LAB_MANAGER_ROUTES } from "../../constants/routes";
@@ -133,27 +134,51 @@ export default function LabManagerRepairDetail() {
           </Tag>
           <br />
 
+          {/* ✅ Fix: Đổi r thành repair */}
+          {repair.status === "rejected" && repair.reason_rejected && (
+            <>
+              <Divider />
+              <Alert
+                message="Yêu cầu đã bị từ chối"
+                description={
+                  <div>
+                    <Text strong>Lý do từ chối: </Text>
+                    <Text>{repair.reason_rejected}</Text>
+                  </div>
+                }
+                type="error"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            </>
+          )}
+
           <Divider />
 
           <Text>
             <strong>Ngày tạo:</strong>{" "}
-            {new Date(repair.createdAt).toLocaleString()}
+            {new Date(repair.createdAt).toLocaleString("vi-VN")}
           </Text>
           <br />
 
           {repair.reviewed_at && (
-            <Text>
-              <strong>Ngày duyệt:</strong>{" "}
-              {new Date(repair.reviewed_at).toLocaleString()}
-            </Text>
+            <>
+              <Text>
+                <strong>Ngày duyệt:</strong>{" "}
+                {new Date(repair.reviewed_at).toLocaleString("vi-VN")}
+              </Text>
+              <br />
+            </>
           )}
-          <br />
 
           {repair.completed_at && (
-            <Text>
-              <strong>Ngày hoàn thành:</strong>{" "}
-              {new Date(repair.completed_at).toLocaleString()}
-            </Text>
+            <>
+              <Text>
+                <strong>Ngày hoàn thành:</strong>{" "}
+                {new Date(repair.completed_at).toLocaleString("vi-VN")}
+              </Text>
+              <br />
+            </>
           )}
         </Card>
       </Content>

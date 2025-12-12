@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Layout, Menu, Typography, Button, Modal } from "antd";
+import { Layout, Menu, Typography, Button, Modal, Input, message } from "antd";
 import {
   DashboardOutlined,
   ToolOutlined,
@@ -18,15 +18,18 @@ export default function RepairRequestList() {
   const [statusFilter, setStatusFilter] = useState("pending");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  const [messageState, setMessageState] = useState({ type: "", text: "" });
   const [previewImage, setPreviewImage] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [selectedRepairId, setSelectedRepairId] = useState(null);
 
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
   const fetchRepairs = async () => {
     setLoading(true);
-    setMessage({ type: "", text: "" });
+    setMessageState({ type: "", text: "" });
     try {
       const query =
         statusFilter && statusFilter !== "all"
@@ -52,10 +55,10 @@ export default function RepairRequestList() {
       if (json.success) {
         setRepairs(json.data || []);
         if ((json.data || []).length === 0) {
-          setMessage({ type: "info", text: "Không có yêu cầu nào trong trạng thái này." });
+          setMessageState({ type: "info", text: "Không có yêu cầu nào trong trạng thái này." });
         }
       } else {
-        setMessage({ type: "error", text: json.message || "Không thể tải danh sách yêu cầu" });
+        setMessageState({ type: "error", text: json.message || "Không thể tải danh sách yêu cầu" });
       }
     } catch (error) {
       console.error("Error fetching repairs:", error);
@@ -67,8 +70,8 @@ export default function RepairRequestList() {
         errorMessage = `Lỗi server: ${error.message}`;
       }
 
-      setMessage({ type: "error", text: errorMessage });
-      setRepairs([]); // Clear repairs on error
+      setMessageState({ type: "error", text: errorMessage });
+      setRepairs([]);
     } finally {
       setLoading(false);
     }
@@ -78,18 +81,18 @@ export default function RepairRequestList() {
     fetchRepairs();
   }, [statusFilter]);
 
-  const updateStatus = async (id, status) => {
+  const updateStatus = async (id, status, reason_rejected = null) => {
     setUpdating(id);
-    setMessage({ type: "", text: "" });
+    setMessageState({ type: "", text: "" });
 
     try {
       const url = `${API_BASE}/repairs/${id}/status`;
-      console.log("Updating repair status:", url, { status });
+      console.log("Updating repair status:", url, { status, reason_rejected });
 
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, reason_rejected }),
       });
 
       if (!res.ok) {
@@ -107,21 +110,12 @@ export default function RepairRequestList() {
           done: "đã hoàn thành"
         }[status] || "đã cập nhật";
 
-        setMessage({
-          type: "success",
-          text: `Yêu cầu đã được ${statusText} thành công!`
-        });
-
-        // Tự động ẩn thông báo sau 3 giây
-        setTimeout(() => setMessage({ type: "", text: "" }), 3000);
-
+        message.success(`Yêu cầu đã được ${statusText} thành công!`);
+        
         // Làm mới danh sách
         await fetchRepairs();
       } else {
-        setMessage({
-          type: "error",
-          text: json.message || "Không thể cập nhật trạng thái"
-        });
+        message.error(json.message || "Không thể cập nhật trạng thái");
       }
     } catch (error) {
       console.error("Error updating status:", error);
@@ -133,13 +127,22 @@ export default function RepairRequestList() {
         errorMessage = `Lỗi server: ${error.message}`;
       }
 
-      setMessage({
-        type: "error",
-        text: errorMessage
-      });
+      message.error(errorMessage);
     } finally {
       setUpdating(null);
     }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      message.error("Vui lòng nhập lý do từ chối!");
+      return;
+    }
+
+    await updateStatus(selectedRepairId, "rejected", rejectReason);
+    setRejectModalOpen(false);
+    setRejectReason("");
+    setSelectedRepairId(null);
   };
 
   const getStatusText = (status) => {
@@ -243,31 +246,31 @@ export default function RepairRequestList() {
             <h2>Yêu cầu sửa chữa thiết bị</h2>
 
             {/* Thông báo */}
-            {message.text && (
+            {messageState.text && (
               <div
                 style={{
                   padding: "12px 16px",
                   marginBottom: "16px",
                   borderRadius: "4px",
-                  backgroundColor: message.type === "success"
+                  backgroundColor: messageState.type === "success"
                     ? "#d4edda"
-                    : message.type === "info"
+                    : messageState.type === "info"
                       ? "#d1ecf1"
                       : "#f8d7da",
-                  color: message.type === "success"
+                  color: messageState.type === "success"
                     ? "#155724"
-                    : message.type === "info"
+                    : messageState.type === "info"
                       ? "#0c5460"
                       : "#721c24",
-                  border: `1px solid ${message.type === "success"
+                  border: `1px solid ${messageState.type === "success"
                     ? "#c3e6cb"
-                    : message.type === "info"
+                    : messageState.type === "info"
                       ? "#bee5eb"
                       : "#f5c6cb"
                     }`,
                 }}
               >
-                {message.text}
+                {messageState.text}
               </div>
             )}
 
@@ -342,7 +345,10 @@ export default function RepairRequestList() {
                             {updating === r._id ? "Đang xử lý..." : "Duyệt"}
                           </button>
                           <button
-                            onClick={() => updateStatus(r._id, "rejected")}
+                            onClick={() => {
+                              setSelectedRepairId(r._id);
+                              setRejectModalOpen(true);
+                            }}
                             disabled={updating === r._id}
                             style={{
                               padding: "6px 16px",
@@ -425,14 +431,12 @@ export default function RepairRequestList() {
                         <span style={{ color: "#888" }}>Không có ảnh</span>
                       )}
                     </td>
-
-
                   </tr>
                 ))}
 
                 {repairs.length === 0 && (
                   <tr>
-                    <td colSpan="5" style={{ textAlign: "center" }}>
+                    <td colSpan="6" style={{ textAlign: "center" }}>
                       Không có yêu cầu nào.
                     </td>
                   </tr>
@@ -440,7 +444,7 @@ export default function RepairRequestList() {
               </tbody>
             </table>
           </div>
-          
+
           {/* Modal xem ảnh */}
           <Modal
             open={previewOpen}
@@ -456,6 +460,29 @@ export default function RepairRequestList() {
                 objectFit: "contain",
               }}
               alt="preview"
+            />
+          </Modal>
+
+          {/* Modal từ chối */}
+          <Modal
+            title="Lý do từ chối yêu cầu sửa chữa"
+            open={rejectModalOpen}
+            onCancel={() => {
+              setRejectModalOpen(false);
+              setRejectReason("");
+              setSelectedRepairId(null);
+            }}
+            onOk={handleReject}
+            okText="Từ chối"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+          >
+            <Input.TextArea
+              rows={4}
+              placeholder="Nhập lý do từ chối..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              style={{ marginTop: 16 }}
             />
           </Modal>
 

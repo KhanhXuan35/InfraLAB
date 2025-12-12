@@ -29,6 +29,7 @@ const repairSchema = new mongoose.Schema({
         enum: ["pending", "approved", "in_progress", "done", "rejected"],
         default: "pending"
     }, // mặc định trường phải duyệt
+    reason_rejected: { type: String, default: null },
 
     reviewed_at: { type: Date }, // ngày trường duyệt
     completed_at: { type: Date } // ngày sửa xong
