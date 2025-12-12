@@ -194,7 +194,7 @@ export const getMyRepairRequests = async (req, res) => {
  */
 export const updateRepairStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, reason_rejected } = req.body;
     const repair = await Repair.findById(req.params.id);
 
     if (!repair)
@@ -231,6 +231,9 @@ export const updateRepairStatus = async (req, res) => {
       );
 
       await inventory.save();
+
+      repair.reason_rejected = reason_rejected || "Không có lý do";
+
     }
 
     // Khi admin duyệt thì lưu ngày duyệt
