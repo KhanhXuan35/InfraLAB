@@ -151,7 +151,7 @@ function DeviceList() {
           style={{
             padding: 24,
             textAlign: "center",
-            borderBottom: "1px solid #303030",
+            borderBottom: "1px solid #e6e1e1ff",
           }}
         >
           <Typography.Title level={4} style={{ color: "#fff", margin: 0 }}>
@@ -210,7 +210,7 @@ function DeviceList() {
       </Layout.Sider>
 
       <Layout style={{ marginLeft: 240, background: "#0c1424" }}>
-        <Layout.Content style={{ padding: "16px 24px", background: "#0c1424" }}>
+        <Layout.Content style={{ padding: "16px 24px", background: "#f3f5f8ff" }}>
           <div className="content-wrapper">
             <h2 className="page-title">Danh sách thiết bị phòng Lab</h2>
 

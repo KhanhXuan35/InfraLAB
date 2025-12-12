@@ -1,154 +1,178 @@
-/* ============ WRAPPER ============ */
+/* =============== WRAPPER =============== */
 .content-wrapper {
-  background: linear-gradient(180deg, #0f172a, #020617);
+  background: #f3f4f6;
   min-height: 100vh;
-  padding: 32px;
-  color: #e5e7eb;
+  padding: 24px 20px 28px;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-/* ============ HEADER ============ */
-.content-wrapper h2 {
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #f8fafc;
-}
-
-/* ============ FILTER ============ */
-.content-wrapper select {
-  background: #020617;
-  border: 1px solid #1e293b;
-  color: #e5e7eb;
-  padding: 8px 12px;
-  border-radius: 8px;
-  outline: none;
-  font-size: 14px;
-}
-
-.content-wrapper select:focus {
-  border-color: #3b82f6;
-}
-
-/* ============ TABLE ============ */
-.device-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #020617;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #1e293b;
+  color: #111827;
 }
 
 /* HEADER */
+.content-wrapper h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #111827;
+}
+
+/* FILTER SELECT (trong JSX đang dùng inline style – đây là base) */
+.content-wrapper select {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #111827;
+  font-size: 14px;
+}
+
+/* =============== TABLE =============== */
+.device-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
 .device-table thead {
-  background: linear-gradient(180deg, #020617, #020617);
+  background: #f9fafb;
 }
 
 .device-table th {
   padding: 12px;
   text-align: left;
   font-size: 13px;
-  font-weight: 600;
-  color: #cbd5f5;
-  text-transform: uppercase;
-  border-bottom: 1px solid #1e293b;
+  font-weight: 700;
+  color: #4b5563;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-/* BODY */
 .device-table td {
   padding: 12px;
   font-size: 14px;
-  color: #e5e7eb;
-  border-bottom: 1px solid #1e293b;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.device-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .device-table tbody tr:hover {
-  background: rgba(59, 130, 246, 0.08);
-  transition: 0.2s;
+  background: #f3f4f6;
 }
 
-/* EMPTY ROW */
-.device-table tbody tr td[colspan] {
-  text-align: center;
-  color: #94a3b8;
-  padding: 24px;
-}
-
-/* ============ STATUS TAG ============ */
-.device-table td:nth-child(4) {
+/* =============== STATUS BADGES =============== */
+.status-pending,
+.status-approved,
+.status-in-progress,
+.status-done,
+.status-rejected {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: capitalize;
 }
 
 .status-pending {
-  background-color: #fef3c7;
+  background: #fef3c7;
   color: #92400e;
 }
 
 .status-approved {
-  background-color: #d1fae5;
-  color: #065f46;
+  background: #e0f2fe;
+  color: #1d4ed8;
 }
 
 .status-in-progress {
-  background-color: #dbeafe;
-  color: #1e40af;
+  background: #e0f2fe;
+  color: #1d4ed8;
 }
 
 .status-done {
-  background-color: #d1fae5;
-  color: #065f46;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .status-rejected {
-  background-color: #fee2e2;
+  background: #fee2e2;
   color: #991b1b;
 }
 
-/* ============ BUTTONS ============ */
+/* =============== ACTION BUTTONS =============== */
 .device-table button {
   border: none;
-  color: white;
+  border-radius: 999px;
+  padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 8px;
   cursor: pointer;
-  transition: 0.2s ease;
-  margin-right: 6px;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 
 .device-table button:hover:not(:disabled) {
-  opacity: 0.9;
   transform: translateY(-1px);
 }
 
 .device-table button:disabled {
-  cursor: not-allowed;
   opacity: 0.6;
+  cursor: default;
 }
 
-/* ============ LOADING ============ */
-.content-wrapper > div {
-  font-size: 16px;
-  color: #94a3b8;
+/* ảnh minh chứng */
+.device-table img {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  object-fit: cover;
 }
 
-/* ============ RESPONSIVE ============ */
-@media (max-width: 768px) {
+/* RESPONSIVE */
+@media (max-width: 900px) {
   .content-wrapper {
-    padding: 16px;
+    padding-inline: 10px;
   }
 
-  .device-table th,
-  .device-table td {
-    font-size: 12px;
-    padding: 8px;
+  .device-table {
+    border-radius: 12px;
   }
 
-  .device-table button {
-    font-size: 11px;
-    padding: 5px 8px;
+  .device-table {
+    overflow-x: auto;
   }
+
+  .device-table table {
+    min-width: 900px;
+  }
+}
+/* ===== FORCE LIGHT MODE FOR TABLE ===== */
+.device-table {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #111 !important;
+}
+
+.device-table thead,
+.device-table thead th {
+  background: #f9fafb !important;
+  color: #111 !important;
+}
+
+.device-table tbody tr {
+  background: #ffffff !important;
+}
+
+.device-table td {
+  background: #ffffff !important;
+  color: #111 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.device-table tbody tr:hover td {
+  background: #f3f4f6 !important;
+  color: #111 !important;
 }
