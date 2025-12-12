@@ -289,3 +289,81 @@ export const googleLoginService = async (token) => {
         return { status: 500, success: false, message: error.message };
     }
 };
+
+// 7. REQUEST PASSWORD RESET (Gửi mail) ---
+export const requestPasswordResetService = async (email) => {
+    // 1. Tìm user theo email
+    const user = await User.findOne({ email: email });
+    if (!user) {
+        throw new Error("Email không tồn tại trong hệ thống InfraLab.");
+    }
+    // 2. Tạo token reset (Hết hạn sau 15 phút)
+    const tokenExpiry = "15m";
+    const resetToken = jwt.sign(
+        { email, id: user._id, type: "reset_password" },
+        process.env.ACCESS_TOKEN_SECRET, // Dùng chung secret hoặc tạo cái mới RESET_PASS_SECRET trong .env
+        { expiresIn: tokenExpiry }
+    );
+    // 3. Tạo Link (Trỏ về Frontend Vite)
+    // CLIENT_URL trong .env phải là http://localhost:5173
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    // 4. Nội dung Email
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="background-color: #F36F21; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 24px;">InfraLab</h1>
+                </div>
+                <div style="padding: 30px;">
+                    <p style="font-size: 16px; color: #333;">Xin chào <strong>${user.name || "Sinh viên"}</strong>,</p>
+                    <p style="color: #555;">Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản tại hệ thống quản lý phòng Lab.</p>
+                    <p style="color: #555;">Vui lòng nhấn vào nút bên dưới để tạo mật khẩu mới (Link hết hạn sau 15 phút):</p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetUrl}" style="background-color: #333; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Đặt lại mật khẩu</a>
+                    </div>
+
+                    <p style="font-size: 13px; color: #777;">Nếu nút không hoạt động, hãy copy link này: <br> <a href="${resetUrl}">${resetUrl}</a></p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                    <p style="font-size: 12px; color: #999;">Nếu bạn không yêu cầu, vui lòng bỏ qua email này.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    // 5. Gửi mail
+    await sendEmail(email, "Yêu cầu đặt lại mật khẩu - InfraLab", "Reset Password", htmlContent);
+    return { message: "Link đặt lại mật khẩu đã được gửi vào email của bạn." };
+};
+// 8. RESET PASSWORD (Xử lý đổi pass) ---
+export const resetPasswordService = async (token, newPassword) => {
+    try {
+        // 1. Xác thực token
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        if (decoded.type !== "reset_password") {
+            throw new Error("Token không hợp lệ.");
+        }
+        // 2. Validate độ mạnh mật khẩu (Regex 8 ký tự, hoa, thường, số, đặc biệt)
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,15}$/;
+        if (!passwordRegex.test(newPassword)) {
+            throw new Error("Mật khẩu phải từ 8-15 ký tự, bao gồm chữ Hoa, Thường, Số và Ký tự đặc biệt.");
+        }
+        // 3. Tìm user
+        const user = await User.findOne({ email: decoded.email });
+        if (!user) {
+            throw new Error("Tài khoản không tồn tại.");
+        }
+        // 4. Hash mật khẩu mới và lưu
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+        return { success: true, message: "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập ngay." };
+    } catch (error) {
+        if (error.name === "TokenExpiredError") {
+            throw new Error("Link đã hết hạn. Vui lòng gửi lại yêu cầu.");
+        }
+        if (error.name === "JsonWebTokenError") {
+            throw new Error("Link không hợp lệ.");
+        }
+        throw error;
+    }
+};

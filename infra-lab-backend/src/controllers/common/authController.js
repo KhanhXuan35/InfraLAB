@@ -50,3 +50,39 @@ export const logout = async (req, res) => {
     res.clearCookie("refreshToken");
     return res.status(result.status).json(result);
 };
+
+export const requestPasswordReset = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập email." });
+        }
+
+        const result = await requestPasswordResetService(email);
+        res.status(200).json({ success: true, ...result });
+
+    } catch (error) {
+        // Trả về 404 nếu email không tìm thấy, hoặc 500 nếu lỗi server
+        const status = error.message.includes("không tồn tại") ? 404 : 500;
+        res.status(status).json({ success: false, message: error.message });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { newPassword } = req.body;
+
+        if (!newPassword) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập mật khẩu mới." });
+        }
+
+        const result = await resetPasswordService(token, newPassword);
+        res.status(200).json(result);
+
+    } catch (error) {
+        // Trả về 400 nếu lỗi token hoặc validation, 500 nếu lỗi khác
+        const status = (error.message.includes("hết hạn") || error.message.includes("hợp lệ") || error.message.includes("Mật khẩu")) ? 400 : 500;
+        res.status(status).json({ success: false, message: error.message });
+    }
+};
