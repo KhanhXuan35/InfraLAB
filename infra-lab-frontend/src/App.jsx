@@ -8,7 +8,8 @@ import { ROUTES, STUDENT_BASE_PATH } from "./constants/routes";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
-
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 // Home dashboards
 import StudentHomePage from "./pages/Student/StudentHomePage";
 import LabManagerHomePage from "./pages/LabManager/LabManagerHomePage";
@@ -50,7 +51,8 @@ function App() {
             <Route path={ROUTES.LOGIN} element={<LoginPage />} />
             <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
             <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
-
+            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+            <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
             {/* --- DASHBOARD BY ROLE --- */}
             <Route element={<PrivateRoute allowedRoles={["student"]} />}>
               <Route path="/user-dashboard" element={<StudentHomePage />} />

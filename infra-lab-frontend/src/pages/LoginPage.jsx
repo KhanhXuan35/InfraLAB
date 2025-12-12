@@ -110,8 +110,8 @@ const LoginPage = () => {
             style={{ height: '50px', marginBottom: '15px' }}
           />
           <h2 className="school-name" style={{ color: "#F36F21", margin: 0 }}>FPT UNIVERSITY</h2>
-          <Title level={3} style={{ marginTop: 10, color: "#333" }}>InfraLab Login</Title>
-          <Text type="secondary">Sign in to access Lab Management System</Text>
+          <Title level={3} style={{ marginTop: 10, color: "#333" }}>Trang đăng nhập InfraLab</Title>
+          <Text type="secondary">Đăng nhập để truy cập hệ thống InfraLab</Text> 
         </div>
 
         {/* Form Đăng Nhập */}
@@ -123,32 +123,32 @@ const LoginPage = () => {
           style={{ marginTop: 20 }}
         >
           <Form.Item
-            label="User Name / Email"
+            label="Tên đăng nhập / Email"
             name="login"
             rules={[{ required: true, message: "Vui lòng nhập tài khoản!" }]}
           >
             <Input 
               prefix={<UserOutlined style={{ color: "rgba(0,0,0,.25)" }} />} 
-              placeholder="Enter your username or email" 
+              placeholder="Nhập tên đăng nhập hoặc email" 
               style={{ borderRadius: '8px' }}
             />
           </Form.Item>
 
           <Form.Item
-            label="Password"
+            label="Mật khẩu"
             name="password"
             rules={[{ required: true, message: "Vui lòng nhập mật khẩu!" }]}
           >
             <Input.Password
               prefix={<LockOutlined style={{ color: "rgba(0,0,0,.25)" }} />}
-              placeholder="••••••••"
+              placeholder="Nhập mật khẩu"
               iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
               style={{ borderRadius: '8px' }}
             />
           </Form.Item>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
-            <Link to="#" style={{ color: '#F36F21', fontWeight: 500 }}>Forgot password?</Link>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 24 }}>
+            <Link to={ROUTES.FORGOT_PASSWORD} style={{ color: '#F36F21', fontWeight: 500 }}>Quên mật khẩu?</Link>
           </div>
 
           <Form.Item>
@@ -166,12 +166,12 @@ const LoginPage = () => {
                 borderRadius: "8px"
               }}
             >
-              Sign in
+              Đăng Nhập
             </Button>
           </Form.Item>
         </Form>
 
-        <Divider plain><span style={{ color: '#999', fontSize: '13px' }}>Or</span></Divider>
+        <Divider plain><span style={{ color: '#999', fontSize: '13px' }}>Hoặc</span></Divider>
 
         {/* Nút Google */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24, width: '100%' }}>
@@ -188,8 +188,8 @@ const LoginPage = () => {
         </div>
 
         <div style={{ textAlign: "center" }}>
-          <Text style={{ color: '#666' }}>Don't have an account? </Text>
-          <Link to={ROUTES.REGISTER} style={{ color: "#F36F21", fontWeight: "bold" }}>Sign Up here</Link>
+          <Text style={{ color: '#666' }}>Không có tài khoản? </Text>
+          <Link to={ROUTES.REGISTER} style={{ color: "#F36F21", fontWeight: "bold" }}>Đăng ký ở đây</Link>
         </div>
       </div>
     </div>

@@ -29,7 +29,8 @@ import {
   LogoutOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  WarningOutlined
+  WarningOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 import api from '../../services/api';
 import * as S from './LabManagerHomePage.styles';
@@ -152,6 +153,11 @@ const LabManagerHomePage = () => {
       key: 'reports',
       icon: <FileTextOutlined />,
       label: 'Báo cáo',
+    },
+    {
+      key: 'students',
+      icon: <TeamOutlined />,
+      label: 'Quản lý sinh viên',
     },
     {
       key: 'notifications',

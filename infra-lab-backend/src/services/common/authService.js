@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import User from "../../models/User.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -297,11 +299,14 @@ export const requestPasswordResetService = async (email) => {
     if (!user) {
         throw new Error("Email không tồn tại trong hệ thống InfraLab.");
     }
+    if (user.role === "school_admin") {
+        throw new Error("Tài khoản School Admin không được phép đặt lại mật khẩu qua email. Vui lòng liên hệ bộ phận kỹ thuật.");
+    }
     // 2. Tạo token reset (Hết hạn sau 15 phút)
     const tokenExpiry = "15m";
     const resetToken = jwt.sign(
         { email, id: user._id, type: "reset_password" },
-        process.env.ACCESS_TOKEN_SECRET, // Dùng chung secret hoặc tạo cái mới RESET_PASS_SECRET trong .env
+        process.env.ACCESS_TOKEN, // Dùng chung secret hoặc tạo cái mới RESET_PASS_SECRET trong .env
         { expiresIn: tokenExpiry }
     );
     // 3. Tạo Link (Trỏ về Frontend Vite)
@@ -338,7 +343,7 @@ export const requestPasswordResetService = async (email) => {
 export const resetPasswordService = async (token, newPassword) => {
     try {
         // 1. Xác thực token
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN);
         if (decoded.type !== "reset_password") {
             throw new Error("Token không hợp lệ.");
         }

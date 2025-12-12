@@ -58,13 +58,20 @@ export const requestPasswordReset = async (req, res) => {
             return res.status(400).json({ success: false, message: "Vui lòng nhập email." });
         }
 
-        const result = await requestPasswordResetService(email);
+        const result = await AuthService.requestPasswordResetService(email);
         res.status(200).json({ success: true, ...result });
 
     } catch (error) {
-        // Trả về 404 nếu email không tìm thấy, hoặc 500 nếu lỗi server
-        const status = error.message.includes("không tồn tại") ? 404 : 500;
-        res.status(status).json({ success: false, message: error.message });
+        let statusCode = 500;
+
+        // Xử lý mã lỗi HTTP dựa trên nội dung lỗi
+        if (error.message.includes("không tồn tại")) {
+            statusCode = 404; // Not Found
+        } else if (error.message.includes("School Admin")) {
+            statusCode = 403; // Forbidden (Bị cấm) - Dành cho trường hợp này
+        }
+
+        res.status(statusCode).json({ success: false, message: error.message });
     }
 };
 
@@ -77,7 +84,7 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: "Vui lòng nhập mật khẩu mới." });
         }
 
-        const result = await resetPasswordService(token, newPassword);
+        const result = await AuthService.resetPasswordService(token, newPassword);
         res.status(200).json(result);
 
     } catch (error) {
