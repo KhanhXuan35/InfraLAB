@@ -9,11 +9,17 @@ const borrowLabSchema = new mongoose.Schema({
             ref: "Device",                     
             required: true
         },
-        quantity: Number
+        quantity: { type: Number, required: true, min: 1 }
     }],
 
-    return_due_date: Date,
-    status: { type: String, default: "approved" },
+    return_due_date: { type: Date, required: true },
+    purpose: { type: String, required: true, maxlength: 500 },
+    notes: { type: String, maxlength: 1000 },
+    status: { 
+      type: String, 
+      enum: ["borrowed", "return_pending", "returned"], 
+      default: "borrowed" 
+    },
     returned: { type: Boolean, default: false }
 }, { timestamps: true });
 

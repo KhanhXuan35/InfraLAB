@@ -24,6 +24,7 @@ import {
 import dayjs from 'dayjs';
 import { Container, FormCard } from './style';
 import { STUDENT_ROUTES } from '../../../constants/routes';
+import api from '../../../services/api';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -100,35 +101,27 @@ const RegisterBorrowMultiple = () => {
     setSubmitting(true);
     try {
       const borrowData = {
-        devices: devices.map(item => ({
+        items: devices.map(item => ({
           device_id: item.device._id,
           quantity: item.quantity
         })),
         return_due_date: values.return_due_date.format('YYYY-MM-DD'),
         purpose: values.purpose || '',
-        notes: values.notes || '',
-        full_name: values.full_name,
-        student_code: values.student_code,
-        email: values.email,
-        phone: values.phone,
-        class: values.class,
-        faculty: values.faculty
+        notes: values.notes || ''
       };
 
-      // TODO: Call API to create borrow request for multiple devices
-      console.log('Borrow data (multiple):', borrowData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Clear session storage
-      sessionStorage.removeItem('selectedBorrowItems');
-      
-      message.success(`Đăng ký mượn ${devices.length} thiết bị thành công!`);
-      navigate(STUDENT_ROUTES.CART);
+      const res = await api.post('/borrow', borrowData);
+
+      if (res.success) {
+        sessionStorage.removeItem('selectedBorrowItems');
+        message.success(`Đăng ký mượn ${devices.length} thiết bị thành công!`);
+        navigate(STUDENT_ROUTES.CART);
+      } else {
+        message.error(res.message || 'Đăng ký mượn thất bại');
+      }
     } catch (error) {
       console.error('Error submitting borrow request:', error);
-      message.error('Có lỗi xảy ra khi đăng ký mượn thiết bị');
+      message.error(error.message || 'Có lỗi xảy ra khi đăng ký mượn thiết bị');
     } finally {
       setSubmitting(false);
     }
@@ -241,105 +234,13 @@ const RegisterBorrowMultiple = () => {
 
         {/* Borrow Form */}
         <FormCard>
-          <Title level={4} style={{ marginBottom: 24 }}>Thông tin cá nhân</Title>
+          <Title level={4} style={{ marginBottom: 24 }}>Thông tin mượn</Title>
           <Form
             form={form}
             layout="vertical"
             onFinish={handleSubmit}
             autoComplete="off"
           >
-            <Form.Item
-              label="Họ và tên"
-              name="full_name"
-              rules={[
-                { required: true, message: 'Vui lòng nhập họ và tên' },
-                { max: 100, message: 'Họ và tên không được quá 100 ký tự' }
-              ]}
-            >
-              <Input placeholder="Nhập họ và tên đầy đủ" />
-            </Form.Item>
-
-            <Form.Item
-              label="Mã sinh viên"
-              name="student_code"
-              rules={[
-                { required: true, message: 'Vui lòng nhập mã sinh viên' },
-                { pattern: /^[A-Z0-9]+$/, message: 'Mã sinh viên chỉ chứa chữ in hoa và số' }
-              ]}
-            >
-              <Input 
-                placeholder="VD: SV001, B20DCCN001"
-                onKeyPress={(e) => {
-                  const char = String.fromCharCode(e.which);
-                  if (!/[A-Z0-9]/.test(char) && !e.ctrlKey && !e.metaKey) {
-                    e.preventDefault();
-                  }
-                }}
-                style={{ textTransform: 'uppercase' }}
-                onInput={(e) => {
-                  e.target.value = e.target.value.toUpperCase();
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Email"
-              name="email"
-              rules={[
-                { required: true, message: 'Vui lòng nhập email' },
-                { type: 'email', message: 'Email không hợp lệ' }
-              ]}
-            >
-              <Input placeholder="example@email.com" />
-            </Form.Item>
-
-            <Form.Item
-              label="Số điện thoại"
-              name="phone"
-              rules={[
-                { required: true, message: 'Vui lòng nhập số điện thoại' },
-                { pattern: /^[0-9]{10,11}$/, message: 'Số điện thoại phải có 10-11 chữ số' }
-              ]}
-            >
-              <Input 
-                placeholder="0123456789"
-                type="tel"
-                onKeyPress={(e) => {
-                  if (!/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Tab') {
-                    e.preventDefault();
-                  }
-                }}
-                onPaste={(e) => {
-                  const paste = (e.clipboardData || window.clipboardData).getData('text');
-                  if (!/^[0-9]+$/.test(paste)) {
-                    e.preventDefault();
-                  }
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Lớp"
-              name="class"
-              rules={[
-                { required: true, message: 'Vui lòng nhập lớp' },
-                { max: 50, message: 'Lớp không được quá 50 ký tự' }
-              ]}
-            >
-              <Input placeholder="VD: D20CQCN01-B" />
-            </Form.Item>
-
-            <Form.Item
-              label="Khoa"
-              name="faculty"
-              rules={[
-                { required: true, message: 'Vui lòng nhập khoa' },
-                { max: 100, message: 'Khoa không được quá 100 ký tự' }
-              ]}
-            >
-              <Input placeholder="VD: Công nghệ thông tin" />
-            </Form.Item>
-
             <Divider />
 
             <Title level={4} style={{ marginBottom: 24 }}>Thông tin mượn thiết bị</Title>

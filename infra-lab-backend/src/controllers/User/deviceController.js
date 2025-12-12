@@ -1,6 +1,6 @@
-import Device from "../models/Device.js";
-import Category from "../models/Category.js";
-import Inventory from "../models/Inventory.js";
+import Device from "../../models/Device.js";
+import Category from "../../models/Category.js";
+import Inventory from "../../models/Inventory.js";
 
 // Get all devices with category and inventory info
 export const getAllDevices = async (req, res) => {
@@ -81,6 +81,7 @@ export const getDeviceById = async (req, res) => {
   try {
     const { id } = req.params;
     const { location } = req.query;
+    const targetLocation = location || 'lab';
 
     const device = await Device.findById(id)
       .populate('category_id', 'name description');
@@ -94,8 +95,16 @@ export const getDeviceById = async (req, res) => {
 
     const inventory = await Inventory.findOne({
       device_id: device._id,
-      location: location || 'lab'
+      location: targetLocation
     });
+
+    // Chỉ trả về device nếu có inventory tại location được yêu cầu
+    if (!inventory) {
+      return res.status(404).json({
+        success: false,
+        message: `Thiết bị không có tại ${targetLocation === 'lab' ? 'phòng Lab' : 'kho'}`
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -105,12 +114,12 @@ export const getDeviceById = async (req, res) => {
         description: device.description,
         image: device.image,
         category: device.category_id,
-        inventory: inventory ? {
+        inventory: {
           total: inventory.total,
           available: inventory.available,
           broken: inventory.broken,
           location: inventory.location
-        } : null,
+        },
         createdAt: device.createdAt,
         updatedAt: device.updatedAt
       }

@@ -101,17 +101,14 @@ const Header = () => {
       const data = response.data;
 
       if (data.success) {
-        const q = query.toLowerCase().trim();
-        // Lọc thiết bị có tên chứa ký tự tìm kiếm
-        const filtered = (data.data || []).filter(
+        const q = query.toLowerCase();
+        const results = (data.data || []).filter(
           (d) =>
             d.inventory &&
             d.inventory.location === 'lab' &&
             d.name &&
             d.name.toLowerCase().includes(q)
         );
-        // Giới hạn tối đa 4 thiết bị
-        const results = filtered.slice(0, 4);
         setSearchResults(results);
         setShowResults(true);
       } else {
@@ -183,11 +180,7 @@ const Header = () => {
   };
 
   const handleMenuClick = ({ key }) => {
-    if (key === 'profile') {
-      navigate('/profile');
-    } else if (key === 'settings') {
-      navigate('/settings');
-    } else if (key === 'logout') {
+    if (key === 'logout') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
       navigate('/login');

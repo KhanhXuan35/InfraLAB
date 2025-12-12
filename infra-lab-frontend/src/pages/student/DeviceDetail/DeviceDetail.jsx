@@ -109,6 +109,27 @@ const DeviceDetail = () => {
     );
   }
 
+  // Kiểm tra thiết bị có inventory tại lab không
+  if (!device.inventory || device.inventory.location !== 'lab') {
+    return (
+      <Container>
+        <Button 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => navigate(STUDENT_ROUTES.DEVICES)}
+          style={{ marginBottom: 16 }}
+        >
+          Quay lại
+        </Button>
+        <Alert
+          message="Thiết bị không có sẵn"
+          description="Thiết bị này không có tại phòng Lab"
+          type="warning"
+          showIcon
+        />
+      </Container>
+    );
+  }
+
   const availability = getAvailabilityStatus(device.inventory);
   const maxQuantity = device.inventory ? device.inventory.available : 0;
 
