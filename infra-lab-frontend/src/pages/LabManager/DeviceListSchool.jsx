@@ -24,6 +24,9 @@ const DeviceListSchool = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [borrowLoading, setBorrowLoading] = useState(null);
+  const [qtyMap, setQtyMap] = useState({});
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
@@ -34,6 +37,7 @@ const DeviceListSchool = () => {
   const fetchData = async () => {
     setLoading(true);
     setError('');
+    setNotice('');
     try {
       const [catRes, devRes, invRes] = await Promise.all([
         api.get('/device-categories'),
@@ -260,6 +264,7 @@ const DeviceListSchool = () => {
                     <th style={{ width: 100 }}>Dang ranh</th>
                     <th style={{ width: 100 }}>Dang muon</th>
                     <th style={{ width: 80 }}>Hong</th>
+                    <th style={{ width: 160 }}>Hanh dong</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -279,6 +284,9 @@ const DeviceListSchool = () => {
                       const found = categories.find((c) => String(c._id) === String(item.category));
                       return found?.name || 'N/A';
                     })();
+
+                    const devId = item._id || item.id || '';
+                    const inputQty = qtyMap[devId] ?? 1;
 
                     return (
                       <tr key={item._id || index}>
@@ -307,12 +315,64 @@ const DeviceListSchool = () => {
                         <td className="ok center">{item.inventory?.available ?? 0}</td>
                         <td className="warn center">{item.inventory?.borrowing ?? 0}</td>
                         <td className="error center">{item.inventory?.broken ?? 0}</td>
+                        <td className="center">
+                          <div className="borrow-action">
+                            <input
+                              type="number"
+                              min="1"
+                              value={inputQty}
+                              onChange={(e) =>
+                                setQtyMap((prev) => ({
+                                  ...prev,
+                                  [devId]: Number(e.target.value) || 1,
+                                }))
+                              }
+                              className="borrow-qty"
+                            />
+                            <Button
+                              size="small"
+                              type="primary"
+                              loading={borrowLoading === devId}
+                              className="borrow-btn"
+                              onClick={async () => {
+                                setError('');
+                                setNotice('');
+                                const qty = Number(inputQty) || 1;
+                                if (qty < 1) {
+                                  setError('So luong khong hop le');
+                                  return;
+                                }
+                                try {
+                                  setBorrowLoading(devId);
+                                  const userString = localStorage.getItem('user');
+                                  const userData = userString ? JSON.parse(userString) : null;
+                                  const userId = userData?._id || userData?.id;
+                                  await api.post('/request-lab', { device_id: devId, qty, user_id: userId });
+                                  setNotice('Đã gửi yêu cầu mượn');
+                                } catch (err) {
+                                  const msg = err?.message || err?.response?.data?.message || 'Gửi yêu cầu thất bại';
+                                  setError(msg);
+                                } finally {
+                                  setBorrowLoading(null);
+                                }
+                              }}
+                            >
+                              Mượn
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
+
+            {notice && (
+              <div className="inventory-status" style={{ marginTop: 12 }}>
+                {notice}
+              </div>
+            )}
 
             <div className="pagination-container">
               <div className="page-left">

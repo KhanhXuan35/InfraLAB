@@ -10,9 +10,13 @@ function SchoolDashboard() {
   const [categories, setCategories] = useState([]);
   const [devices, setDevices] = useState([]);
   const [inventories, setInventories] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [selectedCategoryKey, setSelectedCategoryKey] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [requestError, setRequestError] = useState(null);
+  const [processingRequestId, setProcessingRequestId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);

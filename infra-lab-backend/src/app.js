@@ -7,6 +7,7 @@ import inventoryRoutes from "./routes/LabManager/inventoryRoutes.js";
 import categoryRoutes from "./routes/LabManager/categoryRoutes.js";
 import detailDevice from "./routes/LabManager/detailDevice.js";
 import dashboardRoutes from "./routes/LabManager/dashboardRoutes.js";
+import requestLabRoutes from "./routes/LabManager/requestLabRoutes.js";
 import schoolDashboardRoutes from "./routes/School/schoolDashboardRoutes.js";
 import userDashboardRoutes from "./routes/User/userDashboardRoutes.js";
 import schoolInventoryRoutes from "./routes/device_school/inventories.routes.js";
@@ -44,6 +45,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/device-detail", detailDevice);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/request-lab", requestLabRoutes);
 
 // School Dashboard routes
 app.use("/api/school-dashboard", schoolDashboardRoutes);

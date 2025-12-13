@@ -34,6 +34,7 @@ import DeviceListSchool from "./pages/LabManager/DeviceListSchool";
 import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
 import ViewDetailDevice from './SchoolDashboard/viewdetailDevice.jsx';
 import RepairRequestList from "./pages/School/RepairRequestList";
+import BorrowRequests from "./pages/SchoolAdmin/BorrowRequests";
 
 // Profile page
 import UserProfile from "./pages/Profile/UserProfile";
@@ -67,6 +68,7 @@ function App() {
               <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
               <Route path="/requests" element={<RepairRequestList />} />
               <Route path="/school/dashboard" element={<SchoolDashboard />} />
+              <Route path="/school/borrow-requests" element={<BorrowRequests />} />
               <Route path="/school/device/:id" element={<ViewDetailDevice />} />
             </Route>
           
