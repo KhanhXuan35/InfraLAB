@@ -13,6 +13,12 @@ import schoolInventoryRoutes from "./routes/device_school/inventories.routes.js"
 import deviceCategoryRoutes from "./routes/device_school/device_categories.routes.js";
 import deviceRoutes from "./routes/device_school/devices.routes.js";
 import repairRoutes from "./routes/LabManager/repairRoutes.js";
+import conversationRoutes from "./routes/conversationRoutes.js";
+import borrowRoutes from "./routes/borrowRoutes.js";
+import { uploadImage, uploadSingle } from "./controllers/common/uploadController.js";
+import { checkAuthMiddleware } from "./middlewares/authMiddleware.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 
@@ -22,6 +28,27 @@ app.use(cors({
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Thêm PATCH để hỗ trợ cập nhật trạng thái
     credentials: true // <--- Bắt buộc để browser cho phép lưu cookie
 }));
+
+// Upload routes - đặt TRƯỚC express.json() và express.urlencoded() 
+// vì multer cần xử lý multipart/form-data
+app.post("/api/upload/image", (req, res, next) => {
+  console.log("🔍 [UPLOAD ROUTE] Request received:", {
+    method: req.method,
+    path: req.path,
+    url: req.url,
+    hasAuth: !!req.headers.authorization,
+    contentType: req.headers["content-type"],
+  });
+  next();
+}, checkAuthMiddleware, uploadSingle, uploadImage);
+
+// Test route để kiểm tra
+app.get("/api/upload/test", (req, res) => {
+  res.json({ message: "Upload route is working", path: "/api/upload/image" });
+});
+
+console.log("✅ Upload route registered: POST /api/upload/image");
+console.log("✅ Upload test route registered: GET /api/upload/test");
 
 // 2. Middleware xử lý dữ liệu
 app.use(express.json());
@@ -35,6 +62,10 @@ app.get("/api/health", (req, res) => {
 });
 console.log("DETAIL DEVICE ROUTE LOADED");
 
+// Serve static files (uploads)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // 3. Routes
 app.use("/api", routes);
@@ -55,6 +86,8 @@ app.use("/api/user-dashboard", userDashboardRoutes);
 app.use("/api/inventories", schoolInventoryRoutes);
 app.use("/api/device-categories", deviceCategoryRoutes);
 app.use("/api/devices", deviceRoutes);
+app.use("/api/conversations", conversationRoutes);
+app.use("/api/borrow", borrowRoutes);
 
 // Repair routes
 app.use("/api/repairs", repairRoutes);

@@ -3,8 +3,10 @@ import User from "../models/User.js";
 
 export const checkAuthMiddleware = async (req, res, next) => {
     try {
+        console.log("🔐 Auth middleware called for:", req.method, req.path);
         const authHeader = req.headers.authorization;
         if (!authHeader?.startsWith("Bearer ")) {
+            console.log("❌ No auth header");
             return res.status(401).json({ success: false, message: "Chưa đăng nhập!" });
         }
 
@@ -12,11 +14,16 @@ export const checkAuthMiddleware = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.ACCESS_TOKEN);
 
         const user = await User.findById(decoded.id).select("-password -refreshToken");
-        if (!user) return res.status(401).json({ success: false, message: "User không tồn tại!" });
+        if (!user) {
+            console.log("❌ User not found");
+            return res.status(401).json({ success: false, message: "User không tồn tại!" });
+        }
 
+        console.log("✅ Auth passed for user:", user._id);
         req.user = user;
         next();
     } catch (error) {
+        console.log("❌ Auth error:", error.message);
         return res.status(401).json({ success: false, message: "Token hết hạn hoặc không hợp lệ!" });
     }
 };

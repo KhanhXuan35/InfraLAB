@@ -25,6 +25,7 @@ import {
 import dayjs from 'dayjs';
 import { Container, FormCard } from './style';
 import { STUDENT_ROUTES } from '../../../constants/routes';
+import api from '../../../services/api';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -58,7 +59,7 @@ const RegisterBorrow = () => {
       
       if (data.success) {
         setDevice(data.data);
-        // Set default return date (7 days from now)
+        // default date (7 days from now)
         form.setFieldsValue({
           return_due_date: dayjs().add(7, 'day')
         });
@@ -83,24 +84,27 @@ const RegisterBorrow = () => {
     setSubmitting(true);
     try {
       const borrowData = {
-        device_id: device._id,
-        quantity: quantity,
+        items: [
+          {
+            device_id: device._id,
+            quantity: quantity,
+          },
+        ],
         return_due_date: values.return_due_date.format('YYYY-MM-DD'),
         purpose: values.purpose || '',
-        notes: values.notes || ''
+        notes: values.notes || '',
       };
 
-      // TODO: Call API to create borrow request
-      console.log('Borrow data:', borrowData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      message.success('Đăng ký mượn thiết bị thành công!');
-      navigate(STUDENT_ROUTES.DEVICES);
+      const res = await api.post('/borrow', borrowData);
+      if (res.success) {
+        message.success('Đăng ký mượn thiết bị thành công!');
+        navigate(STUDENT_ROUTES.DEVICES);
+      } else {
+        message.error(res.message || 'Đăng ký mượn thất bại');
+      }
     } catch (error) {
       console.error('Error submitting borrow request:', error);
-      message.error('Có lỗi xảy ra khi đăng ký mượn thiết bị');
+      message.error(error.message || 'Có lỗi xảy ra khi đăng ký mượn thiết bị');
     } finally {
       setSubmitting(false);
     }
@@ -356,7 +360,8 @@ const RegisterBorrow = () => {
               name="purpose"
               rules={[
                 { required: true, message: 'Vui lòng nhập mục đích sử dụng' },
-                { max: 500, message: 'Mục đích không được quá 500 ký tự' }
+                { max: 500, message: 'Mục đích không được quá 500 ký tự' },
+                {min:10, message: 'Nhập nội dung chi tiết hơn'}
               ]}
             >
               <TextArea

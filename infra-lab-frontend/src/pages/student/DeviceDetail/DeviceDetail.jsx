@@ -11,14 +11,20 @@ import {
   Descriptions, 
   Alert,
   message,
-  InputNumber
+  InputNumber,
+  Modal,
+  Table,
+  Empty
 } from 'antd';
 import { 
   ArrowLeftOutlined,
   ShoppingOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
+  HistoryOutlined
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import api from '../../../services/api';
 import { Container, DetailCard, ImageContainer, ActionSection } from './style';
 import { STUDENT_ROUTES } from '../../../constants/routes';
 import { useCart } from '../../../contexts/CartContext';
@@ -33,6 +39,14 @@ const DeviceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [borrowHistory, setBorrowHistory] = useState([]);
+  const [historyPagination, setHistoryPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+  });
 
   useEffect(() => {
     fetchDeviceDetail();
@@ -76,6 +90,114 @@ const DeviceDetail = () => {
     return { status: 'unavailable', text: 'Hết hàng', color: 'error' };
   };
 
+  const fetchBorrowHistory = async (page = 1) => {
+    if (!device?._id) return;
+    
+    setHistoryLoading(true);
+    try {
+      const response = await api.get(`/borrow/device/${device._id}/history`, {
+        params: {
+          page,
+          limit: historyPagination.limit,
+        },
+      });
+
+      if (response.success) {
+        setBorrowHistory(response.data || []);
+        setHistoryPagination({
+          ...historyPagination,
+          page: response.pagination?.page || page,
+          total: response.pagination?.total || 0,
+        });
+      } else {
+        message.error(response.message || 'Không thể tải lịch sử mượn');
+      }
+    } catch (error) {
+      console.error('Error fetching borrow history:', error);
+      message.error(error.message || 'Có lỗi xảy ra khi tải lịch sử mượn');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleOpenHistory = () => {
+    setHistoryModalVisible(true);
+    fetchBorrowHistory(1);
+  };
+
+  const handleHistoryPageChange = (page) => {
+    fetchBorrowHistory(page);
+  };
+
+  const getStatusTag = (status) => {
+    const statusConfig = {
+      borrowed: { color: 'blue', text: 'Đang mượn' },
+      return_pending: { color: 'orange', text: 'Chờ trả' },
+      returned: { color: 'green', text: 'Đã trả' },
+    };
+    const config = statusConfig[status] || { color: 'default', text: status };
+    return <Tag color={config.color}>{config.text}</Tag>;
+  };
+
+  const historyColumns = [
+    {
+      title: 'Sinh viên',
+      key: 'student',
+      render: (_, record) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{record.student?.name || 'N/A'}</div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.student?.student_code || record.student?.email}
+          </Text>
+        </div>
+      ),
+      width: 200,
+    },
+    {
+      title: 'Số lượng',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      width: 100,
+      align: 'center',
+    },
+    {
+      title: 'Ngày mượn',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date) => dayjs(date).format('DD/MM/YYYY'),
+      width: 120,
+    },
+    {
+      title: 'Hạn trả',
+      dataIndex: 'return_due_date',
+      key: 'return_due_date',
+      render: (date, record) => {
+        const dueDate = dayjs(date);
+        const isOverdue = dueDate.isBefore(dayjs()) && !record.returned;
+        return (
+          <Text style={{ color: isOverdue ? '#ff4d4f' : 'inherit' }}>
+            {dueDate.format('DD/MM/YYYY')}
+            {isOverdue && <Tag color="red" style={{ marginLeft: 8 }}>Quá hạn</Tag>}
+          </Text>
+        );
+      },
+      width: 150,
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => getStatusTag(status),
+      width: 120,
+    },
+    {
+      title: 'Mục đích',
+      dataIndex: 'purpose',
+      key: 'purpose',
+      ellipsis: true,
+    },
+  ];
+
   if (loading) {
     return (
       <Container>
@@ -103,6 +225,27 @@ const DeviceDetail = () => {
           message="Lỗi"
           description={error || 'Không tìm thấy thiết bị'}
           type="error"
+          showIcon
+        />
+      </Container>
+    );
+  }
+
+  // Kiểm tra thiết bị có inventory tại lab không
+  if (!device.inventory || device.inventory.location !== 'lab') {
+    return (
+      <Container>
+        <Button 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => navigate(STUDENT_ROUTES.DEVICES)}
+          style={{ marginBottom: 16 }}
+        >
+          Quay lại
+        </Button>
+        <Alert
+          message="Thiết bị không có sẵn"
+          description="Thiết bị này không có tại phòng Lab"
+          type="warning"
           showIcon
         />
       </Container>
@@ -221,6 +364,15 @@ const DeviceDetail = () => {
                     >
                       Đăng ký mượn sản phẩm
                     </Button>
+                    <Button
+                      icon={<HistoryOutlined />}
+                      size="large"
+                      block
+                      onClick={handleOpenHistory}
+                      style={{ marginTop: '8px', height: '48px', fontSize: '16px' }}
+                    >
+                      Xem lịch sử mượn
+                    </Button>
                     {maxQuantity === 0 && (
                       <Text type="secondary" style={{ textAlign: 'center', display: 'block' }}>
                         Thiết bị hiện không có sẵn
@@ -239,6 +391,42 @@ const DeviceDetail = () => {
           )}
         </Space>
       </DetailCard>
+
+      {/* History Modal */}
+      <Modal
+        title="Lịch sử mượn thiết bị"
+        open={historyModalVisible}
+        onCancel={() => setHistoryModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setHistoryModalVisible(false)}>
+            Đóng
+          </Button>,
+        ]}
+        width={900}
+      >
+        <Spin spinning={historyLoading}>
+          {borrowHistory.length === 0 ? (
+            <Empty
+              description="Chưa có lịch sử mượn từ người khác"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          ) : (
+            <Table
+              columns={historyColumns}
+              dataSource={borrowHistory}
+              rowKey="_id"
+              pagination={{
+                current: historyPagination.page,
+                pageSize: historyPagination.limit,
+                total: historyPagination.total,
+                showSizeChanger: false,
+                showTotal: (total) => `Tổng ${total} bản ghi`,
+                onChange: handleHistoryPageChange,
+              }}
+            />
+          )}
+        </Spin>
+      </Modal>
     </Container>
   );
 };

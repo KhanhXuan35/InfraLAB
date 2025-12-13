@@ -18,7 +18,6 @@ export const STUDENT_BASE_PATH = "/student";
 
 // Student Pages
 export const STUDENT_ROUTES = {
-  HOME: "/user-dashboard", // Đồng bộ với route trong App.jsx
   DEVICES: `${STUDENT_BASE_PATH}/devices`,
   DEVICE_DETAIL: (id) => `${STUDENT_BASE_PATH}/device/${id}`,
 
@@ -37,6 +36,7 @@ export const STUDENT_ROUTES = {
   REQUESTS: `${STUDENT_BASE_PATH}/requests`,
   HISTORY: `${STUDENT_BASE_PATH}/history`,
   NOTIFICATIONS: `${STUDENT_BASE_PATH}/notifications`,
+  Conversation :`${STUDENT_BASE_PATH}/conversation`
 };
 
 export const SCHOOL_ROUTES = {

@@ -24,6 +24,8 @@ import DeviceDetail from "./pages/student/DeviceDetail/DeviceDetail";
 import RegisterBorrow from "./pages/student/RegisterBorrow/RegisterBorrow";
 import RegisterBorrowMultiple from "./pages/student/RegisterBorrowMultiple/RegisterBorrowMultiple";
 import Cart from "./pages/student/Cart/Cart";
+import LoanDeviceList from "./pages/student/LoanDeviceList/LoanDeviceList";
+import Chat from "./pages/student/Chat/Chat";
 
 // Lab Manager pages
 import DeviceList from "./components/LabManager/DeviceList";
@@ -49,6 +51,7 @@ function App() {
 
           <Routes>
             {/* --- AUTH --- */}
+            <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
             <Route path={ROUTES.LOGIN} element={<LoginPage />} />
             <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
             <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
@@ -86,12 +89,19 @@ function App() {
             <Route path="/repairs" element={<RepairRequestList />} />
 
             {/* --- STUDENT PAGES --- */}
-            <Route path="/" element={<ViewListDevices />} />
+            {/* <Route path="/" element={<ViewListDevices />} /> */}
             <Route path={`${STUDENT_BASE_PATH}/devices`} element={<ViewListDevices />} />
             <Route path={`${STUDENT_BASE_PATH}/device/:id`} element={<DeviceDetail />} />
             <Route path={`${STUDENT_BASE_PATH}/borrow/:id`} element={<RegisterBorrow />} />
             <Route path={`${STUDENT_BASE_PATH}/borrow/multiple`} element={<RegisterBorrowMultiple />} />
             <Route path={`${STUDENT_BASE_PATH}/cart`} element={<Cart />} />
+            <Route path={`${STUDENT_BASE_PATH}/borrowed`} element={<LoanDeviceList />} />
+            <Route path={`${STUDENT_BASE_PATH}/conversation/:id?`} element={<Chat />} />
+
+            {/* --- CHAT (Available for all authenticated users) --- */}
+            <Route element={<PrivateRoute allowedRoles={["student", "lab_manager", "school_admin"]} />}>
+              <Route path="/chat/:id?" element={<Chat />} />
+            </Route>
 
             {/* --- PROFILE PAGE (Protected) --- */}
             <Route element={<PrivateRoute allowedRoles={["student"]} />}>
@@ -108,3 +118,6 @@ function App() {
 }
 
 export default App;
+
+
+

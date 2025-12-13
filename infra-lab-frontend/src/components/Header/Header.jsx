@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Badge, Avatar, Dropdown, Space, Typography, Button, Empty } from 'antd';
+import { Input, Badge, Avatar, Dropdown, Space, Typography, Button, Empty, Tooltip } from 'antd';
 import { 
   SearchOutlined, 
   ShoppingCartOutlined, 
@@ -9,6 +9,7 @@ import {
   BellOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import { HeaderContainer, LogoText, SearchContainer, RightSection, SearchWrapper } from './style';
 import SearchResults from '../SearchResults/SearchResults';
@@ -65,11 +66,23 @@ const Header = () => {
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [user, setUser] = useState(null);
 
   const searchTimeoutRef = useRef(null);
   const searchContainerRef = useRef(null);
 
   const cartCount = getCartCount();
+
+  useEffect(() => {
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      try {
+        setUser(JSON.parse(userString));
+      } catch (e) {
+        console.error('Error parsing user:', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     setSearchHistory(getSearchHistory());
@@ -101,17 +114,14 @@ const Header = () => {
       const data = response.data;
 
       if (data.success) {
-        const q = query.toLowerCase().trim();
-        // Lọc thiết bị có tên chứa ký tự tìm kiếm
-        const filtered = (data.data || []).filter(
+        const q = query.toLowerCase();
+        const results = (data.data || []).filter(
           (d) =>
             d.inventory &&
             d.inventory.location === 'lab' &&
             d.name &&
             d.name.toLowerCase().includes(q)
         );
-        // Giới hạn tối đa 4 thiết bị
-        const results = filtered.slice(0, 4);
         setSearchResults(results);
         setShowResults(true);
       } else {
@@ -183,11 +193,7 @@ const Header = () => {
   };
 
   const handleMenuClick = ({ key }) => {
-    if (key === 'profile') {
-      navigate('/profile');
-    } else if (key === 'settings') {
-      navigate('/settings');
-    } else if (key === 'logout') {
+    if (key === 'logout') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
       navigate('/login');
@@ -361,10 +367,32 @@ const Header = () => {
       {/* RIGHT ICONS */}
       <RightSection>
         <Space size="large">
-          <MessageOutlined style={{ fontSize: 20 }} />
+          <Tooltip title="Tin nhắn">
+            <MessageOutlined 
+              style={{ fontSize: 20, cursor: 'pointer', transition: 'color 0.3s' }}
+              onClick={() => {
+                // Navigate to chat based on user role
+                if (user?.role === 'student') {
+                  navigate(STUDENT_ROUTES.Conversation);
+                } else {
+                  navigate('/chat');
+                }
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#1890ff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
+            />
+          </Tooltip>
           <Badge count={cartCount}>
             <ShoppingCartOutlined style={{ fontSize: 20 }} onClick={() => navigate(STUDENT_ROUTES.CART)} />
           </Badge>
+          <Tooltip title="Xem thiết bị đã mượn">
+            <HistoryOutlined 
+              style={{ fontSize: 20, cursor: 'pointer', transition: 'color 0.3s' }}
+              onClick={() => navigate(STUDENT_ROUTES.BORROWED)}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#1890ff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
+            />
+          </Tooltip>
           <BellOutlined style={{ fontSize: 20 }} />
 
           <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} trigger={['click']}>

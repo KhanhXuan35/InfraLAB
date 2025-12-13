@@ -29,7 +29,8 @@ import {
   LogoutOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  WarningOutlined
+  WarningOutlined,
+  MessageOutlined
 } from '@ant-design/icons';
 import api from '../../services/api';
 import * as S from './LabManagerHomePage.styles';
@@ -102,6 +103,9 @@ const LabManagerHomePage = () => {
       case 'repairs':
         navigate('/lab-manager/repairs');
         break;
+      case 'chat':
+        navigate('/chat');
+        break;
       case 'borrow':
         // Navigate to borrow/return page
         break;
@@ -147,6 +151,11 @@ const LabManagerHomePage = () => {
       label: 'Quản lý thiết bị',
     },
     { key: 'repairs', icon: <ToolOutlined />, label: 'Danh sách sửa chữa' },
+    {
+      key: 'chat',
+      icon: <MessageOutlined />,
+      label: 'Tin nhắn',
+    },
     {
       key: 'borrow',
       icon: <ShoppingOutlined />,
