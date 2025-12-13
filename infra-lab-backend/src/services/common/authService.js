@@ -381,7 +381,7 @@ export const changePasswordService = async (userId, oldPassword, newPassword) =>
         throw new Error("Người dùng không tồn tại.");
     }
 
-    // 2. [QUAN TRỌNG] Chặn School Admin
+    // 2. [QUAN TRỌNG] Chặn School Admin 
     if (user.role === "school_admin") {
         throw new Error("Tài khoản Quản trị viên không được phép tự thay đổi mật khẩu.");
     }

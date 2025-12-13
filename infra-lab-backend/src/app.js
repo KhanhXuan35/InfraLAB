@@ -13,7 +13,7 @@ import schoolInventoryRoutes from "./routes/device_school/inventories.routes.js"
 import deviceCategoryRoutes from "./routes/device_school/device_categories.routes.js";
 import deviceRoutes from "./routes/device_school/devices.routes.js";
 import repairRoutes from "./routes/LabManager/repairRoutes.js";
-
+import userRoutes from "./routes/LabManager/userRoutes.js";
 const app = express();
 
 // 1. Cấu hình CORS (Quan trọng để nhận Cookie)
@@ -37,13 +37,14 @@ console.log("DETAIL DEVICE ROUTE LOADED");
 
 
 // 3. Routes
-app.use("/api", routes);
+
 
 // Lab Manager routes
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/device-detail", detailDevice);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/users", userRoutes);
 
 // School Dashboard routes
 app.use("/api/school-dashboard", schoolDashboardRoutes);
@@ -58,6 +59,8 @@ app.use("/api/devices", deviceRoutes);
 
 // Repair routes
 app.use("/api/repairs", repairRoutes);
+
+app.use("/api", routes);
 
 // 4. Xử lý lỗi 404 (Không tìm thấy route)
 app.use((req, res, next) => {
