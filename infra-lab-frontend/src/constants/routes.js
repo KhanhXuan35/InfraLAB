@@ -8,6 +8,7 @@ export const ROUTES = {
   VERIFY_EMAIL: "/verify-email/:token",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password/:token",
+  CHANGE_PASSWORD: "/change-password",
 };
 
 // =====================

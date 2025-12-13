@@ -10,3 +10,6 @@ export const requestPasswordReset = async (email) => {
 export const resetPassword = async (token, newPassword) => {
     return await api.post(`/auth/reset-password/${token}`, { newPassword });
 };
+export const changePassword = async (data) => {
+    return await api.post("/auth/change-password", data);
+};
