@@ -30,6 +30,7 @@ import Cart from "./pages/student/Cart/Cart";
 // Lab Manager pages
 import DeviceList from "./components/LabManager/DeviceList";
 import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
+import StudentManagerPage from "./pages/LabManager/StudentManagerPage";
 
 // School pages
 import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
@@ -78,6 +79,7 @@ function App() {
             <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
               <Route path="/lab-manager/devices" element={<DeviceList />} />
               <Route path="/lab-manager/device/:id" element={<DeviceDetailPage />} />
+              <Route path="/lab-manager/students" element={<StudentManagerPage />} />
             </Route>
 
             {/* --- SCHOOL PAGES --- */}

@@ -109,6 +109,9 @@ const LabManagerHomePage = () => {
       case 'notifications':
         // Navigate to notifications page
         break;
+      case 'students':
+        navigate('/lab-manager/students');
+        break;
       default:
         break;
     }
