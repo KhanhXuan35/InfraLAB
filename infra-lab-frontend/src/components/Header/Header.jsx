@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Badge, Avatar, Dropdown, Space, Typography, Button, Empty } from 'antd';
+import { Input, Badge, Avatar, Dropdown, Space, Typography, Button, Empty, Tooltip } from 'antd';
 import { 
   SearchOutlined, 
   ShoppingCartOutlined, 
@@ -9,6 +9,7 @@ import {
   BellOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import { HeaderContainer, LogoText, SearchContainer, RightSection, SearchWrapper } from './style';
 import SearchResults from '../SearchResults/SearchResults';
@@ -358,6 +359,14 @@ const Header = () => {
           <Badge count={cartCount}>
             <ShoppingCartOutlined style={{ fontSize: 20 }} onClick={() => navigate(STUDENT_ROUTES.CART)} />
           </Badge>
+          <Tooltip title="Xem thiết bị đã mượn">
+            <HistoryOutlined 
+              style={{ fontSize: 20, cursor: 'pointer', transition: 'color 0.3s' }}
+              onClick={() => navigate(STUDENT_ROUTES.BORROWED)}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#1890ff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
+            />
+          </Tooltip>
           <BellOutlined style={{ fontSize: 20 }} />
 
           <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} trigger={['click']}>

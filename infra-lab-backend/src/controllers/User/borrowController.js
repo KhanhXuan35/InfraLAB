@@ -106,3 +106,135 @@ export const createBorrowRequest = async (req, res) => {
   }
 };
 
+// Lấy danh sách thiết bị đã mượn
+export const getLoanDeviceList = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const { status, page = 1, limit = 10, borrowDateFrom, borrowDateTo, returnDateFrom, returnDateTo } = req.query;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    // Xây dựng query
+    const query = {};
+    
+    // Nếu là student, chỉ xem của mình
+    if (userRole === "student") {
+      query.student_id = userId;
+    }
+    // Nếu là lab_manager, xem tất cả
+    // Nếu không có filter, để query rỗng để lab_manager xem tất cả
+
+    // Filter theo status nếu có
+    if (status) {
+      query.status = status;
+    }
+
+    // Filter theo ngày mượn (createdAt)
+    if (borrowDateFrom || borrowDateTo) {
+      query.createdAt = {};
+      if (borrowDateFrom) {
+        const fromDate = new Date(borrowDateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        query.createdAt.$gte = fromDate;
+      }
+      if (borrowDateTo) {
+        const toDate = new Date(borrowDateTo);
+        toDate.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = toDate;
+      }
+    }
+
+    // Filter theo ngày trả (return_due_date)
+    if (returnDateFrom || returnDateTo) {
+      query.return_due_date = {};
+      if (returnDateFrom) {
+        const fromDate = new Date(returnDateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        query.return_due_date.$gte = fromDate;
+      }
+      if (returnDateTo) {
+        const toDate = new Date(returnDateTo);
+        toDate.setHours(23, 59, 59, 999);
+        query.return_due_date.$lte = toDate;
+      }
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const limitNum = parseInt(limit);
+
+    // Lấy danh sách với populate thông tin device và student
+    const borrows = await BorrowLab.find(query)
+      .populate({
+        path: "student_id",
+        select: "name email student_code phone",
+      })
+      .populate({
+        path: "items.device_id",
+        select: "name description image category_id",
+        populate: {
+          path: "category_id",
+          select: "name",
+        },
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    // Đếm tổng số
+    const total = await BorrowLab.countDocuments(query);
+
+    // Format dữ liệu trả về
+    const formattedBorrows = borrows.map((borrow) => ({
+      _id: borrow._id,
+      student: {
+        _id: borrow.student_id._id,
+        name: borrow.student_id.name,
+        email: borrow.student_id.email,
+        student_code: borrow.student_id.student_code,
+        phone: borrow.student_id.phone,
+      },
+      items: borrow.items.map((item) => ({
+        device: {
+          _id: item.device_id._id,
+          name: item.device_id.name,
+          description: item.device_id.description,
+          image: item.device_id.image,
+          category: item.device_id.category_id
+            ? {
+                _id: item.device_id.category_id._id,
+                name: item.device_id.category_id.name,
+              }
+            : null,
+        },
+        quantity: item.quantity,
+      })),
+      return_due_date: borrow.return_due_date,
+      purpose: borrow.purpose,
+      notes: borrow.notes,
+      status: borrow.status,
+      returned: borrow.returned,
+      createdAt: borrow.createdAt,
+      updatedAt: borrow.updatedAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedBorrows,
+      pagination: {
+        page: parseInt(page),
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    console.error("getLoanDeviceList error:", error);
+    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
+  }
+};
+
