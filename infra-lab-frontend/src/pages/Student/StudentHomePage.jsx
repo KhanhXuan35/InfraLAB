@@ -50,9 +50,24 @@ const StudentHomePage = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // TODO: Gọi API để lấy stats
+        // Gọi API để lấy stats từ MongoDB
+        const response = await api.get('/user-dashboard/stats');
+        
+        if (response.success) {
+          setStats({
+            totalBorrowed: response.data.totalBorrowed || 0,
+            pendingRequests: response.data.pendingRequests || 0,
+            unreadNotifications: response.data.unreadNotifications || 0,
+          });
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        // Nếu lỗi, giữ giá trị mặc định là 0
+        setStats({
+          totalBorrowed: 0,
+          pendingRequests: 0,
+          unreadNotifications: 0,
+        });
       } finally {
         setLoading(false);
       }

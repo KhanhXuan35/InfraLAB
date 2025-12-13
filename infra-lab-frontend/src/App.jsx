@@ -47,6 +47,7 @@ function App() {
 
           <Routes>
             {/* --- AUTH --- */}
+            <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
             <Route path={ROUTES.LOGIN} element={<LoginPage />} />
             <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
             <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
@@ -78,7 +79,7 @@ function App() {
             <Route path="/repairs" element={<RepairRequestList />} />
 
             {/* --- STUDENT PAGES --- */}
-            <Route path="/" element={<ViewListDevices />} />
+            {/* <Route path="/" element={<ViewListDevices />} /> */}
             <Route path={`${STUDENT_BASE_PATH}/devices`} element={<ViewListDevices />} />
             <Route path={`${STUDENT_BASE_PATH}/device/:id`} element={<DeviceDetail />} />
             <Route path={`${STUDENT_BASE_PATH}/borrow/:id`} element={<RegisterBorrow />} />
@@ -86,7 +87,7 @@ function App() {
             <Route path={`${STUDENT_BASE_PATH}/cart`} element={<Cart />} />
 
             {/* --- PROFILE PAGE (Protected) --- */}
-            <Route element={<PrivateRoute allowedRoles={["student"]} />}>
+            <Route element={<PrivateRoute allowedRoles={["student", "lab_manager", "school_admin"]} />}>
               <Route path="/profile" element={<UserProfile />} />
             </Route>
 

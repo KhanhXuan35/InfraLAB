@@ -13,6 +13,8 @@ import schoolInventoryRoutes from "./routes/device_school/inventories.routes.js"
 import deviceCategoryRoutes from "./routes/device_school/device_categories.routes.js";
 import deviceRoutes from "./routes/device_school/devices.routes.js";
 import repairRoutes from "./routes/LabManager/repairRoutes.js";
+import conversationRoutes from "./routes/conversationRoutes.js";
+import borrowRoutes from "./routes/borrowRoutes.js";
 
 const app = express();
 
@@ -55,6 +57,8 @@ app.use("/api/user-dashboard", userDashboardRoutes);
 app.use("/api/inventories", schoolInventoryRoutes);
 app.use("/api/device-categories", deviceCategoryRoutes);
 app.use("/api/devices", deviceRoutes);
+app.use("/api/conversations", conversationRoutes);
+app.use("/api/borrow", borrowRoutes);
 
 // Repair routes
 app.use("/api/repairs", repairRoutes);

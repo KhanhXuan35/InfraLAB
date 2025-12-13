@@ -6,20 +6,21 @@ import Notifications from "../../models/Notifications.js";
 // Lấy thống kê cho User Dashboard
 export const getUserStats = async (req, res) => {
   try {
-    // Lấy user_id từ query hoặc từ auth token (tạm thời dùng query)
-    const userId = req.query.userId || req.user?.id;
+    // Lấy user_id từ auth token
+    const userId = req.user?._id || req.user?.id;
 
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "User ID is required",
+        message: "Unauthorized - User not found",
       });
     }
 
-    // Đếm thiết bị đang mượn (chưa trả)
+    // Đếm thiết bị đang mượn (chưa trả và status là borrowed hoặc return_pending)
     const borrowedDevices = await BorrowLab.find({
       student_id: userId,
       returned: false,
+      status: { $in: ["borrowed", "return_pending"] },
     })
       .populate("items.device_id", "name")
       .lean();
@@ -31,10 +32,12 @@ export const getUserStats = async (req, res) => {
       });
     });
 
-    // Đếm số yêu cầu đang chờ
+    // Đếm số yêu cầu đang chờ duyệt (status là borrowed và chưa được duyệt)
+    // Giả sử yêu cầu mới có status "borrowed" và chưa được approved
     const pendingRequests = await BorrowLab.countDocuments({
       student_id: userId,
-      status: "pending",
+      status: "borrowed",
+      returned: false,
     });
 
     // Đếm thông báo chưa đọc
@@ -43,7 +46,7 @@ export const getUserStats = async (req, res) => {
       read: false,
     });
 
-    res.json({
+    return res.status(200).json({
       success: true,
       data: {
         totalBorrowed,
@@ -53,9 +56,10 @@ export const getUserStats = async (req, res) => {
     });
   } catch (err) {
     console.error("getUserStats error:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal Server Error",
+      error: err.message,
     });
   }
 };
@@ -63,12 +67,12 @@ export const getUserStats = async (req, res) => {
 // Lấy danh sách thiết bị đang mượn
 export const getBorrowedDevices = async (req, res) => {
   try {
-    const userId = req.query.userId || req.user?.id;
+    const userId = req.user?._id || req.user?.id;
 
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "User ID is required",
+        message: "Unauthorized - User not found",
       });
     }
 
@@ -112,13 +116,13 @@ export const getBorrowedDevices = async (req, res) => {
 // Lấy thông báo cho user
 export const getUserNotifications = async (req, res) => {
   try {
-    const userId = req.query.userId || req.user?.id;
+    const userId = req.user?._id || req.user?.id;
     const limit = parseInt(req.query.limit) || 10;
 
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "User ID is required",
+        message: "Unauthorized - User not found",
       });
     }
 
