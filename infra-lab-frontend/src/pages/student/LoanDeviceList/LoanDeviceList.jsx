@@ -121,16 +121,35 @@ const LoanDeviceList = () => {
 
   const calculateStats = (loanData) => {
     const statsData = {
-      total: loanData.length,
-      borrowed: 0,
-      returnPending: 0,
+      total: 0, // Tổng số đơn đang mượn
+      borrowed: 0, // Tổng số lượng sản phẩm đang mượn
+      returnPending: 0, // Tổng số lượng sản phẩm quá hạn
       returned: 0,
     };
 
+    const today = dayjs().startOf('day');
+
     loanData.forEach((loan) => {
-      if (loan.status === 'borrowed') statsData.borrowed++;
-      else if (loan.status === 'return_pending') statsData.returnPending++;
-      else if (loan.status === 'returned') statsData.returned++;
+      // Tính tổng số lượng sản phẩm trong đơn
+      const totalQuantity = loan.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+
+      if (loan.status === 'borrowed') {
+        // Tổng số: đếm số đơn đang mượn
+        statsData.total++;
+        
+        // Đang mượn: tổng số lượng sản phẩm trong các đơn có status 'borrowed'
+        statsData.borrowed += totalQuantity;
+
+        // Chờ trả: sản phẩm quá hạn (return_due_date < hôm nay và chưa trả)
+        const dueDate = dayjs(loan.return_due_date).startOf('day');
+        if (dueDate.isBefore(today)) {
+          statsData.returnPending += totalQuantity;
+        }
+      } else if (loan.status === 'return_pending') {
+        statsData.returnPending += totalQuantity;
+      } else if (loan.status === 'returned') {
+        statsData.returned++;
+      }
     });
 
     setStats(statsData);
