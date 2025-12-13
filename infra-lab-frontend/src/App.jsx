@@ -8,7 +8,9 @@ import { ROUTES, STUDENT_BASE_PATH, SCHOOL_ROUTES, LAB_MANAGER_ROUTES } from "./
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
-
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 // Home dashboards
 import StudentHomePage from "./pages/Student/StudentHomePage";
 import LabManagerHomePage from "./pages/LabManager/LabManagerHomePage";
@@ -32,6 +34,7 @@ import DeviceList from "./components/LabManager/DeviceList";
 import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
 import BorrowReturnPage from "./pages/LabManager/BorrowReturnPage";
 import LabManagerRepairDetail from "./pages/LabManager/LabManagerRepairDetail";
+import StudentManagerPage from "./pages/LabManager/StudentManagerPage";
 
 // School pages
 import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
@@ -56,7 +59,11 @@ function App() {
             <Route path={ROUTES.LOGIN} element={<LoginPage />} />
             <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
             <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
-
+            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+            <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
+            <Route element={<PrivateRoute allowedRoles={["student", "lab_manager"]} />}>
+              <Route path={ROUTES.CHANGE_PASSWORD} element={<ChangePasswordPage />} />
+            </Route>
             {/* --- DASHBOARD BY ROLE --- */}
             <Route element={<PrivateRoute allowedRoles={["student"]} />}>
               <Route path="/user-dashboard" element={<StudentHomePage />} />
@@ -82,6 +89,7 @@ function App() {
             <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
               <Route path="/lab-manager/devices" element={<DeviceList />} />
               <Route path="/lab-manager/device/:id" element={<DeviceDetailPage />} />
+              <Route path="/lab-manager/students" element={<StudentManagerPage />} />
               <Route path={LAB_MANAGER_ROUTES.REPAIRS} element={<LabManagerRepairList />} />
               <Route path="/lab-manager/repairs/:id" element={<LabManagerRepairDetail />} />
               <Route path="/lab-manager/borrow-return" element={<BorrowReturnPage />} />

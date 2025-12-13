@@ -30,7 +30,8 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   WarningOutlined,
-  MessageOutlined
+  MessageOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
 import api from '../../services/api';
 import * as S from './LabManagerHomePage.styles';
@@ -115,6 +116,9 @@ const LabManagerHomePage = () => {
       case 'notifications':
         // Navigate to notifications page
         break;
+      case 'students':
+        navigate('/lab-manager/students');
+        break;
       default:
         break;
     }
@@ -165,6 +169,11 @@ const LabManagerHomePage = () => {
       key: 'reports',
       icon: <FileTextOutlined />,
       label: 'Báo cáo',
+    },
+    {
+      key: 'students',
+      icon: <TeamOutlined />,
+      label: 'Quản lý sinh viên',
     },
     {
       key: 'notifications',

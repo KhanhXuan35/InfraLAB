@@ -50,3 +50,86 @@ export const logout = async (req, res) => {
     res.clearCookie("refreshToken");
     return res.status(result.status).json(result);
 };
+
+export const requestPasswordReset = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập email." });
+        }
+
+        const result = await AuthService.requestPasswordResetService(email);
+        res.status(200).json({ success: true, ...result });
+
+    } catch (error) {
+        let statusCode = 500;
+
+        // Xử lý mã lỗi HTTP dựa trên nội dung lỗi
+        if (error.message.includes("không tồn tại")) {
+            statusCode = 404; // Not Found
+        } else if (error.message.includes("School Admin")) {
+            statusCode = 403; // Forbidden (Bị cấm) - Dành cho trường hợp này
+        }
+
+        res.status(statusCode).json({ success: false, message: error.message });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { newPassword } = req.body;
+
+        if (!newPassword) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập mật khẩu mới." });
+        }
+
+        const result = await AuthService.resetPasswordService(token, newPassword);
+        res.status(200).json(result);
+
+    } catch (error) {
+        // Trả về 400 nếu lỗi token hoặc validation, 500 nếu lỗi khác
+        const status = (error.message.includes("hết hạn") || error.message.includes("hợp lệ") || error.message.includes("Mật khẩu")) ? 400 : 500;
+        res.status(status).json({ success: false, message: error.message });
+    }
+};
+
+export const changePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword, confirmPassword } = req.body;
+
+        // 1. Lấy User ID từ req.user (Do checkAuthMiddleware gán vào)
+        // Vì req.user là object User từ Mongoose, nên ID nằm ở thuộc tính _id
+        const userId = req.user._id;
+
+        // 2. Validate Input cơ bản
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ thông tin (Mật khẩu cũ, mới và xác nhận)." });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ success: false, message: "Mật khẩu xác nhận không khớp với mật khẩu mới." });
+        }
+
+        // 3. Validate trùng mật khẩu cũ (Optional - để UX tốt hơn)
+        if (oldPassword === newPassword) {
+            return res.status(400).json({ success: false, message: "Mật khẩu mới không được trùng với mật khẩu cũ." });
+        }
+
+        // 4. Gọi Service xử lý logic (Check pass cũ, hash pass mới, chặn admin...)
+        const result = await AuthService.changePasswordService(userId, oldPassword, newPassword);
+
+        res.status(200).json(result);
+
+    } catch (error) {
+        let statusCode = 500;
+
+        // Map lỗi từ Service sang HTTP Status Code
+        if (error.message.includes("Mật khẩu cũ")) statusCode = 400;
+        if (error.message.includes("Mật khẩu mới")) statusCode = 400;
+        if (error.message.includes("không được phép")) statusCode = 403; // Lỗi Admin đổi pass
+        if (error.message.includes("không tồn tại")) statusCode = 404;
+
+        res.status(statusCode).json({ success: false, message: error.message });
+    }
+};

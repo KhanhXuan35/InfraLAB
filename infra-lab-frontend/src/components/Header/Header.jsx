@@ -233,8 +233,8 @@ const Header = () => {
   const handleMenuClick = ({ key }) => {
     if (key === 'profile') {
       navigate('/profile');
-    } else if (key === 'settings') {
-      navigate('/settings');
+    } else if (key === 'changepass') {
+      navigate('/change-password');
     } else if (key === 'logout') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
@@ -244,7 +244,7 @@ const Header = () => {
 
   const userMenuItems = [
     { key: 'profile', label: 'Thông tin cá nhân' },
-    { key: 'settings', label: 'Cài đặt' },
+    { key: 'changepass', label: 'Đổi mật khẩu' },
     { key: 'logout', label: 'Đăng xuất' }
   ];
 

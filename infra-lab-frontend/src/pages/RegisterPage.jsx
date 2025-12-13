@@ -101,27 +101,27 @@ const RegisterPage = () => {
   return (
     <div className="auth-container">
       <div className="auth-card wide">
-        <h3 className="auth-title">Sign Up</h3>
-        <p className="auth-subtitle">Create your InfraLab account</p>
+        <h3 className="auth-title">Đăng ký</h3>
+        <p className="auth-subtitle">Tạo tài khoản của bạn ở đây</p>
 
         <form onSubmit={handleSubmit}>
           <div className="row">
             <div className="form-group col">
-              <label>Full Name</label>
+              <label>Họ và tên</label>
               <input 
                 name="fullName" 
                 type="text" 
-                placeholder="Nguyen Van A"
+                placeholder="Nhập tên đầy đủ"
                 onChange={handleChange} 
                 required 
               />
             </div>
             <div className="form-group col">
-              <label>User Name</label>
+              <label>Tên đăng nhập</label>
               <input 
                 name="username" 
                 type="text" 
-                placeholder="nguyenvana123"
+                placeholder="Nhập tên đăng nhập"
                 onChange={handleChange} 
                 required 
               />
@@ -129,7 +129,7 @@ const RegisterPage = () => {
           </div>
 
           <div className="form-group">
-            <label>Email Address</label>
+            <label>Email</label>
             <input 
               name="email" 
               type="email" 
@@ -140,12 +140,12 @@ const RegisterPage = () => {
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>Mật khẩu</label>
             <div className="input-wrapper">
               <input
                 type={showPass ? "text" : "password"}
                 name="password"
-                placeholder="8-15 chars, Upper, Lower, Number & Special" 
+                placeholder="8-15 kí tự, bao gồm chữ hoa, thường, số & kí tự đặc biệt" 
                 onChange={handleChange}
                 required
               />
@@ -156,12 +156,12 @@ const RegisterPage = () => {
           </div>
 
           <div className="form-group">
-            <label>Confirm Password</label>
+            <label>Nhập lại mật khẩu</label>
             <div className="input-wrapper">
               <input
                 type={showConfirmPass ? "text" : "password"}
                 name="confirmPassword"
-                placeholder="Re-enter password"
+                placeholder="Nhập lại mật khẩu của bạn"
                 onChange={handleChange}
                 required
               />
@@ -182,19 +182,19 @@ const RegisterPage = () => {
               ))}
             </div>
             <div className="strength-labels">
-              <span>Very Weak</span>
-              <span>Weak</span>
-              <span>Fair</span>
-              <span>Strong</span>
-              <span>Very Strong</span>
+              <span>Rất yếu</span>
+              <span>Yếu</span>
+              <span>Bình thường</span>
+              <span>Mạnh</span>
+              <span>Rất mạnh</span>
             </div>
           </div>
 
-          <button type="submit" className="btn-primary">Sign Up</button>
+          <button type="submit" className="btn-primary">Đăng ký</button>
         </form>
 
         <p className="auth-footer">
-          Already have an account? <Link to={ROUTES.LOGIN}>Sign In here</Link>
+          Đã có tài khoản? <Link to={ROUTES.LOGIN}>Đăng nhập ở đây</Link>
         </p>
       </div>
     </div>

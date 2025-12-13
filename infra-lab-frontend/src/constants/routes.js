@@ -6,6 +6,9 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   VERIFY_EMAIL: "/verify-email/:token",
+  FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password/:token",
+  CHANGE_PASSWORD: "/change-password",
 };
 export const SCHOOL_BASE_PATH = "/school";
 export const LAB_MANAGER_BASE_PATH = "/lab-manager";

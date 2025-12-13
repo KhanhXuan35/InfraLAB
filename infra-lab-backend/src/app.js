@@ -20,8 +20,13 @@ import { uploadImage, uploadSingle } from "./controllers/common/uploadController
 import { checkAuthMiddleware } from "./middlewares/authMiddleware.js";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import userRoutes from "./routes/LabManager/userRoutes.js";
 const app = express();
+
+app.use((req, res, next) => {
+    console.log(`[DEBUG 1] Request vào server: ${req.method} ${req.url}`);
+    next();
+});
 
 // 1. Cấu hình CORS (Quan trọng để nhận Cookie)
 app.use(cors({
@@ -69,13 +74,14 @@ const __dirname = path.dirname(__filename);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // 3. Routes
-app.use("/api", routes);
+
 
 // Lab Manager routes
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/device-detail", detailDevice);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/users", userRoutes);
 
 // School Dashboard routes
 app.use("/api/school-dashboard", schoolDashboardRoutes);
@@ -92,6 +98,8 @@ app.use("/api/borrow", borrowRoutes);
 
 // Repair routes
 app.use("/api/repairs", repairRoutes);
+
+app.use("/api", routes);
 
 // Lab Manager Borrow/Return routes
 app.use("/api/lab-manager/borrow-return", borrowReturnRoutes);
