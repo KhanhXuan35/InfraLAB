@@ -11,7 +11,7 @@ const borrowLabSchema = new mongoose.Schema({
         },
         quantity: { type: Number, required: true, min: 1 }
     }],
-    
+
     // Thiết bị hỏng đang được sinh viên sửa chữa
     repairing_items: [{
         device_id: {

@@ -24,6 +24,7 @@ import DeviceDetail from "./pages/student/DeviceDetail/DeviceDetail";
 import RegisterBorrow from "./pages/student/RegisterBorrow/RegisterBorrow";
 import RegisterBorrowMultiple from "./pages/student/RegisterBorrowMultiple/RegisterBorrowMultiple";
 import Cart from "./pages/student/Cart/Cart";
+import LoanDeviceList from "./pages/student/LoanDeviceList/LoanDeviceList";
 
 // Lab Manager pages
 import DeviceList from "./components/LabManager/DeviceList";
@@ -87,6 +88,7 @@ function App() {
             <Route path={`${STUDENT_BASE_PATH}/borrow/:id`} element={<RegisterBorrow />} />
             <Route path={`${STUDENT_BASE_PATH}/borrow/multiple`} element={<RegisterBorrowMultiple />} />
             <Route path={`${STUDENT_BASE_PATH}/cart`} element={<Cart />} />
+            <Route path={`${STUDENT_BASE_PATH}/borrowed`} element={<LoanDeviceList />} />
 
             {/* --- PROFILE PAGE (Protected) --- */}
             <Route element={<PrivateRoute allowedRoles={["student", "lab_manager", "school_admin"]} />}>

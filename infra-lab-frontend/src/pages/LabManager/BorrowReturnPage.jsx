@@ -38,6 +38,7 @@ import {
   WarningOutlined,
   CloseCircleOutlined,
   EyeOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
 import dayjs from 'dayjs';
@@ -57,6 +58,7 @@ const BorrowReturnPage = () => {
   const [returnQuantity, setReturnQuantity] = useState(1);
   const [brokenQuantity, setBrokenQuantity] = useState(0);
   const [brokenReason, setBrokenReason] = useState('');
+  const [isRepairedItem, setIsRepairedItem] = useState(false); // Flag để phân biệt thiết bị đã sửa
   const [selectedMenu, setSelectedMenu] = useState('borrow');
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedBorrowRequest, setSelectedBorrowRequest] = useState(null);
@@ -206,12 +208,40 @@ const BorrowReturnPage = () => {
     setReturnQuantity(1);
     setBrokenQuantity(0);
     setBrokenReason('');
+    setIsRepairedItem(false); // Đánh dấu là thiết bị chưa trả (không phải đã sửa)
     setReturnModalVisible(true);
   };
 
   const handleConfirmReturn = async () => {
     if (!selectedRecord) return;
 
+    // Nếu là thiết bị đã sửa, gọi API recordRepairedReturn
+    if (isRepairedItem) {
+      try {
+        const response = await api.post('/lab-manager/borrow-return/repaired', {
+          borrowId: selectedRecord.borrowId,
+          deviceId: selectedRecord.device._id,
+          quantity: returnQuantity,
+        });
+
+        if (response.success) {
+          message.success(`Ghi nhận trả ${returnQuantity} thiết bị đã sửa chữa thành công!`);
+          setReturnModalVisible(false);
+          setSelectedRecord(null);
+          setReturnQuantity(1);
+          setIsRepairedItem(false);
+          fetchBorrowingStudents(); // Refresh danh sách
+        } else {
+          message.error(response.message || 'Lỗi khi ghi nhận trả thiết bị đã sửa');
+        }
+      } catch (error) {
+        console.error('Error recording repaired return:', error);
+        message.error(error.message || 'Lỗi khi ghi nhận trả thiết bị đã sửa');
+      }
+      return;
+    }
+
+    // Logic cho thiết bị chưa trả (có thể có thiết bị hỏng)
     // Kiểm tra số lượng hỏng không được vượt quá số lượng trả
     if (brokenQuantity > returnQuantity) {
       message.error('Số lượng hỏng không được vượt quá số lượng trả');
@@ -235,7 +265,7 @@ const BorrowReturnPage = () => {
 
       if (response.success) {
         if (brokenQuantity > 0) {
-          message.success(`Ghi nhận trả thiết bị thành công! Có ${brokenQuantity} thiết bị bị hỏng đã được ghi nhận.`);
+          message.success(`Ghi nhận trả thiết bị thành công! Đã nhận ${returnQuantity - brokenQuantity} thiết bị tốt. ${brokenQuantity} thiết bị hỏng cần sinh viên tự sửa chữa và trả lại.`);
         } else {
           message.success('Ghi nhận trả thiết bị thành công!');
         }
@@ -243,6 +273,7 @@ const BorrowReturnPage = () => {
         setSelectedRecord(null);
         setBrokenQuantity(0);
         setBrokenReason('');
+        setIsRepairedItem(false);
         fetchBorrowingStudents(); // Refresh danh sách
       } else {
         message.error(response.message || 'Lỗi khi ghi nhận trả thiết bị');
@@ -714,84 +745,176 @@ const BorrowReturnPage = () => {
                 </Descriptions.Item>
               </Descriptions>
 
-              {/* Danh sách thiết bị */}
-              <Divider orientation="left">
-                <Space>
-                  <ShoppingOutlined />
-                  <Text strong>Danh sách thiết bị ({selectedBorrowRequest.items.length})</Text>
-                </Space>
-              </Divider>
+              {/* Danh sách thiết bị tốt chưa trả */}
+              {selectedBorrowRequest.items && selectedBorrowRequest.items.length > 0 && (
+                <>
+                  <Divider orientation="left">
+                    <Space>
+                      <ShoppingOutlined />
+                      <Text strong>Danh sách thiết bị chưa trả ({selectedBorrowRequest.items.length})</Text>
+                    </Space>
+                  </Divider>
 
-              <Table
-                columns={[
-                  {
-                    title: 'Thiết bị',
-                    key: 'device',
-                    render: (_, item) => (
-                      <Space>
-                        <Avatar
-                          src={item.device.image}
-                          icon={<ShoppingOutlined />}
-                          shape="square"
-                          size={40}
-                        />
-                        <div>
-                          <Text strong>{item.device.name}</Text>
-                          <br />
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            {item.device.category || 'N/A'}
-                          </Text>
-                        </div>
-                      </Space>
-                    ),
-                  },
-                  {
-                    title: 'Số lượng',
-                    key: 'quantity',
-                    align: 'center',
-                    render: (_, item) => <Text strong>{item.quantity}</Text>,
-                  },
-                  {
-                    title: 'Hành động',
-                    key: 'action',
-                    align: 'center',
-                    render: (_, item) => {
-                      // Kiểm tra nếu quá hạn và chưa yêu cầu trả
-                      if (selectedBorrowRequest.isOverdue && !selectedBorrowRequest.returnRequested) {
-                        return (
+                  <Table
+                    columns={[
+                      {
+                        title: 'Thiết bị',
+                        key: 'device',
+                        render: (_, item) => (
+                          <Space>
+                            <Avatar
+                              src={item.device.image}
+                              icon={<ShoppingOutlined />}
+                              shape="square"
+                              size={40}
+                            />
+                            <div>
+                              <Text strong>{item.device.name}</Text>
+                              <br />
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                {item.device.category || 'N/A'}
+                              </Text>
+                            </div>
+                          </Space>
+                        ),
+                      },
+                      {
+                        title: 'Số lượng',
+                        key: 'quantity',
+                        align: 'center',
+                        render: (_, item) => <Text strong>{item.quantity}</Text>,
+                      },
+                      {
+                        title: 'Hành động',
+                        key: 'action',
+                        align: 'center',
+                        render: (_, item) => {
+                          // Kiểm tra nếu quá hạn và chưa yêu cầu trả
+                          if (selectedBorrowRequest.isOverdue && !selectedBorrowRequest.returnRequested) {
+                            return (
+                              <Button
+                                type="primary"
+                                danger
+                                icon={<ExclamationCircleOutlined />}
+                                onClick={() => {
+                                  setDetailModalVisible(false);
+                                  handleRequestReturn(selectedBorrowRequest.borrowId);
+                                }}
+                              >
+                                Yêu cầu trả
+                              </Button>
+                            );
+                          }
+                          return (
+                            <Button
+                              type="primary"
+                              icon={<CheckOutlined />}
+                              onClick={() => {
+                                setDetailModalVisible(false);
+                                handleReturn(item, selectedBorrowRequest);
+                              }}
+                            >
+                              Ghi nhận trả
+                            </Button>
+                          );
+                        },
+                      },
+                    ]}
+                    dataSource={selectedBorrowRequest.items}
+                    rowKey={(item) => item.device._id}
+                    pagination={false}
+                    size="small"
+                    style={{ marginBottom: 24 }}
+                  />
+                </>
+              )}
+
+              {/* Danh sách thiết bị hỏng đang sửa chữa */}
+              {selectedBorrowRequest.repairingItems && selectedBorrowRequest.repairingItems.length > 0 && (
+                <>
+                  <Divider orientation="left">
+                    <Space>
+                      <WarningOutlined style={{ color: '#faad14' }} />
+                      <Text strong>Thiết bị hỏng đang sửa chữa ({selectedBorrowRequest.repairingItems.length})</Text>
+                    </Space>
+                  </Divider>
+
+                  <Table
+                    columns={[
+                      {
+                        title: 'Thiết bị',
+                        key: 'device',
+                        render: (_, item) => (
+                          <Space>
+                            <Avatar
+                              src={item.device.image}
+                              icon={<ShoppingOutlined />}
+                              shape="square"
+                              size={40}
+                            />
+                            <div>
+                              <Text strong>{item.device.name}</Text>
+                              <br />
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                {item.device.category || 'N/A'}
+                              </Text>
+                            </div>
+                          </Space>
+                        ),
+                      },
+                      {
+                        title: 'Số lượng',
+                        key: 'quantity',
+                        align: 'center',
+                        render: (_, item) => <Text strong>{item.quantity}</Text>,
+                      },
+                      {
+                        title: 'Lý do hỏng',
+                        key: 'broken_reason',
+                        render: (_, item) => (
+                          <Text type="secondary">{item.broken_reason || 'N/A'}</Text>
+                        ),
+                      },
+                      {
+                        title: 'Hành động',
+                        key: 'action',
+                        align: 'center',
+                        render: (_, item) => (
                           <Button
                             type="primary"
-                            danger
-                            icon={<ExclamationCircleOutlined />}
+                            icon={<CheckOutlined />}
                             onClick={() => {
                               setDetailModalVisible(false);
-                              handleRequestReturn(selectedBorrowRequest.borrowId);
+                              // Ghi nhận trả thiết bị đã sửa
+                              setSelectedRecord({ ...item, borrowId: selectedBorrowRequest.borrowId });
+                              setReturnQuantity(item.quantity);
+                              setBrokenQuantity(0); // Thiết bị đã sửa nên không hỏng
+                              setBrokenReason('');
+                              setIsRepairedItem(true); // Đánh dấu là thiết bị đã sửa
+                              setReturnModalVisible(true);
                             }}
                           >
-                            Yêu cầu trả
+                            Ghi nhận trả (đã sửa)
                           </Button>
-                        );
-                      }
-                      return (
-                        <Button
-                          type="primary"
-                          icon={<CheckOutlined />}
-                          onClick={() => {
-                            setDetailModalVisible(false);
-                            handleReturn(item, selectedBorrowRequest);
-                          }}
-                        >
-                          Ghi nhận trả
-                        </Button>
-                      );
-                    },
-                  },
-                ]}
-                dataSource={selectedBorrowRequest.items}
-                rowKey={(item) => item.device._id}
-                pagination={false}
-                size="small"
-              />
+                        ),
+                      },
+                    ]}
+                    dataSource={selectedBorrowRequest.repairingItems}
+                    rowKey={(item) => item.device._id}
+                    pagination={false}
+                    size="small"
+                  />
+                </>
+              )}
+
+              {/* Hiển thị thông báo nếu không có thiết bị nào */}
+              {(!selectedBorrowRequest.items || selectedBorrowRequest.items.length === 0) &&
+               (!selectedBorrowRequest.repairingItems || selectedBorrowRequest.repairingItems.length === 0) && (
+                <Empty
+                  description="Không còn thiết bị nào đang mượn"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              )}
             </div>
           )}
         </Modal>
@@ -819,7 +942,7 @@ const BorrowReturnPage = () => {
 
         {/* Modal xác nhận trả thiết bị */}
         <Modal
-          title="Ghi nhận trả thiết bị"
+          title={isRepairedItem ? "Ghi nhận trả thiết bị đã sửa chữa" : "Ghi nhận trả thiết bị"}
           open={returnModalVisible}
           onOk={handleConfirmReturn}
           onCancel={() => {
@@ -827,6 +950,7 @@ const BorrowReturnPage = () => {
             setSelectedRecord(null);
             setBrokenQuantity(0);
             setBrokenReason('');
+            setIsRepairedItem(false);
           }}
           okText="Xác nhận"
           cancelText="Hủy"
@@ -864,61 +988,84 @@ const BorrowReturnPage = () => {
                 )}
               </Descriptions>
 
-              <Divider orientation="left" style={{ marginTop: 16, marginBottom: 16 }}>
-                <Space>
-                  <CloseCircleOutlined style={{ color: '#f5222d' }} />
-                  <Text strong>Thiết bị bị hỏng (nếu có)</Text>
-                </Space>
-              </Divider>
+              {/* Chỉ hiển thị phần "Thiết bị bị hỏng" khi KHÔNG phải thiết bị đã sửa */}
+              {!isRepairedItem && (
+                <>
+                  <Divider orientation="left" style={{ marginTop: 16, marginBottom: 16 }}>
+                    <Space>
+                      <CloseCircleOutlined style={{ color: '#f5222d' }} />
+                      <Text strong>Thiết bị bị hỏng (nếu có)</Text>
+                    </Space>
+                  </Divider>
 
-              <Descriptions column={1} bordered size="small">
-                <Descriptions.Item label="Số lượng thiết bị bị hỏng">
-                  <InputNumber
-                    min={0}
-                    max={returnQuantity}
-                    value={brokenQuantity}
-                    onChange={(value) => {
-                      setBrokenQuantity(value || 0);
-                      if (value > 0 && !brokenReason.trim()) {
-                        // Tự động focus vào ô lý do nếu có thiết bị hỏng
-                      }
-                    }}
-                    style={{ width: '100%' }}
-                    placeholder="Nhập số lượng hỏng (0 nếu không có)"
-                  />
-                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
-                    Tối đa: {returnQuantity} thiết bị
-                  </Text>
-                </Descriptions.Item>
-                {brokenQuantity > 0 && (
-                  <Descriptions.Item label="Lý do thiết bị bị hỏng">
-                    <Input.TextArea
-                      rows={3}
-                      value={brokenReason}
-                      onChange={(e) => setBrokenReason(e.target.value)}
-                      placeholder="Nhập lý do thiết bị bị hỏng (bắt buộc)"
-                      showCount
-                      maxLength={500}
-                    />
-                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
-                      <WarningOutlined /> Vui lòng mô tả chi tiết tình trạng hỏng của thiết bị
-                    </Text>
-                  </Descriptions.Item>
-                )}
-              </Descriptions>
+                  <Descriptions column={1} bordered size="small">
+                    <Descriptions.Item label="Số lượng thiết bị bị hỏng">
+                      <InputNumber
+                        min={0}
+                        max={returnQuantity}
+                        value={brokenQuantity}
+                        onChange={(value) => {
+                          setBrokenQuantity(value || 0);
+                          if (value > 0 && !brokenReason.trim()) {
+                            // Tự động focus vào ô lý do nếu có thiết bị hỏng
+                          }
+                        }}
+                        style={{ width: '100%' }}
+                        placeholder="Nhập số lượng hỏng (0 nếu không có)"
+                      />
+                      <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                        Tối đa: {returnQuantity} thiết bị
+                      </Text>
+                    </Descriptions.Item>
+                    {brokenQuantity > 0 && (
+                      <Descriptions.Item label="Lý do thiết bị bị hỏng">
+                        <Input.TextArea
+                          rows={3}
+                          value={brokenReason}
+                          onChange={(e) => setBrokenReason(e.target.value)}
+                          placeholder="Nhập lý do thiết bị bị hỏng (bắt buộc)"
+                          showCount
+                          maxLength={500}
+                        />
+                        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                          <WarningOutlined /> Vui lòng mô tả chi tiết tình trạng hỏng của thiết bị
+                        </Text>
+                      </Descriptions.Item>
+                    )}
+                  </Descriptions>
 
-              {brokenQuantity > 0 && (
+                  {brokenQuantity > 0 && (
+                    <div style={{ 
+                      marginTop: 16, 
+                      padding: 12, 
+                      backgroundColor: '#fff7e6', 
+                      border: '1px solid #ffd591',
+                      borderRadius: 4
+                    }}>
+                      <Space>
+                        <WarningOutlined style={{ color: '#faad14' }} />
+                        <Text style={{ color: '#faad14' }}>
+                          Lưu ý: {brokenQuantity} thiết bị bị hỏng sẽ được ghi nhận và tạo yêu cầu sửa chữa.
+                        </Text>
+                      </Space>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Hiển thị thông báo khi là thiết bị đã sửa */}
+              {isRepairedItem && (
                 <div style={{ 
                   marginTop: 16, 
                   padding: 12, 
-                  backgroundColor: '#fff7e6', 
-                  border: '1px solid #ffd591',
+                  backgroundColor: '#f6ffed', 
+                  border: '1px solid #b7eb8f',
                   borderRadius: 4
                 }}>
                   <Space>
-                    <WarningOutlined style={{ color: '#faad14' }} />
-                    <Text style={{ color: '#faad14' }}>
-                      Lưu ý: {brokenQuantity} thiết bị bị hỏng sẽ được ghi nhận và tạo yêu cầu sửa chữa.
+                    <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                    <Text style={{ color: '#52c41a' }}>
+                      Thiết bị đã được sinh viên sửa chữa xong và mang đến trả lại.
                     </Text>
                   </Space>
                 </div>

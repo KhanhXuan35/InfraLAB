@@ -15,6 +15,7 @@ export const getBorrowingStudents = async (req, res) => {
     })
       .populate("student_id", "name email username student_code phone")
       .populate("items.device_id", "name image category")
+      .populate("repairing_items.device_id", "name image category") // THÊM: Populate repairing_items
       .sort({ createdAt: -1 })
       .lean();
 
@@ -27,13 +28,16 @@ export const getBorrowingStudents = async (req, res) => {
       
       const isOverdue = returnDueDate < today;
       
-      // Tính tổng số lượng thiết bị
+      // Tính tổng số lượng thiết bị mà sinh viên VẪN ĐANG CẦM (chưa trả)
+      // Bao gồm: items (thiết bị chưa trả) + repairing_items (thiết bị hỏng đang sửa)
       let totalQuantity = 0;
-      const items = record.items.map((item) => {
+      
+      // Tính từ items (thiết bị chưa trả)
+      const items = (record.items || []).map((item) => {
         totalQuantity += item.quantity || 0;
         return {
           device: {
-            _id: item.device_id._id,
+            _id: item.device_id?._id || item.device_id,
             name: item.device_id?.name || "N/A",
             image: item.device_id?.image || "",
             category: item.device_id?.category || "",
@@ -41,6 +45,30 @@ export const getBorrowingStudents = async (req, res) => {
           quantity: item.quantity || 0,
         };
       });
+
+      // Cộng thêm số lượng thiết bị đang sửa chữa (thiết bị hỏng sinh viên vẫn đang cầm)
+      const repairingItems = (record.repairing_items || []).map((item) => {
+        totalQuantity += item.quantity || 0;
+        return {
+          device: {
+            _id: item.device_id?._id || item.device_id,
+            name: item.device_id?.name || "N/A",
+            image: item.device_id?.image || "",
+            category: item.device_id?.category || "",
+          },
+          quantity: item.quantity || 0,
+          broken_reason: item.broken_reason,
+          reported_at: item.reported_at,
+        };
+      });
+      
+      // Debug log để kiểm tra
+      console.log(`[getBorrowingStudents] BorrowId: ${record._id.toString().slice(-8)}`);
+      console.log(`  - record.items (raw):`, JSON.stringify(record.items || []));
+      console.log(`  - record.repairing_items (raw):`, JSON.stringify(record.repairing_items || []));
+      console.log(`  - items: ${items.length} items, total quantity: ${items.reduce((sum, item) => sum + item.quantity, 0)}`);
+      console.log(`  - repairing_items: ${repairingItems.length} items, total quantity: ${repairingItems.reduce((sum, item) => sum + item.quantity, 0)}`);
+      console.log(`  - totalQuantity (đang cầm): ${totalQuantity}`);
 
       return {
         borrowId: record._id,
@@ -62,6 +90,7 @@ export const getBorrowingStudents = async (req, res) => {
         returnRequested: record.return_requested || false,
         returnRequestedAt: record.return_requested_at || null,
         items: items,
+        repairingItems: repairingItems, // THÊM: Trả về repairing_items đã populate
         totalQuantity: totalQuantity,
       };
     });
@@ -248,19 +277,45 @@ export const recordReturn = async (req, res) => {
     await returnRecord.save();
 
     // Cập nhật Inventory - CHỈ nhận thiết bị tốt
-    const inventory = await Inventory.findOne({
-      device_id: deviceId,
-      location: "lab",
-    });
-
     const goodQuantity = quantity - (brokenQuantity || 0);
     
-    if (inventory && goodQuantity > 0) {
-      // CHỈ tăng số lượng available (thiết bị trả về còn tốt)
-      // total KHÔNG thay đổi - đây là tổng số thiết bị phòng lab sở hữu
-      inventory.available = (inventory.available || 0) + goodQuantity;
+    // Debug log
+    console.log(`[recordReturn] Inventory update:`);
+    console.log(`  - deviceId: ${deviceId} (type: ${typeof deviceId})`);
+    console.log(`  - quantity = ${quantity}, brokenQuantity = ${brokenQuantity}, goodQuantity = ${goodQuantity}`);
+    
+    if (goodQuantity > 0) {
+      // Tìm inventory record
+      const inventory = await Inventory.findOne({
+        device_id: deviceId,
+        location: "lab",
+      });
       
-      await inventory.save();
+      if (inventory) {
+        const oldAvailable = inventory.available || 0;
+        const newAvailable = oldAvailable + goodQuantity;
+        
+        // Debug log
+        console.log(`  - inventory found: YES`);
+        console.log(`  - Before: available = ${oldAvailable}, total = ${inventory.total}`);
+        
+        // Cập nhật available (CHỈ tăng số lượng thiết bị tốt)
+        // total KHÔNG thay đổi - đây là tổng số thiết bị phòng lab sở hữu
+        await Inventory.findByIdAndUpdate(inventory._id, {
+          $set: { available: newAvailable },
+        });
+        
+        // Debug log sau khi cập nhật
+        console.log(`  - After: available = ${newAvailable} (${oldAvailable} + ${goodQuantity})`);
+      } else {
+        console.log(`  - ERROR: Inventory not found for deviceId: ${deviceId}, location: lab`);
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy tồn kho lab cho thiết bị này",
+        });
+      }
+    } else {
+      console.log(`  - WARNING: goodQuantity = ${goodQuantity} <= 0, không cập nhật available`);
     }
 
     // Nếu có thiết bị hỏng, KHÔNG nhận vào lab, để sinh viên tự sửa
@@ -301,48 +356,69 @@ export const recordReturn = async (req, res) => {
     }
 
     // Cập nhật số lượng trong BorrowLab
-    // - Giảm số lượng thiết bị tốt đã trả (goodQuantity)
-    // - Thiết bị hỏng (brokenQuantity) KHÔNG giảm item.quantity vì không được nhận
-    //   Thiết bị hỏng vẫn được tính vào quantity cho đến khi sinh viên sửa xong và trả lại
-    const originalQuantity = item.quantity;
+    // - Giảm item.quantity bằng TỔNG số lượng trả (quantity)
+    //   Vì sinh viên đã trả (dù tốt hay hỏng), nên phải giảm quantity
+    // - Thiết bị hỏng (brokenQuantity) được lưu vào repairing_items để theo dõi
+    // - Khi sinh viên sửa xong và trả lại, chỉ cần xử lý repairing_items
     
-    if (goodQuantity > 0) {
-      item.quantity -= goodQuantity;
-      
-      // Đảm bảo quantity không âm
-      if (item.quantity < 0) {
-        item.quantity = 0;
-      }
+    // Debug log
+    console.log(`[recordReturn] BorrowId: ${borrowId.toString().slice(-8)}`);
+    console.log(`  - Before: item.quantity = ${item.quantity}, quantity = ${quantity}, brokenQuantity = ${brokenQuantity}, goodQuantity = ${quantity - (brokenQuantity || 0)}`);
+    
+    // Giảm item.quantity bằng TỔNG số lượng trả
+    // Vì sinh viên đã trả (dù tốt hay hỏng), nên phải giảm quantity
+    item.quantity -= quantity;
+    
+    // Đảm bảo quantity không âm
+    if (item.quantity < 0) {
+      item.quantity = 0;
+    }
 
-      // Nếu đã trả hết thiết bị tốt, xóa item khỏi danh sách
-      if (item.quantity === 0) {
-        borrowRecord.items.splice(itemIndex, 1);
-      }
+    // Nếu đã trả hết, xóa item khỏi danh sách
+    if (item.quantity === 0) {
+      borrowRecord.items.splice(itemIndex, 1);
     }
     
-    // Nếu chỉ có thiết bị hỏng (goodQuantity = 0), KHÔNG giảm item.quantity
-    // Thiết bị hỏng sẽ được lưu vào repairing_items và vẫn tính vào item.quantity
-    // Ví dụ: Mượn 100, trả 100 (0 tốt, 100 hỏng) → item.quantity vẫn = 100, repairing_items = 100
+    // Debug log sau khi cập nhật
+    const remainingItemsQuantity = borrowRecord.items.reduce((sum, item) => sum + item.quantity, 0);
+    const repairingItemsQuantity = (borrowRecord.repairing_items || []).reduce((sum, item) => sum + item.quantity, 0);
+    console.log(`  - After: item.quantity = ${item.quantity}, items.length = ${borrowRecord.items.length}`);
+    console.log(`  - Remaining items quantity: ${remainingItemsQuantity}`);
+    console.log(`  - Repairing items quantity: ${repairingItemsQuantity}`);
+    console.log(`  - Total quantity (đang cầm): ${remainingItemsQuantity + repairingItemsQuantity}`);
 
-    // Nếu không còn item nào (đã trả hết thiết bị tốt), đánh dấu là đã trả xong
-    // Thiết bị hỏng đang sửa sẽ được xử lý riêng khi sinh viên trả lại (không ảnh hưởng status)
-    if (borrowRecord.items.length === 0) {
+    // Cập nhật status dựa trên cả items VÀ repairing_items
+    // - items: thiết bị tốt chưa trả
+    // - repairing_items: thiết bị hỏng đang sửa (sinh viên vẫn đang cầm)
+    const hasRemainingItems = borrowRecord.items.length > 0;
+    const hasRepairingItems = borrowRecord.repairing_items && borrowRecord.repairing_items.length > 0;
+    
+    if (!hasRemainingItems && !hasRepairingItems) {
+      // Đã trả hết TẤT CẢ (cả tốt và đã sửa) → "returned"
       borrowRecord.returned = true;
       borrowRecord.status = "returned";
       borrowRecord.return_requested = false;
-      
-      // Chỉ đánh dấu returnRecord là done nếu không còn thiết bị đang sửa
-      if (!borrowRecord.repairing_items || borrowRecord.repairing_items.length === 0) {
-        returnRecord.status = "done";
-        returnRecord.processed_at = new Date();
-        await returnRecord.save();
-      }
+      returnRecord.status = "done";
+      returnRecord.processed_at = new Date();
+      await returnRecord.save();
+    } else if (!hasRemainingItems && hasRepairingItems) {
+      // Đã trả hết thiết bị tốt, nhưng còn thiết bị hỏng đang sửa → "return_pending"
+      // Sinh viên vẫn đang cầm thiết bị hỏng để sửa
+      borrowRecord.returned = false; // CHƯA trả xong vì còn thiết bị hỏng
+      borrowRecord.status = "return_pending";
+      borrowRecord.return_requested = false;
     } else {
-      // Nếu còn item, chuyển sang trạng thái return_pending
+      // Còn thiết bị tốt chưa trả → "return_pending"
       borrowRecord.status = "return_pending";
     }
 
+    // LƯU QUAN TRỌNG: Phải save borrowRecord để cập nhật item.quantity và repairing_items
     await borrowRecord.save();
+    
+    // Debug log sau khi save
+    console.log(`  - borrowRecord saved successfully`);
+    console.log(`  - Final items.length: ${borrowRecord.items.length}`);
+    console.log(`  - Final repairing_items.length: ${borrowRecord.repairing_items?.length || 0}`);
 
     let message = "Ghi nhận trả thiết bị thành công";
     if (brokenQuantity > 0) {
@@ -459,34 +535,39 @@ export const recordRepairedReturn = async (req, res) => {
     });
 
     if (inventory) {
+      const oldAvailable = inventory.available || 0;
+      const newAvailable = oldAvailable + quantity;
+      
+      // Debug log
+      console.log(`[recordRepairedReturn] Inventory update:`);
+      console.log(`  - deviceId: ${deviceId}`);
+      console.log(`  - Before: available = ${oldAvailable}, total = ${inventory.total}`);
+      console.log(`  - quantity (đã sửa) = ${quantity}`);
+      
       // Tăng số lượng available (thiết bị đã sửa xong)
       // total KHÔNG thay đổi - đây là tổng số thiết bị phòng lab sở hữu
-      inventory.available = (inventory.available || 0) + quantity;
+      await Inventory.findByIdAndUpdate(inventory._id, {
+        $set: { available: newAvailable },
+      });
       
-      await inventory.save();
+      // Debug log sau khi cập nhật
+      console.log(`  - After: available = ${newAvailable} (${oldAvailable} + ${quantity})`);
+    } else {
+      console.log(`  - ERROR: Inventory not found for deviceId: ${deviceId}, location: lab`);
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy tồn kho lab cho thiết bị này",
+      });
     }
 
     // Giảm số lượng trong repairing_items
+    // LƯU Ý: KHÔNG cần giảm items[].quantity vì thiết bị hỏng đã được xử lý trong recordReturn
+    // Khi trả thiết bị hỏng, item.quantity đã được giảm rồi
     repairingItem.quantity -= quantity;
 
     // Nếu đã trả hết thiết bị đang sửa, xóa khỏi danh sách
     if (repairingItem.quantity === 0) {
       borrowRecord.repairing_items.splice(repairingItemIndex, 1);
-    }
-
-    // Giảm số lượng trong BorrowLab.items (thiết bị hỏng đã sửa xong và trả lại)
-    const itemIndex = borrowRecord.items.findIndex(
-      (item) => item.device_id.toString() === deviceId
-    );
-
-    if (itemIndex !== -1) {
-      const item = borrowRecord.items[itemIndex];
-      item.quantity -= quantity;
-
-      // Nếu đã trả hết, xóa item khỏi danh sách
-      if (item.quantity === 0) {
-        borrowRecord.items.splice(itemIndex, 1);
-      }
     }
 
     // Kiểm tra xem còn thiết bị nào chưa trả không
