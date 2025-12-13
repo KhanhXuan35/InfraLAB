@@ -15,6 +15,7 @@ import deviceRoutes from "./routes/device_school/devices.routes.js";
 import repairRoutes from "./routes/LabManager/repairRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import borrowRoutes from "./routes/borrowRoutes.js";
+import borrowReturnRoutes from "./routes/LabManager/borrowReturnRoutes.js";
 
 const app = express();
 
@@ -62,6 +63,9 @@ app.use("/api/borrow", borrowRoutes);
 
 // Repair routes
 app.use("/api/repairs", repairRoutes);
+
+// Lab Manager Borrow/Return routes
+app.use("/api/lab-manager/borrow-return", borrowReturnRoutes);
 
 // 4. Xử lý lỗi 404 (Không tìm thấy route)
 app.use((req, res, next) => {

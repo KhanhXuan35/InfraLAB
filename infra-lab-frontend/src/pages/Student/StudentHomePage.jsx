@@ -187,7 +187,7 @@ const StudentHomePage = () => {
         {/* Stats Section */}
         <div style={{ padding: '40px 24px', background: '#fff' }}>
           <Row gutter={[24, 24]} justify="center">
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={12}>
               <Card>
                 <Statistic
                   title="Thiết bị đang mượn"
@@ -197,17 +197,7 @@ const StudentHomePage = () => {
                 />
               </Card>
             </Col>
-            <Col xs={24} sm={8}>
-              <Card>
-                <Statistic
-                  title="Yêu cầu chờ duyệt"
-                  value={stats.pendingRequests}
-                  prefix={<BellOutlined />}
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={12}>
               <Card>
                 <Statistic
                   title="Thông báo chưa đọc"

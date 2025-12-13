@@ -100,7 +100,7 @@ const LabManagerHomePage = () => {
         navigate('/lab-manager/devices');
         break;
       case 'borrow':
-        // Navigate to borrow/return page
+        navigate('/lab-manager/borrow-return');
         break;
       case 'reports':
         // Navigate to reports page
@@ -119,7 +119,7 @@ const LabManagerHomePage = () => {
         // Navigate to add device
         break;
       case 'record':
-        // Navigate to record borrow/return
+        navigate('/lab-manager/borrow-return');
         break;
       case 'search':
         navigate('/lab-manager/devices');
@@ -146,7 +146,7 @@ const LabManagerHomePage = () => {
     {
       key: 'borrow',
       icon: <ShoppingOutlined />,
-      label: 'Mượn/Trả',
+      label: 'Danh sách thiết bị mượn',
     },
     {
       key: 'reports',
@@ -168,7 +168,7 @@ const LabManagerHomePage = () => {
       key: 'add-device',
     },
     {
-      title: 'Ghi nhận mượn/trả',
+      title: 'Danh sách thiết bị mượn',
       icon: <SwapOutlined />,
       color: '#722ed1',
       key: 'record',
@@ -243,25 +243,6 @@ const LabManagerHomePage = () => {
       </Sider>
 
       <Layout style={{ marginLeft: 250 }}>
-        <LayoutHeader style={{ 
-          background: '#fff', 
-          padding: '0 24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <Title level={4} style={{ margin: 0 }}>
-            Dashboard Quản lý Lab
-          </Title>
-          <Space>
-            <Text>Xin chào, {user?.name || 'Giáo viên'}!</Text>
-            <Avatar style={{ backgroundColor: '#1890ff' }}>
-              {user?.name?.charAt(0) || 'G'}
-            </Avatar>
-          </Space>
-        </LayoutHeader>
-
         <Content style={{ margin: '24px', minHeight: 280 }}>
           {/* Stats Cards */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>

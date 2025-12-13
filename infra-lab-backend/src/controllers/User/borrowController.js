@@ -67,18 +67,18 @@ export const createBorrowRequest = async (req, res) => {
     }
 
     // Trừ tồn kho lab ngay khi mượn
+    // CHỈ cập nhật available, total KHÔNG thay đổi (tổng số thiết bị phòng lab sở hữu)
     for (const item of items) {
       const inv = inventories.find((i) => i.device_id.toString() === item.device_id);
       const newAvailable = (inv.available || 0) - item.quantity;
-      const newTotal = (inv.total || 0) - item.quantity;
-      if (newAvailable < 0 || newTotal < 0) {
+      if (newAvailable < 0) {
         return res.status(400).json({
           success: false,
           message: "Tồn kho không đủ",
         });
       }
       await Inventory.findByIdAndUpdate(inv._id, {
-        $set: { available: newAvailable, total: newTotal },
+        $set: { available: newAvailable },
       });
     }
 
