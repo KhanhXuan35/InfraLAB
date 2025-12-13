@@ -93,3 +93,43 @@ export const resetPassword = async (req, res) => {
         res.status(status).json({ success: false, message: error.message });
     }
 };
+
+export const changePassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword, confirmPassword } = req.body;
+
+        // 1. Lấy User ID từ req.user (Do checkAuthMiddleware gán vào)
+        // Vì req.user là object User từ Mongoose, nên ID nằm ở thuộc tính _id
+        const userId = req.user._id;
+
+        // 2. Validate Input cơ bản
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ thông tin (Mật khẩu cũ, mới và xác nhận)." });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ success: false, message: "Mật khẩu xác nhận không khớp với mật khẩu mới." });
+        }
+
+        // 3. Validate trùng mật khẩu cũ (Optional - để UX tốt hơn)
+        if (oldPassword === newPassword) {
+            return res.status(400).json({ success: false, message: "Mật khẩu mới không được trùng với mật khẩu cũ." });
+        }
+
+        // 4. Gọi Service xử lý logic (Check pass cũ, hash pass mới, chặn admin...)
+        const result = await AuthService.changePasswordService(userId, oldPassword, newPassword);
+
+        res.status(200).json(result);
+
+    } catch (error) {
+        let statusCode = 500;
+
+        // Map lỗi từ Service sang HTTP Status Code
+        if (error.message.includes("Mật khẩu cũ")) statusCode = 400;
+        if (error.message.includes("Mật khẩu mới")) statusCode = 400;
+        if (error.message.includes("không được phép")) statusCode = 403; // Lỗi Admin đổi pass
+        if (error.message.includes("không tồn tại")) statusCode = 404;
+
+        res.status(statusCode).json({ success: false, message: error.message });
+    }
+};

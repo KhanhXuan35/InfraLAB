@@ -372,3 +372,64 @@ export const resetPasswordService = async (token, newPassword) => {
         throw error;
     }
 };
+
+// 9. Change Password 
+export const changePasswordService = async (userId, oldPassword, newPassword) => {
+    // 1. Tìm user trong DB
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new Error("Người dùng không tồn tại.");
+    }
+
+    // 2. [QUAN TRỌNG] Chặn School Admin
+    if (user.role === "school_admin") {
+        throw new Error("Tài khoản Quản trị viên không được phép tự thay đổi mật khẩu.");
+    }
+
+    // 3. Kiểm tra mật khẩu cũ (So khớp với hash trong DB)
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+        throw new Error("Mật khẩu cũ không chính xác.");
+    }
+
+    // 4. Validate mật khẩu mới (Giống quy tắc lúc đăng ký)
+    // - 8-15 ký tự
+    // - Ít nhất 1 hoa, 1 thường, 1 số, 1 ký tự đặc biệt
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,15}$/;
+    if (!passwordRegex.test(newPassword)) {
+        throw new Error("Mật khẩu mới phải từ 8-15 ký tự, bao gồm chữ Hoa, Thường, Số và Ký tự đặc biệt.");
+    }
+
+    // 5. Kiểm tra trùng lặp (Optional: Không cho trùng mật khẩu cũ)
+    if (isMatch && oldPassword === newPassword) { // Logic so sánh đơn giản nếu chưa hash, nhưng ở đây oldPassword là plain text, user.pass là hash
+        // Cần so sánh newPassword với hash cũ
+        const isSameAsOld = await bcrypt.compare(newPassword, user.password);
+        if (isSameAsOld) {
+            throw new Error("Mật khẩu mới không được trùng với mật khẩu cũ.");
+        }
+    }
+
+    // 6. Hash mật khẩu mới và Lưu
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    // 7. Gửi email thông báo
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <h2 style="color: #F36F21; text-align: center;">InfraLab Security</h2>
+                <p>Xin chào <strong>${user.name}</strong>,</p>
+                <p>Mật khẩu tài khoản của bạn vừa được thay đổi thành công.</p>
+                <p>Thời gian thay đổi: <strong>${new Date().toLocaleString('vi-VN')}</strong></p>
+                <p style="color: red;">Nếu bạn không thực hiện hành động này, vui lòng liên hệ ngay với Quản trị viên hoặc phản hồi email này ngay lập tức.</p>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #777;">Trân trọng,<br>InfraLab Team</p>
+            </div>
+        </div>
+    `;
+
+    await sendEmail(user.email, "Cảnh báo bảo mật: Mật khẩu đã thay đổi - InfraLab", "Password Changed", htmlContent);
+
+    return { success: true, message: "Đổi mật khẩu thành công. Email xác nhận đã được gửi." };
+};
