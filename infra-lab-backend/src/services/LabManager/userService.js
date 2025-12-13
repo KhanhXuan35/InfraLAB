@@ -28,74 +28,72 @@ export const getStudentDetailService = async (userId) => {
     return user;
 };
 
-// 4. CẬP NHẬT THÔNG TIN SINH VIÊN (Đã vá lỗi bảo mật)
+//4. CẬP NHẬT THÔNG TIN SINH VIÊN
 export const updateStudentService = async (userId, data) => {
-    // Lấy data đầu vào
     const { name, username, email, gender, date_of_birth, address, phone, student_code } = data;
 
-    // BƯỚC 1: Kiểm tra User có tồn tại không
+    // 1. Kiểm tra tồn tại & Role
     const user = await User.findById(userId);
-    if (!user) {
-        throw new Error("Không tìm thấy người dùng này.");
-    }
+    if (!user) throw new Error("Không tìm thấy người dùng này.");
+    if (user.role !== "student") throw new Error("Bạn chỉ có quyền cập nhật thông tin của Sinh viên!");
 
-    // 🔥 [BẢO MẬT] CHECK ROLE: Chỉ cho phép sửa tài khoản Student
-    // Nếu ID gửi lên là của Admin hay Manager khác -> Chặn ngay lập tức!
-    if (user.role !== "student") {
-        throw new Error("Bạn chỉ có quyền cập nhật thông tin của Sinh viên!");
-    }
-
-    // BƯỚC 2: Validate các trường DUY NHẤT (Unique)
-
-    // 2.1 Check Email trùng (Trừ chính mình ra)
+    // 2. Validate Check Trùng (Unique)
     if (email && email !== user.email) {
-        const emailExists = await User.findOne({ email: email, _id: { $ne: userId } });
-        if (emailExists) throw new Error("Email này đã được sử dụng bởi người khác.");
+        const exists = await User.findOne({ email, _id: { $ne: userId } });
+        if (exists) throw new Error("Email này đã được sử dụng.");
     }
-
-    // 2.2 Check Username trùng
     if (username && username !== user.username) {
-        const usernameExists = await User.findOne({ username: username, _id: { $ne: userId } });
-        if (usernameExists) throw new Error("Username này đã tồn tại.");
+        const exists = await User.findOne({ username, _id: { $ne: userId } });
+        if (exists) throw new Error("Username này đã tồn tại.");
     }
-
-    // 2.3 Check Mã sinh viên trùng
     if (student_code && student_code !== user.student_code) {
-        const codeExists = await User.findOne({ student_code: student_code, _id: { $ne: userId } });
-        if (codeExists) throw new Error("Mã sinh viên này đã được cấp cho người khác.");
+        const exists = await User.findOne({ student_code, _id: { $ne: userId } });
+        if (exists) throw new Error("Mã sinh viên này đã được cấp cho người khác.");
     }
 
-    // BƯỚC 3: Validate Định dạng (Format) - Giữ nguyên như cũ
+    // 3. VALIDATE FORMAT (PHẦN QUAN TRỌNG MỚI)
+
+    // 3.1 Validate Họ tên: Min 4 ký tự, Chấp nhận Tiếng Việt & Khoảng trắng
+    if (name) {
+        // Regex hỗ trợ full tiếng Việt có dấu
+        const nameRegex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵýỷỹ\s]{4,}$/;
+        if (!nameRegex.test(name)) {
+            throw new Error("Họ tên phải từ 4 ký tự trở lên và chỉ chứa chữ cái (Tiếng Việt) hoặc khoảng trắng.");
+        }
+    }
+
+    // 3.2 Validate Mã sinh viên: Chính xác 8 ký tự, Chữ và Số
+    if (student_code) {
+        const codeRegex = /^[a-zA-Z0-9]{8}$/;
+        if (!codeRegex.test(student_code)) {
+            throw new Error("Mã sinh viên phải có đúng 8 ký tự (chữ và số, không dấu).");
+        }
+    }
+
+    // 3.3 Validate Username (Giống đăng ký): 3-20 ký tự, không dấu, không khoảng trắng
+    if (username) {
+        const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+        if (!usernameRegex.test(username)) {
+            throw new Error("Username phải từ 3-20 ký tự, không dấu, không khoảng trắng.");
+        }
+    }
+
+    // 3.4 Số điện thoại (VN)
     if (phone) {
         const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
         if (!phoneRegex.test(phone)) throw new Error("Số điện thoại không hợp lệ.");
     }
 
-    if (gender && !["Male", "Female", "Other"].includes(gender)) {
-        throw new Error("Giới tính không hợp lệ.");
-    }
-
+    // 3.5 Các trường khác
+    if (gender && !["Male", "Female", "Other"].includes(gender)) throw new Error("Giới tính không hợp lệ.");
     if (date_of_birth) {
-        const dob = new Date(date_of_birth);
-        const today = new Date();
-        if (dob >= today) throw new Error("Ngày sinh phải nhỏ hơn ngày hiện tại.");
+        if (new Date(date_of_birth) >= new Date()) throw new Error("Ngày sinh phải nhỏ hơn ngày hiện tại.");
     }
 
-    // BƯỚC 4: Thực hiện Update
-    // Lưu ý: Chỉ đưa vào các field thông tin cá nhân.
-    // TUYỆT ĐỐI KHÔNG update trường 'role' ở đây.
+    // 4. Update
     const updatedUser = await User.findByIdAndUpdate(
         userId,
-        {
-            name,
-            username,
-            email,
-            gender,
-            date_of_birth,
-            address,
-            phone,
-            student_code
-        },
+        { name, username, email, gender, date_of_birth, address, phone, student_code },
         { new: true, runValidators: true }
     ).select("-password -refreshToken -emailToken");
 

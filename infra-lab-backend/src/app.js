@@ -16,6 +16,11 @@ import repairRoutes from "./routes/LabManager/repairRoutes.js";
 import userRoutes from "./routes/LabManager/userRoutes.js";
 const app = express();
 
+app.use((req, res, next) => {
+    console.log(`[DEBUG 1] Request vào server: ${req.method} ${req.url}`);
+    next();
+});
+
 // 1. Cấu hình CORS (Quan trọng để nhận Cookie)
 app.use(cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173", // URL frontend của bạn
