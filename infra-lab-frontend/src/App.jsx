@@ -25,6 +25,7 @@ import RegisterBorrow from "./pages/student/RegisterBorrow/RegisterBorrow";
 import RegisterBorrowMultiple from "./pages/student/RegisterBorrowMultiple/RegisterBorrowMultiple";
 import Cart from "./pages/student/Cart/Cart";
 import LoanDeviceList from "./pages/student/LoanDeviceList/LoanDeviceList";
+import Chat from "./pages/student/Chat/Chat";
 
 // Lab Manager pages
 import DeviceList from "./components/LabManager/DeviceList";
@@ -87,6 +88,12 @@ function App() {
             <Route path={`${STUDENT_BASE_PATH}/borrow/multiple`} element={<RegisterBorrowMultiple />} />
             <Route path={`${STUDENT_BASE_PATH}/cart`} element={<Cart />} />
             <Route path={`${STUDENT_BASE_PATH}/borrowed`} element={<LoanDeviceList />} />
+            <Route path={`${STUDENT_BASE_PATH}/conversation/:id?`} element={<Chat />} />
+
+            {/* --- CHAT (Available for all authenticated users) --- */}
+            <Route element={<PrivateRoute allowedRoles={["student", "lab_manager", "school_admin"]} />}>
+              <Route path="/chat/:id?" element={<Chat />} />
+            </Route>
 
             {/* --- PROFILE PAGE (Protected) --- */}
             <Route element={<PrivateRoute allowedRoles={["student"]} />}>
@@ -103,3 +110,6 @@ function App() {
 }
 
 export default App;
+
+
+

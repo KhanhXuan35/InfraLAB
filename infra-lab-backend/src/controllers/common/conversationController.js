@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 
 export const getAllConversationsByUser = async (req, res) => {
   try {
-    const userId = req.user.id; // middleware auth gắn vào req.user
+    const userId = req.user._id; // middleware auth gắn vào req.user
 
     const conversations = await Conversation.find({
       participants: userId,
@@ -16,7 +16,7 @@ export const getAllConversationsByUser = async (req, res) => {
       .populate({
         path: "lastMessage",
         select: "content sender createdAt type attachmentUrl",
-        populate: { path: "sender", select: "name avatar role" },
+        populate: { path: "sender", select: "name avatar role _id" },
       })
       .sort({ updatedAt: -1 });
 
@@ -36,7 +36,7 @@ export const getAllConversationsByUser = async (req, res) => {
 export const createConversation = async (req, res) => {
   try {
     const { receiverId } = req.body;
-    const senderId = req.user.id;
+    const senderId = req.user._id;
 
     if (!receiverId || !mongoose.Types.ObjectId.isValid(receiverId)) {
       return res.status(400).json({
@@ -69,6 +69,11 @@ export const createConversation = async (req, res) => {
     });
 
     if (existingConversation) {
+      // Populate participants trước khi trả về
+      await existingConversation.populate({
+        path: "participants",
+        select: "name email role avatar",
+      });
       return res.status(200).json({
         success: true,
         message: "Conversation already exists",
@@ -79,6 +84,12 @@ export const createConversation = async (req, res) => {
     // Nếu chưa có -> tạo mới
     const newConversation = await Conversation.create({
       participants: [senderId, receiverId],
+    });
+
+    // Populate participants trước khi trả về
+    await newConversation.populate({
+      path: "participants",
+      select: "name email role avatar",
     });
 
     res.status(201).json({

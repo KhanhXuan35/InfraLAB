@@ -66,11 +66,23 @@ const Header = () => {
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [user, setUser] = useState(null);
 
   const searchTimeoutRef = useRef(null);
   const searchContainerRef = useRef(null);
 
   const cartCount = getCartCount();
+
+  useEffect(() => {
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      try {
+        setUser(JSON.parse(userString));
+      } catch (e) {
+        console.error('Error parsing user:', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     setSearchHistory(getSearchHistory());
@@ -355,7 +367,21 @@ const Header = () => {
       {/* RIGHT ICONS */}
       <RightSection>
         <Space size="large">
-          <MessageOutlined style={{ fontSize: 20 }} />
+          <Tooltip title="Tin nhắn">
+            <MessageOutlined 
+              style={{ fontSize: 20, cursor: 'pointer', transition: 'color 0.3s' }}
+              onClick={() => {
+                // Navigate to chat based on user role
+                if (user?.role === 'student') {
+                  navigate(STUDENT_ROUTES.Conversation);
+                } else {
+                  navigate('/chat');
+                }
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#1890ff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
+            />
+          </Tooltip>
           <Badge count={cartCount}>
             <ShoppingCartOutlined style={{ fontSize: 20 }} onClick={() => navigate(STUDENT_ROUTES.CART)} />
           </Badge>

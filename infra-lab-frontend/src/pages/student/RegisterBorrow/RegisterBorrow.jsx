@@ -59,7 +59,7 @@ const RegisterBorrow = () => {
       
       if (data.success) {
         setDevice(data.data);
-        // Set default return date (7 days from now)
+        // default date (7 days from now)
         form.setFieldsValue({
           return_due_date: dayjs().add(7, 'day')
         });
@@ -360,7 +360,8 @@ const RegisterBorrow = () => {
               name="purpose"
               rules={[
                 { required: true, message: 'Vui lòng nhập mục đích sử dụng' },
-                { max: 500, message: 'Mục đích không được quá 500 ký tự' }
+                { max: 500, message: 'Mục đích không được quá 500 ký tự' },
+                {min:10, message: 'Nhập nội dung chi tiết hơn'}
               ]}
             >
               <TextArea

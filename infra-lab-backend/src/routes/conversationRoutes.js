@@ -8,6 +8,7 @@ import {
   getConversationDetail,
   createMessage,
 } from "../controllers/common/messageController.js";
+import { getChatableUsers } from "../controllers/common/userController.js";
 import { checkAuthMiddleware } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -24,5 +25,8 @@ router.get("/", checkAuthMiddleware, getAllConversationsByUser);
 router.get("/:id", checkAuthMiddleware, validateConversationId, getConversationDetail);
 router.post("/", checkAuthMiddleware, createConversation);
 router.post("/:id/messages", checkAuthMiddleware, validateConversationId, createMessage);
+
+// User routes for chat
+router.get("/users/chatable", checkAuthMiddleware, getChatableUsers);
 
 export default router;
