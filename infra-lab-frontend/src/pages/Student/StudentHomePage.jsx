@@ -50,9 +50,24 @@ const StudentHomePage = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // TODO: Gọi API để lấy stats
+        // Gọi API để lấy stats từ MongoDB
+        const response = await api.get('/user-dashboard/stats');
+        
+        if (response.success) {
+          setStats({
+            totalBorrowed: response.data.totalBorrowed || 0,
+            pendingRequests: response.data.pendingRequests || 0,
+            unreadNotifications: response.data.unreadNotifications || 0,
+          });
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        // Nếu lỗi, giữ giá trị mặc định là 0
+        setStats({
+          totalBorrowed: 0,
+          pendingRequests: 0,
+          unreadNotifications: 0,
+        });
       } finally {
         setLoading(false);
       }
@@ -172,7 +187,7 @@ const StudentHomePage = () => {
         {/* Stats Section */}
         <div style={{ padding: '40px 24px', background: '#fff' }}>
           <Row gutter={[24, 24]} justify="center">
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={12}>
               <Card>
                 <Statistic
                   title="Thiết bị đang mượn"
@@ -182,17 +197,7 @@ const StudentHomePage = () => {
                 />
               </Card>
             </Col>
-            <Col xs={24} sm={8}>
-              <Card>
-                <Statistic
-                  title="Yêu cầu chờ duyệt"
-                  value={stats.pendingRequests}
-                  prefix={<BellOutlined />}
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={12}>
               <Card>
                 <Statistic
                   title="Thông báo chưa đọc"

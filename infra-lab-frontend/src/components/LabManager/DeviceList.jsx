@@ -168,7 +168,7 @@ function DeviceList() {
           items={[
             { key: "overview", icon: <DashboardOutlined />, label: "Thống kê" },
             { key: "devices", icon: <ToolOutlined />, label: "Quản lý thiết bị" },
-            { key: "borrow", icon: <SwapOutlined />, label: "Mượn/Trả" },
+            { key: "borrow", icon: <SwapOutlined />, label: "Danh sách thiết bị mượn" },
             { key: "repairs", icon: <ToolOutlined />, label: "Danh sách sửa chữa" },
             { key: "reports", icon: <FileTextOutlined />, label: "Báo cáo" },
             { key: "notifications", icon: <BellOutlined />, label: "Thông báo" },

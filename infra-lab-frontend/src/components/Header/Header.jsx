@@ -73,6 +73,44 @@ const Header = () => {
 
   const cartCount = getCartCount();
 
+  // Lấy thông tin user từ localStorage
+  useEffect(() => {
+    const loadUser = () => {
+      try {
+        const userString = localStorage.getItem('user');
+        if (userString) {
+          const userData = JSON.parse(userString);
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+      }
+    };
+
+    loadUser();
+
+    // Lắng nghe sự kiện storage để cập nhật khi user thay đổi avatar
+    const handleStorageChange = (e) => {
+      if (e.key === 'user') {
+        loadUser();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Custom event để cập nhật khi user thay đổi avatar trong cùng tab
+    const handleUserUpdate = () => {
+      loadUser();
+    };
+    
+    window.addEventListener('userUpdated', handleUserUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userUpdated', handleUserUpdate);
+    };
+  }, []);
+
   useEffect(() => {
     const userString = localStorage.getItem('user');
     if (userString) {
@@ -193,7 +231,11 @@ const Header = () => {
   };
 
   const handleMenuClick = ({ key }) => {
-    if (key === 'logout') {
+    if (key === 'profile') {
+      navigate('/profile');
+    } else if (key === 'settings') {
+      navigate('/settings');
+    } else if (key === 'logout') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
       navigate('/login');
@@ -396,7 +438,13 @@ const Header = () => {
           <BellOutlined style={{ fontSize: 20 }} />
 
           <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} trigger={['click']}>
-            <Avatar icon={<UserOutlined />} style={{ cursor: 'pointer', background: '#1890ff' }} />
+            <Avatar 
+              src={user?.avatar || null}
+              icon={!user?.avatar && <UserOutlined />}
+              style={{ cursor: 'pointer', background: '#1890ff' }}
+            >
+              {!user?.avatar && (user?.name?.charAt(0) || user?.fullName?.charAt(0) || 'U')}
+            </Avatar>
           </Dropdown>
         </Space>
       </RightSection>

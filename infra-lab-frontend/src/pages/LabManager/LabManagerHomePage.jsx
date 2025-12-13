@@ -107,7 +107,7 @@ const LabManagerHomePage = () => {
         navigate('/chat');
         break;
       case 'borrow':
-        // Navigate to borrow/return page
+        navigate('/lab-manager/borrow-return');
         break;
       case 'reports':
         // Navigate to reports page
@@ -126,7 +126,7 @@ const LabManagerHomePage = () => {
         // Navigate to add device
         break;
       case 'record':
-        // Navigate to record borrow/return
+        navigate('/lab-manager/borrow-return');
         break;
       case 'search':
         navigate('/lab-manager/devices');
@@ -159,7 +159,7 @@ const LabManagerHomePage = () => {
     {
       key: 'borrow',
       icon: <ShoppingOutlined />,
-      label: 'Mượn/Trả',
+      label: 'Danh sách thiết bị mượn',
     },
     {
       key: 'reports',
@@ -181,7 +181,7 @@ const LabManagerHomePage = () => {
       key: 'add-device',
     },
     {
-      title: 'Ghi nhận mượn/trả',
+      title: 'Danh sách thiết bị mượn',
       icon: <SwapOutlined />,
       color: '#722ed1',
       key: 'record',

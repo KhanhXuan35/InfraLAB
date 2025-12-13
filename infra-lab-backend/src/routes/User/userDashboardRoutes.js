@@ -1,4 +1,5 @@
 import express from "express";
+import { checkAuthMiddleware } from "../../middlewares/authMiddleware.js";
 import {
   getUserStats,
   getBorrowedDevices,
@@ -6,6 +7,9 @@ import {
 } from "../../controllers/User/userDashboardController.js";
 
 const router = express.Router();
+
+// Tất cả routes đều yêu cầu authentication
+router.use(checkAuthMiddleware);
 
 // GET /api/user-dashboard/stats - Lấy thống kê user
 router.get("/stats", getUserStats);

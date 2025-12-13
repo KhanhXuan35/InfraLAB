@@ -24,6 +24,7 @@ import {
   LogoutOutlined
 } from '@ant-design/icons';
 import api from '../../services/api';
+import EditProfile from './EditProfile';
 import * as S from './UserProfile.styles';
 import './UserProfile.css';
 
@@ -35,6 +36,7 @@ const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedMenu, setSelectedMenu] = useState('profile');
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   useEffect(() => {
     loadUserProfile();
@@ -445,7 +447,7 @@ const UserProfile = () => {
                 type="primary" 
                 size="large"
                 icon={<EditOutlined />}
-                onClick={() => message.info('Chức năng chỉnh sửa đang được phát triển')}
+                onClick={() => setEditModalVisible(true)}
                 style={{
                   borderRadius: 8,
                   height: 40,
@@ -459,6 +461,17 @@ const UserProfile = () => {
           </Card>
         </Content>
       </Layout>
+
+      {/* Edit Profile Modal */}
+      <EditProfile
+        visible={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        onSuccess={(updatedUser) => {
+          setUser(updatedUser);
+          message.success('Thông tin đã được cập nhật');
+        }}
+        user={user}
+      />
     </Layout>
   );
 };

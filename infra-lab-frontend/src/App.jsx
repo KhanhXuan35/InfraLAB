@@ -30,6 +30,7 @@ import Chat from "./pages/student/Chat/Chat";
 // Lab Manager pages
 import DeviceList from "./components/LabManager/DeviceList";
 import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
+import BorrowReturnPage from "./pages/LabManager/BorrowReturnPage";
 import LabManagerRepairDetail from "./pages/LabManager/LabManagerRepairDetail";
 
 // School pages
@@ -83,6 +84,7 @@ function App() {
               <Route path="/lab-manager/device/:id" element={<DeviceDetailPage />} />
               <Route path={LAB_MANAGER_ROUTES.REPAIRS} element={<LabManagerRepairList />} />
               <Route path="/lab-manager/repairs/:id" element={<LabManagerRepairDetail />} />
+              <Route path="/lab-manager/borrow-return" element={<BorrowReturnPage />} />
             </Route>
 
             {/* --- SCHOOL PAGES --- */}
@@ -104,7 +106,7 @@ function App() {
             </Route>
 
             {/* --- PROFILE PAGE (Protected) --- */}
-            <Route element={<PrivateRoute allowedRoles={["student"]} />}>
+            <Route element={<PrivateRoute allowedRoles={["student", "lab_manager", "school_admin"]} />}>
               <Route path="/profile" element={<UserProfile />} />
             </Route>
 

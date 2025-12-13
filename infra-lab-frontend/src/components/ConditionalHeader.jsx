@@ -13,13 +13,6 @@ const ConditionalHeader = () => {
       ROUTES.LOGIN,
       ROUTES.REGISTER,
     ];
-    
-    // Danh sách các route của lab_manager (không hiển thị Header)
-    const labManagerRoutes = [
-      '/teacher-dashboard',
-      '/lab-manager/devices',
-      '/lab-manager/device',
-    ];
 
     // Danh sách các route của school_admin (không hiển thị Header)
     const schoolAdminRoutes = [
@@ -32,15 +25,6 @@ const ConditionalHeader = () => {
     
     // Kiểm tra verify-email
     if (pathname.startsWith('/verify-email/')) {
-      return false;
-    }
-    
-    // Kiểm tra lab_manager routes
-    const isLabManagerRoute = labManagerRoutes.some(route => {
-      return pathname.startsWith(route);
-    });
-    
-    if (isLabManagerRoute) {
       return false;
     }
 
