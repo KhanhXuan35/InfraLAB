@@ -111,7 +111,7 @@ export const getLoanDeviceList = async (req, res) => {
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;
-    const { status, page = 1, limit = 10, borrowDateFrom, borrowDateTo, returnDateFrom, returnDateTo } = req.query;
+    const { status, page = 1, limit = 10 } = req.query;
 
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -130,36 +130,6 @@ export const getLoanDeviceList = async (req, res) => {
     // Filter theo status nếu có
     if (status) {
       query.status = status;
-    }
-
-    // Filter theo ngày mượn (createdAt)
-    if (borrowDateFrom || borrowDateTo) {
-      query.createdAt = {};
-      if (borrowDateFrom) {
-        const fromDate = new Date(borrowDateFrom);
-        fromDate.setHours(0, 0, 0, 0);
-        query.createdAt.$gte = fromDate;
-      }
-      if (borrowDateTo) {
-        const toDate = new Date(borrowDateTo);
-        toDate.setHours(23, 59, 59, 999);
-        query.createdAt.$lte = toDate;
-      }
-    }
-
-    // Filter theo ngày trả (return_due_date)
-    if (returnDateFrom || returnDateTo) {
-      query.return_due_date = {};
-      if (returnDateFrom) {
-        const fromDate = new Date(returnDateFrom);
-        fromDate.setHours(0, 0, 0, 0);
-        query.return_due_date.$gte = fromDate;
-      }
-      if (returnDateTo) {
-        const toDate = new Date(returnDateTo);
-        toDate.setHours(23, 59, 59, 999);
-        query.return_due_date.$lte = toDate;
-      }
     }
 
     // Pagination

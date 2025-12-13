@@ -17,7 +17,6 @@ import {
   Row,
   Col,
   Statistic,
-  DatePicker,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -25,6 +24,8 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   ReloadOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../../services/api';
@@ -45,12 +46,11 @@ const LoanDeviceList = () => {
     totalPages: 0,
   });
   const [statusFilter, setStatusFilter] = useState('');
-  const [borrowDateFrom, setBorrowDateFrom] = useState(null);
-  const [borrowDateTo, setBorrowDateTo] = useState(null);
-  const [returnDateFrom, setReturnDateFrom] = useState(null);
-  const [returnDateTo, setReturnDateTo] = useState(null);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [sortField, setSortField] = useState(null); // 'createdAt' | 'return_due_date' | null
+  const [sortOrder, setSortOrder] = useState(null); // 'asc' | 'desc' | null
+  const [allLoans, setAllLoans] = useState([]); // Lưu toàn bộ data từ API
   const [stats, setStats] = useState({
     total: 0,
     borrowed: 0,
@@ -60,7 +60,26 @@ const LoanDeviceList = () => {
 
   useEffect(() => {
     fetchLoanList();
-  }, [statusFilter, pagination.page, borrowDateFrom, borrowDateTo, returnDateFrom, returnDateTo]);
+  }, [statusFilter, pagination.page]);
+
+  // Sort data khi sortField, sortOrder hoặc allLoans thay đổi
+  useEffect(() => {
+    if (allLoans.length === 0) {
+      setLoans([]);
+      return;
+    }
+    
+    if (sortField && sortOrder) {
+      const sortedLoans = [...allLoans].sort((a, b) => {
+        const dateA = dayjs(a[sortField]);
+        const dateB = dayjs(b[sortField]);
+        return sortOrder === 'asc' ? dateA.diff(dateB) : dateB.diff(dateA);
+      });
+      setLoans(sortedLoans);
+    } else {
+      setLoans(allLoans);
+    }
+  }, [sortField, sortOrder, allLoans]);
 
   const fetchLoanList = async () => {
     setLoading(true);
@@ -72,23 +91,15 @@ const LoanDeviceList = () => {
       if (statusFilter) {
         params.status = statusFilter;
       }
-      if (borrowDateFrom) {
-        params.borrowDateFrom = borrowDateFrom.format('YYYY-MM-DD');
-      }
-      if (borrowDateTo) {
-        params.borrowDateTo = borrowDateTo.format('YYYY-MM-DD');
-      }
-      if (returnDateFrom) {
-        params.returnDateFrom = returnDateFrom.format('YYYY-MM-DD');
-      }
-      if (returnDateTo) {
-        params.returnDateTo = returnDateTo.format('YYYY-MM-DD');
-      }
 
       const response = await api.get('/borrow', { params });
       
       if (response.success) {
-        setLoans(response.data || []);
+        const fetchedLoans = response.data || [];
+        setAllLoans(fetchedLoans);
+        
+        // Sort sẽ được xử lý trong useEffect khi allLoans thay đổi
+        
         setPagination({
           ...pagination,
           total: response.pagination?.total || 0,
@@ -96,7 +107,7 @@ const LoanDeviceList = () => {
         });
         
         // Tính stats
-        calculateStats(response.data || []);
+        calculateStats(fetchedLoans);
       } else {
         message.error(response.message || 'Không thể tải danh sách thiết bị đã mượn');
       }
@@ -130,35 +141,6 @@ const LoanDeviceList = () => {
     setPagination({ ...pagination, page: 1 });
   };
 
-  const handleBorrowDateFromChange = (date) => {
-    setBorrowDateFrom(date);
-    setPagination({ ...pagination, page: 1 });
-  };
-
-  const handleBorrowDateToChange = (date) => {
-    setBorrowDateTo(date);
-    setPagination({ ...pagination, page: 1 });
-  };
-
-  const handleReturnDateFromChange = (date) => {
-    setReturnDateFrom(date);
-    setPagination({ ...pagination, page: 1 });
-  };
-
-  const handleReturnDateToChange = (date) => {
-    setReturnDateTo(date);
-    setPagination({ ...pagination, page: 1 });
-  };
-
-  const handleClearFilters = () => {
-    setStatusFilter('');
-    setBorrowDateFrom(null);
-    setBorrowDateTo(null);
-    setReturnDateFrom(null);
-    setReturnDateTo(null);
-    setPagination({ ...pagination, page: 1 });
-  };
-
   const handlePageChange = (page) => {
     setPagination({ ...pagination, page });
   };
@@ -176,6 +158,54 @@ const LoanDeviceList = () => {
     };
     const config = statusConfig[status] || { color: 'default', text: status };
     return <Tag color={config.color}>{config.text}</Tag>;
+  };
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // Nếu đang sort field này, đổi hướng
+      if (sortOrder === 'asc') {
+        setSortOrder('desc');
+      } else if (sortOrder === 'desc') {
+        // Reset về không sort
+        setSortField(null);
+        setSortOrder(null);
+      }
+    } else {
+      // Sort field mới, mặc định tăng dần
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const renderSortIcon = (field) => {
+    if (sortField !== field) {
+      // Không sort field này - hiển thị cả 2 mũi tên xám
+      return (
+        <span style={{ display: 'inline-flex', flexDirection: 'column', marginLeft: 4, verticalAlign: 'middle' }}>
+          <ArrowUpOutlined style={{ fontSize: 10, color: '#d9d9d9', lineHeight: '8px' }} />
+          <ArrowDownOutlined style={{ fontSize: 10, color: '#d9d9d9', lineHeight: '8px' }} />
+        </span>
+      );
+    }
+    
+    // Đang sort field này
+    if (sortOrder === 'asc') {
+      // Tăng dần - mũi tên lên xanh, mũi tên xuống xám
+      return (
+        <span style={{ display: 'inline-flex', flexDirection: 'column', marginLeft: 4, verticalAlign: 'middle' }}>
+          <ArrowUpOutlined style={{ fontSize: 10, color: '#1890ff', lineHeight: '8px' }} />
+          <ArrowDownOutlined style={{ fontSize: 10, color: '#d9d9d9', lineHeight: '8px' }} />
+        </span>
+      );
+    } else {
+      // Giảm dần - mũi tên lên xám, mũi tên xuống xanh
+      return (
+        <span style={{ display: 'inline-flex', flexDirection: 'column', marginLeft: 4, verticalAlign: 'middle' }}>
+          <ArrowUpOutlined style={{ fontSize: 10, color: '#d9d9d9', lineHeight: '8px' }} />
+          <ArrowDownOutlined style={{ fontSize: 10, color: '#1890ff', lineHeight: '8px' }} />
+        </span>
+      );
+    }
   };
 
   const columns = [
@@ -220,19 +250,35 @@ const LoanDeviceList = () => {
       width: 250,
     },
     {
-      title: 'Ngày mượn',
+      title: (
+        <span 
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => handleSort('createdAt')}
+        >
+          Ngày mượn
+          {renderSortIcon('createdAt')}
+        </span>
+      ),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date) => dayjs(date).format('DD/MM/YYYY'),
       width: 120,
     },
     {
-      title: 'Hạn trả',
+      title: (
+        <span 
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => handleSort('return_due_date')}
+        >
+          Hạn trả
+          {renderSortIcon('return_due_date')}
+        </span>
+      ),
       dataIndex: 'return_due_date',
       key: 'return_due_date',
-      render: (date) => {
+      render: (date, record) => {
         const dueDate = dayjs(date);
-        const isOverdue = dueDate.isBefore(dayjs()) && !selectedLoan?.returned;
+        const isOverdue = dueDate.isBefore(dayjs()) && !record.returned;
         return (
           <Text style={{ color: isOverdue ? '#ff4d4f' : 'inherit' }}>
             {dueDate.format('DD/MM/YYYY')}
@@ -333,80 +379,19 @@ const LoanDeviceList = () => {
 
       {/* Filter Section */}
       <Card style={{ marginBottom: 24 }}>
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <Row gutter={16}>
-            <Col xs={24} sm={12} md={6}>
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                <Text strong>Lọc theo trạng thái:</Text>
-                <Select
-                  style={{ width: '100%' }}
-                  placeholder="Tất cả"
-                  value={statusFilter}
-                  onChange={handleStatusFilterChange}
-                  allowClear
-                >
-                  <Option value="borrowed">Đang mượn</Option>
-                  <Option value="return_pending">Chờ trả</Option>
-                  <Option value="returned">Đã trả</Option>
-                </Select>
-              </Space>
-            </Col>
-            <Col xs={24} sm={12} md={9}>
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                <Text strong>Ngày mượn:</Text>
-                <Space>
-                  <DatePicker
-                    placeholder="Từ ngày"
-                    value={borrowDateFrom}
-                    onChange={handleBorrowDateFromChange}
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    allowClear
-                  />
-                  <Text>-</Text>
-                  <DatePicker
-                    placeholder="Đến ngày"
-                    value={borrowDateTo}
-                    onChange={handleBorrowDateToChange}
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    allowClear
-                  />
-                </Space>
-              </Space>
-            </Col>
-            <Col xs={24} sm={12} md={9}>
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                <Text strong>Ngày trả:</Text>
-                <Space>
-                  <DatePicker
-                    placeholder="Từ ngày"
-                    value={returnDateFrom}
-                    onChange={handleReturnDateFromChange}
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    allowClear
-                  />
-                  <Text>-</Text>
-                  <DatePicker
-                    placeholder="Đến ngày"
-                    value={returnDateTo}
-                    onChange={handleReturnDateToChange}
-                    format="DD/MM/YYYY"
-                    style={{ width: '100%' }}
-                    allowClear
-                  />
-                </Space>
-              </Space>
-            </Col>
-          </Row>
-          <Button
-            type="default"
-            onClick={handleClearFilters}
-            style={{ marginTop: 8 }}
+        <Space>
+          <Text strong>Lọc theo trạng thái:</Text>
+          <Select
+            style={{ width: 200 }}
+            placeholder="Tất cả"
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            allowClear
           >
-            Xóa bộ lọc
-          </Button>
+            <Option value="borrowed">Đang mượn</Option>
+            <Option value="return_pending">Chờ trả</Option>
+            <Option value="returned">Đã trả</Option>
+          </Select>
         </Space>
       </Card>
 
