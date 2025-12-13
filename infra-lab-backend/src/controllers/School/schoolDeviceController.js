@@ -1,7 +1,7 @@
 import Inventory from "../../models/Inventory.js";
 import DeviceCategory from "../../models/Category.js";
 import Device from "../../models/Device.js";
-
+import User from "../../models/User.js";
 export const getInventories = async (req, res) => {
   try {
     const inventories = await Inventory.find({ location: "warehouse" });
@@ -124,13 +124,15 @@ export const getDevices = async (req, res) => {
 
 export const createDeviceWithInventory = async (req, res) => {
   try {
-    const { name, description = "", image = "", category_id, total = 0, available, broken = 0, location = "warehouse" } =
+    const { name, description = "", image = "", category_id, total = 0, location = "warehouse", userId } =
       req.body || {};
 
-
-      //65bf7b329c8f2b1a3d4e6a01
     if (!name || !category_id) {
       return res.status(400).json({ message: "name and category_id are required" });
+    }
+
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
     }
 
     if (!["warehouse", "lab"].includes(location)) {
@@ -142,19 +144,33 @@ export const createDeviceWithInventory = async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    const device = await Device.create({ name, description, image, category_id });
+    // Import User model để check role
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Kiểm tra role của user để set verify
+    const verify = user.role === "school_admin";
+
+    const device = await Device.create({ 
+      name, 
+      description, 
+      image, 
+      category_id, 
+      verify,
+      createdBy: userId 
+    });
 
     const parsedTotal = Number(total) || 0;
-    const parsedBroken = Number(broken) || 0;
-    const parsedAvailable =
-      available !== undefined && available !== null ? Number(available) : Math.max(parsedTotal - parsedBroken, 0);
 
     const inventory = await Inventory.create({
       device_id: device._id,
       location,
       total: parsedTotal,
-      available: parsedAvailable,
-      broken: parsedBroken
+      available: parsedTotal,
+      broken: 0
     });
 
     res.status(201).json({ success: true, data: { device, inventory } });

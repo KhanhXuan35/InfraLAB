@@ -4,23 +4,18 @@ import '../dashboard.css';
 
 function SchoolDashboard() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('inventory'); 
+  const [activeSection, setActiveSection] = useState('inventory');
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('newest'); 
+  const [sort, setSort] = useState('newest');
   const [categories, setCategories] = useState([]);
   const [devices, setDevices] = useState([]);
   const [inventories, setInventories] = useState([]);
-  const [requests, setRequests] = useState([]);
   const [selectedCategoryKey, setSelectedCategoryKey] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [requestLoading, setRequestLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [requestError, setRequestError] = useState(null);
-  const [processingRequestId, setProcessingRequestId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -32,37 +27,37 @@ function SchoolDashboard() {
     location: 'warehouse'
   });
 
+  // Lấy userId từ localStorage
+  const userString = localStorage.getItem('user');
+  const userId = userString ? JSON.parse(userString)?._id : null;
+
 
   // init state: khoi tao init
   // useeffect : call api be luu vao state
   // show state ra la dc
 
-  // Base URL cho tất cả API (ưu tiên biến môi trường Vite)
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-  // Tải danh mục, thiết bị, và tồn kho (chỉ khi đang ở tab inventory)
-   //1.lấy ra dữ liệu từ api và set vào user state(loại linh kiện, linh kiện ở kho schooll, và inventory tồn kho)
   const loadData = async () => {
     if (activeSection !== 'inventory') return;
     setLoading(true);
-    setError(null);  // load khi người dùng muốn lấy dữ liệu ở kho sẽ chuyển xuống bên dưới 
+    setError(null);
     try {
       const locationFilter = 'warehouse';
       const [catRes, devRes] = await Promise.all([
-        fetch(`${API_BASE}/device-categories`), // lấy ra danh mục linh kiện
-        fetch(`${API_BASE}/devices?location=${locationFilter}`)  // lấy ra danh sách thiết bị với filter location
+        fetch(`${API_BASE}/device-categories`),
+        fetch(`${API_BASE}/devices?location=${locationFilter}`)
       ]);
-      console.log(catRes, devRes);// Debug: Kiểm tra response
       if (!catRes.ok) throw new Error('Khong lay duoc danh sach loai linh kien');
       if (!devRes.ok) throw new Error('Khong lay duoc danh sach thiet bi');
 
-      const catData = await catRes.json();  // chuyển đổi response thành JSON
+      const catData = await catRes.json();
       const devData = await devRes.json();
-      
-      // đảm bảo xử lý cả hai trường hợp response là mảng trực tiếp hoặc đối tượng có trường data
+
+      // Handle different response formats
       const categoriesList = Array.isArray(catData) ? catData : (catData?.data || []);
       const devicesList = Array.isArray(devData) ? devData : (devData?.data || []);
-      
+
       // Debug: Log để kiểm tra category_id có được populate không
       console.log('=== DEBUG DEVICES DATA ===');
       console.log('First device:', devicesList[0]);
@@ -71,7 +66,7 @@ function SchoolDashboard() {
       console.log('First device category_id name:', devicesList[0]?.category_id?.name);
       console.log('Categories list:', categoriesList);
       console.log('========================');
-      
+
       setCategories(categoriesList);
       setDevices(devicesList);
 
@@ -89,26 +84,25 @@ function SchoolDashboard() {
     }
   };
 
-  // Khi đổi tab (activeSection) thì tải lại dữ liệu
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection]);
 
-  //2. Lọc và sắp xếp danh sách thiết bị theo tìm kiếm, danh mục, và thứ tự
   const filteredDevices = useMemo(() => {
     if (!devices || !Array.isArray(devices)) {
       return [];
-    }   // kiểm tra xem devices có hợp lệ không
-    
+    }
+
     const list = devices.filter((item) => {
-      if (!item) return false; // loại bỏ mục không hợp lệ , gán callback vào item
-      // tìm kiếm theo tên
+      if (!item) return false;
+
+      // Filter by name
       const nameMatches = (item.name || '').toLowerCase().includes((search || '').toLowerCase().trim());
 
       // Filter by category - handle both populated object and ID string
-      let deviceCategoryId = ''; // logic xử lý lọc theo loại linh kiện
-      
+      let deviceCategoryId = '';
+
       if (item.category) {
         // If category_id is populated object (from populate) - most common case
         if (typeof item.category === 'object' && item.category !== null) {
@@ -124,7 +118,7 @@ function SchoolDashboard() {
           else {
             deviceCategoryId = String(item.category._id);
           }
-        } 
+        }
         // If category_id is just an ID string
         else if (typeof item.category._id === 'string') {
           deviceCategoryId = item.category._id;
@@ -140,7 +134,7 @@ function SchoolDashboard() {
       const normalizedSelectedCategoryKey = selectedCategoryKey ? String(selectedCategoryKey).trim().toLowerCase() : '';
 
       const categoryMatches =
-        selectedCategoryKey === 'all' || 
+        selectedCategoryKey === 'all' ||
         (normalizedDeviceCategoryId && normalizedDeviceCategoryId === normalizedSelectedCategoryKey);
 
       return nameMatches && categoryMatches;
@@ -152,7 +146,7 @@ function SchoolDashboard() {
     });
   }, [devices, search, sort, selectedCategoryKey]);
 
-  const resetForm = () => {
+  const resetForm = () =>
     setFormData({
       name: '',
       description: '',
@@ -163,35 +157,7 @@ function SchoolDashboard() {
       broken: 0,
       location: 'warehouse'
     });
-    clearImagePreview();
-  };
 
-  const clearImagePreview = () => setImagePreview('');
-
-  // Đọc file ảnh, chuyển sang data URL để preview và lưu vào form
-  const handleImageChange = (file) => {
-    setError(null);
-    if (!file) {
-      setFormData((prev) => ({ ...prev, image: '' }));
-      clearImagePreview();
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      setError('Vui lòng chọn tệp ảnh hợp lệ');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const dataUrl = reader.result || '';
-      setFormData((prev) => ({ ...prev, image: dataUrl }));
-      setImagePreview(dataUrl);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Mở modal chỉnh sửa: đổ dữ liệu thiết bị + tồn kho vào form
   const openEdit = (device) => {
     const devId = device._id || device.id || '';
     const inv = inventories.find((i) => {
@@ -209,12 +175,10 @@ function SchoolDashboard() {
       broken: inv?.broken ?? 0,
       location: inv?.location || 'warehouse'
     });
-    setImagePreview(device.image || '');
     setEditingId(devId);
     setShowAddModal(true);
   };
 
-  // Xóa thiết bị và tải lại danh sách
   const handleDelete = async (device) => {
     const devId = device._id || device.id || '';
     if (!devId) return;
@@ -236,17 +200,30 @@ function SchoolDashboard() {
     }
   };
 
-  // Tạo mới / cập nhật thiết bị từ form, rồi tải lại danh sách
   const handleSubmit = async () => {
     setSaving(true);
     setError(null);
     try {
-      const payload = {
-        ...formData,
+      const payload = editingId ? {
+        name: formData.name,
+        description: formData.description || '',
+        image: formData.image || '',
+        category_id: formData.category_id,
         total: Number(formData.total) || 0,
         available: formData.available === '' ? undefined : Math.max(Number(formData.available) || 0, 0),
-        broken: Number(formData.broken) || 0
+        broken: Number(formData.broken) || 0,
+        location: formData.location || 'warehouse',
+        userId
+      } : {
+        name: formData.name,
+        description: formData.description || '',
+        image: formData.image || '',
+        category_id: formData.category_id,
+        total: Number(formData.total) || 0,
+        location: formData.location || 'warehouse',
+        userId
       };
+
       const method = editingId ? 'PUT' : 'POST';
       const url = editingId ? `${API_BASE}/devices/${editingId}` : `${API_BASE}/devices`;
 
@@ -275,8 +252,8 @@ function SchoolDashboard() {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-top">
-          <div 
-            className="brand" 
+          <div
+            className="brand"
             onClick={() => {
               // Navigate về trang chủ theo role
               const userString = localStorage.getItem('user');
@@ -341,7 +318,7 @@ function SchoolDashboard() {
                 className="header-search-input"
               />
             </div>
-            <div 
+            <div
               className="main-user"
               onClick={() => navigate('/profile')}
               style={{ cursor: 'pointer' }}
@@ -391,14 +368,7 @@ function SchoolDashboard() {
                   </select>
                 </div>
 
-                <button
-                  className="button-primary add-device-btn"
-                  onClick={() => {
-                    setEditingId(null);
-                    resetForm();
-                    setShowAddModal(true);
-                  }}
-                >
+                <button className="button-primary add-device-btn" onClick={() => setShowAddModal(true)}>
                   Thêm Thiết Bị
                 </button>
               </div>
@@ -409,19 +379,18 @@ function SchoolDashboard() {
             {!loading && !error && filteredDevices.length === 0 && (
               <div className="inventory-status">Khong co thiet bi phu hop</div>
             )}
-            {!loading && !error && filteredDevices.length > 0 && ( // list ra danh sach thiet bi
+            {!loading && !error && filteredDevices.length > 0 && (
               <div className="device-table-wrapper">
                 <table className="device-table">
                   <thead>
                     <tr>
-                      <th>STT</th>
-                      <th>Tên Linh Kiện</th>
-                      <th>Danh Mục</th>
-                      <th>Tổng</th>
-                      <th>Đang Rảnh</th>
-                      <th>Đang Mượn</th>
-                      <th>Hỏng</th>
-                      <th></th>
+                      <th>#</th>
+                      <th>Ten Thiet Bi</th>
+                      <th>Danh Muc</th>
+                      <th>Tong</th>
+                      <th>Dang Ranh</th>
+                      <th>Dang Muon</th>
+                      <th>Hong</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -442,7 +411,7 @@ function SchoolDashboard() {
                           categoryName = device.category.name;
                         } else {
                           // If it's just an ID, try to find in categories list
-                          const category = categories.find(cat => 
+                          const category = categories.find(cat =>
                             cat && (String(cat._id) === String(device.category))
                           );
                           categoryName = category?.name || 'N/A';
@@ -460,14 +429,9 @@ function SchoolDashboard() {
                           <td className="text-danger">{broken}</td>
                           <td>
                             <div className="table-actions">
-                              <button
-                                className="btn-view"
-                                onClick={() => navigate(`/school/device/${devId}`)}
-                              >
-                                Xem
-                              </button>
-                              <button className="btn-edit" onClick={() => openEdit(device)}>Sửa</button>
-                              <button className="btn-delete" onClick={() => handleDelete(device)}>Xóa</button>
+                              <button className="btn-view">Xem</button>
+                              <button className="btn-edit" onClick={() => openEdit(device)}>Sua</button>
+                              <button className="btn-delete" onClick={() => handleDelete(device)}>Xoa</button>
                             </div>
                           </td>
                         </tr>
@@ -485,52 +449,43 @@ function SchoolDashboard() {
         <div className="modal-backdrop">
           <div className="modal">
             <div className="modal-header">
-              <h3>Thêm Thiết Bị</h3>
+              <h3>{editingId ? 'Sua thiet bi' : 'Them thiet bi'}</h3>
               <button className="modal-close" onClick={() => setShowAddModal(false)}>
                 ×
               </button>
             </div>
             <div className="modal-body">
               <div className="form-row">
-                <label>Tên thiết bị</label>
+                <label>Ten thiet bi</label>
                 <input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Nhập tên"
+                  placeholder="Nhap ten"
                 />
               </div>
               <div className="form-row">
-                <label>Mô tả</label>
+                <label>Mo ta</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Mô tả ngắn"
+                  placeholder="Mo ta ngan"
                 />
               </div>
               <div className="form-row">
-                <label>Hình Ảnh</label>
-                <div className="image-upload">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageChange(e.target.files?.[0])}
-                  />
-                  {imagePreview || formData.image ? (
-                    <div className="image-upload-preview">
-                      <img src={imagePreview || formData.image} alt="Preview" />
-                    </div>
-                  ) : (
-                    <div className="image-upload-hint">Chọn file từ máy (png, jpg, webp...)</div>
-                  )}
-                </div>
+                <label>Hinh anh (URL)</label>
+                <input
+                  value={formData.image}
+                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                  placeholder="https://..."
+                />
               </div>
               <div className="form-row">
-                <label>Loại Linh Kiện</label>
+                <label>Loai linh kien</label>
                 <select
                   value={formData.category_id}
                   onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                 >
-                  <option value="">Chọn loại</option>
+                  <option value="">Chon loai</option>
                   {categories.map((cat) => (
                     <option key={cat._id || cat.name} value={cat._id || ''}>
                       {cat.name}
@@ -538,35 +493,53 @@ function SchoolDashboard() {
                   ))}
                 </select>
               </div>
-              <div className="form-row three-cols">
-                <div>
-                  <label>Tổng</label>
+              {editingId ? (
+                // Khi sửa: hiển thị đầy đủ 3 trường
+                <div className="form-row three-cols">
+                  <div>
+                    <label>Tong</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.total}
+                      onChange={(e) => setFormData({ ...formData, total: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label>Dang ranh</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.available}
+                      onChange={(e) => setFormData({ ...formData, available: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label>Hong</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.broken}
+                      onChange={(e) => setFormData({ ...formData, broken: e.target.value })}
+                    />
+                  </div>
+                </div>
+              ) : (
+                // Khi thêm mới: chỉ hiển thị trường Tổng
+                <div className="form-row">
+                  <label>Tong so luong</label>
                   <input
                     type="number"
                     min="0"
                     value={formData.total}
                     onChange={(e) => setFormData({ ...formData, total: e.target.value })}
+                    placeholder="Nhap tong so luong thiet bi"
                   />
+                  <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                    Khi them moi, tat ca thiet bi se duoc danh dau la "dang ranh"
+                  </small>
                 </div>
-                <div>
-                  <label>Đang Còn</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.available}
-                    onChange={(e) => setFormData({ ...formData, available: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label>Hong</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.broken}
-                    onChange={(e) => setFormData({ ...formData, broken: e.target.value })}
-                  />
-                </div>
-              </div>
+              )}
               <div className="form-row">
                 <label>Vi tri</label>
                 <select
@@ -574,16 +547,17 @@ function SchoolDashboard() {
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 >
                   <option value="warehouse">warehouse</option>
+                  <option value="lab">lab</option>
                 </select>
               </div>
               {error && <div className="inventory-status error">{error}</div>}
             </div>
             <div className="modal-footer">
-            <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
-                Hủy
+              <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
+                Huy
               </button>
               <button className="button-primary" disabled={saving} onClick={handleSubmit}>
-                {saving ? 'Đang lưu...' : 'Lưu'}
+                {saving ? 'Dang luu...' : 'Luu'}
               </button>
             </div>
           </div>
