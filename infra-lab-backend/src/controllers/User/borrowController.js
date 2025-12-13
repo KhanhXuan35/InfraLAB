@@ -66,19 +66,18 @@ export const createBorrowRequest = async (req, res) => {
       }
     }
 
-    // Trừ tồn kho lab ngay khi mượn
+    // Trừ tồn kho lab ngay khi mượn (chỉ thay đổi available, không thay đổi total)
     for (const item of items) {
       const inv = inventories.find((i) => i.device_id.toString() === item.device_id);
       const newAvailable = (inv.available || 0) - item.quantity;
-      const newTotal = (inv.total || 0) - item.quantity;
-      if (newAvailable < 0 || newTotal < 0) {
+      if (newAvailable < 0) {
         return res.status(400).json({
           success: false,
           message: "Tồn kho không đủ",
         });
       }
       await Inventory.findByIdAndUpdate(inv._id, {
-        $set: { available: newAvailable, total: newTotal },
+        $set: { available: newAvailable },
       });
     }
 
@@ -204,6 +203,104 @@ export const getLoanDeviceList = async (req, res) => {
     });
   } catch (error) {
     console.error("getLoanDeviceList error:", error);
+    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
+  }
+};
+
+// Lấy lịch sử mượn của một thiết bị (chỉ của người khác)
+export const getDeviceBorrowHistory = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { deviceId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (!deviceId || !mongoose.Types.ObjectId.isValid(deviceId)) {
+      return res.status(400).json({ success: false, message: "deviceId không hợp lệ" });
+    }
+
+    // Tìm các đơn mượn có chứa device này và không phải của user hiện tại
+    const borrows = await BorrowLab.find({
+      "items.device_id": deviceId,
+      student_id: { $ne: userId }, // Loại trừ đơn mượn của chính user
+    })
+      .populate({
+        path: "student_id",
+        select: "name email student_code phone",
+      })
+      .populate({
+        path: "items.device_id",
+        select: "name description image category_id",
+        populate: {
+          path: "category_id",
+          select: "name",
+        },
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Lọc chỉ lấy các item có device_id trùng với deviceId
+    const formattedBorrows = borrows
+      .map((borrow) => {
+        const deviceItem = borrow.items.find(
+          (item) => item.device_id._id.toString() === deviceId
+        );
+        if (!deviceItem) return null;
+
+        return {
+          _id: borrow._id,
+          student: {
+            _id: borrow.student_id._id,
+            name: borrow.student_id.name,
+            email: borrow.student_id.email,
+            student_code: borrow.student_id.student_code,
+            phone: borrow.student_id.phone,
+          },
+          device: {
+            _id: deviceItem.device_id._id,
+            name: deviceItem.device_id.name,
+            description: deviceItem.device_id.description,
+            image: deviceItem.device_id.image,
+            category: deviceItem.device_id.category_id
+              ? {
+                  _id: deviceItem.device_id.category_id._id,
+                  name: deviceItem.device_id.category_id.name,
+                }
+              : null,
+          },
+          quantity: deviceItem.quantity,
+          return_due_date: borrow.return_due_date,
+          purpose: borrow.purpose,
+          notes: borrow.notes,
+          status: borrow.status,
+          returned: borrow.returned,
+          createdAt: borrow.createdAt,
+          updatedAt: borrow.updatedAt,
+        };
+      })
+      .filter((item) => item !== null);
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const limitNum = parseInt(limit);
+    const paginatedBorrows = formattedBorrows.slice(skip, skip + limitNum);
+    const total = formattedBorrows.length;
+
+    res.status(200).json({
+      success: true,
+      data: paginatedBorrows,
+      pagination: {
+        page: parseInt(page),
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    console.error("getDeviceBorrowHistory error:", error);
     res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
   }
 };
