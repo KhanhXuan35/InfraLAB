@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Layout,
@@ -11,19 +11,17 @@ import {
   Space,
   Avatar,
   Empty,
-  Menu
+  Menu,
 } from 'antd';
 import {
   DashboardOutlined,
-  BankOutlined,
   ToolOutlined,
   CheckCircleOutlined,
-  UserOutlined,
   FileTextOutlined,
   SettingOutlined,
   LogoutOutlined,
   TeamOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
 import * as S from './SchoolAdminHomePage.styles';
@@ -89,6 +87,9 @@ const SchoolAdminHomePage = () => {
       icon: <ToolOutlined />,
       label: 'Quản lý thiết bị',
     },
+    { key: 'borrow-requests', 
+      icon: <CheckCircleOutlined />,
+       label: 'Yêu cầu mượn' },
     {
       key: 'requests',
       icon: <CheckCircleOutlined />,
@@ -113,6 +114,12 @@ const SchoolAdminHomePage = () => {
       color: '#1890ff',
       onClick: () => navigate('/school/dashboard'),
     },
+    { title: 'Yêu cầu mượn', icon: <CheckCircleOutlined />, 
+      color: '#13c2c2', 
+      onClick: () => navigate('/school/borrow-requests') },
+    { title: 'Duyệt yêu cầu', 
+      icon: <CheckCircleOutlined />, 
+      color: '#52c41a', onClick: () => navigate('/requests') },
     {
       title: 'Danh sach sửa chữa',
       icon: <CheckCircleOutlined />,
@@ -150,10 +157,9 @@ const SchoolAdminHomePage = () => {
           overflow: 'auto',
         }}
       >
-        <div 
+        <div
           style={{ padding: 24, textAlign: 'center', borderBottom: '1px solid #303030', cursor: 'pointer' }}
           onClick={() => {
-            // Navigate về trang chủ theo role
             const userString = localStorage.getItem('user');
             if (userString) {
               const userData = JSON.parse(userString);
@@ -165,10 +171,10 @@ const SchoolAdminHomePage = () => {
               } else if (role === 'student') {
                 navigate('/user-dashboard');
               } else {
-                navigate('/school-dashboard'); // Default
+                navigate('/school-dashboard');
               }
             } else {
-              navigate('/school-dashboard'); // Default nếu không có user
+              navigate('/school-dashboard');
             }
           }}
         >
@@ -187,20 +193,13 @@ const SchoolAdminHomePage = () => {
           style={{ borderRight: 0, marginTop: 16 }}
           onSelect={({ key }) => {
             setSelectedMenu(key);
-            // Navigate based on menu key
-            if (key === 'overview') {
-              navigate('/school-dashboard');
-            } else if (key === 'devices') {
-              navigate('/school/dashboard');
-            } else if (key === 'requests') {
-              navigate('/requests');
-            } else if (key === 'reports') {
-              navigate('/reports');
-            } else if (key === 'settings') {
-              navigate('/settings');
-            } else if (key === 'profile') {
-              navigate('/profile');
-            }
+            if (key === 'overview') navigate('/school-dashboard');
+            else if (key === 'devices') navigate('/school/dashboard');
+            else if (key === 'borrow-requests') navigate('/school/borrow-requests');
+            else if (key === 'requests') navigate('/requests');
+            else if (key === 'reports') navigate('/reports');
+            else if (key === 'settings') navigate('/settings');
+            else if (key === 'profile') navigate('/profile');
           }}
         />
         <div
@@ -215,25 +214,23 @@ const SchoolAdminHomePage = () => {
           }}
           onClick={handleLogout}
         >
-          <Button
-            type="text"
-            icon={<LogoutOutlined />}
-            style={{ width: '100%', color: '#fff' }}
-          >
+          <Button type="text" icon={<LogoutOutlined />} style={{ width: '100%', color: '#fff' }}>
             Đăng xuất
           </Button>
         </div>
       </Sider>
 
       <Layout style={{ marginLeft: 260 }}>
-        <LayoutHeader style={{ 
-          background: '#fff', 
-          padding: '0 24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
+        <LayoutHeader
+          style={{
+            background: '#fff',
+            padding: '0 24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <Title level={4} style={{ margin: 0 }}>
             Dashboard Quản trị Hệ thống
           </Title>
@@ -246,7 +243,6 @@ const SchoolAdminHomePage = () => {
         </LayoutHeader>
 
         <Content style={{ margin: '24px', minHeight: 280 }}>
-          {/* Welcome Section */}
           <Card style={{ marginBottom: 24 }}>
             <Title level={3} style={{ marginBottom: 8 }}>
               Quản trị Hệ thống Quản lý Lab
@@ -256,52 +252,30 @@ const SchoolAdminHomePage = () => {
             </Paragraph>
           </Card>
 
-          {/* Stats Cards */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={12} lg={6}>
               <Card>
-                <Statistic
-                  title="Tổng thiết bị"
-                  value={stats.totalDevices}
-                  prefix={<ToolOutlined />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
+                <Statistic title="Tổng thiết bị" value={stats.totalDevices} prefix={<ToolOutlined />} valueStyle={{ color: '#1890ff' }} />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card>
-                <Statistic
-                  title="Thiết bị đang hoạt động"
-                  value={stats.activeDevices}
-                  prefix={<CheckCircleOutlined />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
+                <Statistic title="Thiết bị hoạt động" value={stats.activeDevices} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#52c41a' }} />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card>
-                <Statistic
-                  title="Yêu cầu chờ duyệt"
-                  value={stats.pendingRequests}
-                  prefix={<ClockCircleOutlined />}
-                  valueStyle={{ color: '#faad14' }}
-                />
+                <Statistic title="Yêu cầu chờ duyệt" value={stats.pendingRequests} prefix={<ClockCircleOutlined />} valueStyle={{ color: '#faad14' }} />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card>
-                <Statistic
-                  title="Thiết bị hỏng/sửa"
-                  value={stats.brokenDevices}
-                  prefix={<ToolOutlined />}
-                  valueStyle={{ color: '#ff4d4f' }}
-                />
+                <Statistic title="Thiết bị hỏng/sửa" value={stats.brokenDevices} prefix={<ToolOutlined />} valueStyle={{ color: '#ff4d4f' }} />
               </Card>
             </Col>
           </Row>
 
           <Row gutter={[16, 16]}>
-            {/* Quick Actions */}
             <Col xs={24} lg={14}>
               <Card title="Hành động nhanh">
                 <Row gutter={[12, 12]}>
@@ -330,7 +304,6 @@ const SchoolAdminHomePage = () => {
               </Card>
             </Col>
 
-            {/* Recent Activities */}
             <Col xs={24} lg={10}>
               <Card title="Hoạt động gần đây" extra={<Button type="link">Xem tất cả</Button>}>
                 <Empty

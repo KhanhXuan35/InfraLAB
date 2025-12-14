@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Layout,
@@ -22,6 +22,7 @@ import {
   ShoppingOutlined,
   FileTextOutlined,
   BellOutlined,
+  AppstoreOutlined,
   PlusOutlined,
   SwapOutlined,
   SearchOutlined,
@@ -74,7 +75,6 @@ const LabManagerHomePage = () => {
           });
         }
 
-        // Lấy hoạt động gần đây
         const activitiesResponse = await api.get('/dashboard/activities?limit=10');
         if (activitiesResponse.success) {
           setActivities(activitiesResponse.data || []);
@@ -107,14 +107,15 @@ const LabManagerHomePage = () => {
       case 'chat':
         navigate('/chat');
         break;
+      case 'school-inventory':
+        navigate('/lab-manager/school-devices');
+        break;
       case 'borrow':
         navigate('/lab-manager/borrow-return');
         break;
       case 'reports':
-        // Navigate to reports page
         break;
       case 'notifications':
-        // Navigate to notifications page
         break;
       case 'students':
         navigate('/lab-manager/students');
@@ -127,7 +128,6 @@ const LabManagerHomePage = () => {
   const handleQuickAction = (key) => {
     switch (key) {
       case 'add-device':
-        // Navigate to add device
         break;
       case 'record':
         navigate('/lab-manager/borrow-return');
@@ -136,7 +136,6 @@ const LabManagerHomePage = () => {
         navigate('/lab-manager/devices');
         break;
       case 'export':
-        // Handle export
         break;
       default:
         break;
@@ -189,8 +188,11 @@ const LabManagerHomePage = () => {
       color: '#1890ff',
       key: 'add-device',
     },
+    { key: 'school-inventory', 
+      icon: <AppstoreOutlined />, 
+      label: 'Kho School' },
     {
-      title: 'Danh sách thiết bị mượn',
+      title: 'Ghi nhận mượn/trả',
       icon: <SwapOutlined />,
       color: '#722ed1',
       key: 'record',
@@ -210,7 +212,7 @@ const LabManagerHomePage = () => {
   ];
 
   if (loading) {
-    return <S.LoadingContainer>Đang tải...</S.LoadingContainer>;
+    return <S.LoadingContainer>Dang tai...</S.LoadingContainer>;
   }
 
   return (
@@ -231,7 +233,7 @@ const LabManagerHomePage = () => {
             InFra<span style={{ color: '#1890ff' }}>Lab</span>
           </Title>
           <Text type="secondary" style={{ color: '#8c8c8c', fontSize: 12 }}>
-            QUẢN LÝ PHÒNG LAB
+            QUAN LY PHONG LAB
           </Text>
         </div>
         <Menu
@@ -259,25 +261,27 @@ const LabManagerHomePage = () => {
             icon={<LogoutOutlined />}
             style={{ width: '100%', color: '#fff' }}
           >
-            Đăng xuất
+            Dang xuat
           </Button>
         </div>
       </Sider>
 
       <Layout style={{ marginLeft: 250 }}>
-        <LayoutHeader style={{
-          background: '#fff',
-          padding: '0 24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
+        <LayoutHeader
+          style={{
+            background: '#fff',
+            padding: '0 24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <Title level={4} style={{ margin: 0 }}>
-            Dashboard Quản lý Lab
+            Dashboard Quan ly Lab
           </Title>
           <Space>
-            <Text>Xin chào, {user?.name || 'Giáo viên'}!</Text>
+            <Text>Xin chao, {user?.name || 'Giao vien'}!</Text>
             <Avatar style={{ backgroundColor: '#1890ff' }}>
               {user?.name?.charAt(0) || 'G'}
             </Avatar>
@@ -285,12 +289,11 @@ const LabManagerHomePage = () => {
         </LayoutHeader>
 
         <Content style={{ margin: '24px', minHeight: 280 }}>
-          {/* Stats Cards */}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={12} lg={6}>
               <Card loading={loading}>
                 <Statistic
-                  title="Tổng tài sản"
+                  title="Tong tai san"
                   value={stats.totalAssets}
                   prefix={<ToolOutlined />}
                   valueStyle={{ color: '#1890ff' }}
@@ -300,7 +303,7 @@ const LabManagerHomePage = () => {
             <Col xs={24} sm={12} lg={6}>
               <Card loading={loading}>
                 <Statistic
-                  title="Đang hoạt động"
+                  title="Dang hoat dong"
                   value={stats.active}
                   prefix={<CheckCircleOutlined />}
                   valueStyle={{ color: '#52c41a' }}
@@ -310,7 +313,7 @@ const LabManagerHomePage = () => {
             <Col xs={24} sm={12} lg={6}>
               <Card loading={loading}>
                 <Statistic
-                  title="Đang sửa chữa"
+                  title="Dang sua chua"
                   value={stats.underRepair}
                   prefix={<WarningOutlined />}
                   valueStyle={{ color: '#faad14' }}
@@ -320,7 +323,7 @@ const LabManagerHomePage = () => {
             <Col xs={24} sm={12} lg={6}>
               <Card loading={loading}>
                 <Statistic
-                  title="Hỏng/Thay thế"
+                  title="Hong/Thay the"
                   value={stats.broken}
                   prefix={<CloseCircleOutlined />}
                   valueStyle={{ color: '#f5222d' }}
@@ -330,9 +333,8 @@ const LabManagerHomePage = () => {
           </Row>
 
           <Row gutter={[16, 16]}>
-            {/* Recent Activities */}
             <Col xs={24} lg={12}>
-              <Card title="Hoạt động gần đây" extra={<Button type="link">Xem tất cả</Button>}>
+              <Card title="Hoat dong gan day" extra={<Button type="link">Xem tat ca</Button>}>
                 {activities.length > 0 ? (
                   <List
                     dataSource={activities}
@@ -360,9 +362,7 @@ const LabManagerHomePage = () => {
                               }
                             />
                           }
-                          title={
-                            <Text style={{ fontSize: 14 }}>{item.message}</Text>
-                          }
+                          title={<Text style={{ fontSize: 14 }}>{item.message}</Text>}
                           description={
                             <Text type="secondary" style={{ fontSize: 12 }}>
                               {new Date(item.createdAt).toLocaleString('vi-VN')}
@@ -373,17 +373,13 @@ const LabManagerHomePage = () => {
                     )}
                   />
                 ) : (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Chưa có hoạt động nào"
-                  />
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chua co hoat dong nao" />
                 )}
               </Card>
             </Col>
 
-            {/* Quick Actions */}
             <Col xs={24} lg={12}>
-              <Card title="Hành động nhanh">
+              <Card title="Hanh dong nhanh">
                 <Row gutter={[12, 12]}>
                   {quickActions.map((action, index) => (
                     <Col xs={12} key={index}>

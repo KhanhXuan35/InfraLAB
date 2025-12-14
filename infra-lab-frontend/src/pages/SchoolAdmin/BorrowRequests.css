@@ -1,0 +1,32 @@
+.br-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.br-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.br-thumb {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.br-thumb-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f6f8;
+  color: #999;
+}
+
+.br-actions {
+  display: flex;
+  gap: 8px;
+}

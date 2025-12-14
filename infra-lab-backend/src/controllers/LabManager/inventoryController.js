@@ -6,6 +6,7 @@ export const getLabDevices = async (req, res) => {
     const inventories = await Inventory.find({ location: "lab" })
       .populate({
         path: "device_id",
+        match: { verify: true },
         populate: { path: "category_id" }
       })
       .lean();
@@ -66,6 +67,7 @@ export const filterInventory = async (req, res) => {
     const inventories = await Inventory.find(mongoFilter)
       .populate({
         path: "device_id",
+        match: { verify: true },
         model: Device,
         populate: { path: "category_id" }
       })

@@ -1,7 +1,7 @@
 import Inventory from "../../models/Inventory.js";
 import DeviceCategory from "../../models/Category.js";
 import Device from "../../models/Device.js";
-
+import User from "../../models/User.js";
 export const getInventories = async (req, res) => {
   try {
     const inventories = await Inventory.find({ location: "warehouse" });
@@ -139,13 +139,15 @@ export const getDevices = async (req, res) => {
 
 export const createDeviceWithInventory = async (req, res) => {
   try {
-    const { name, description = "", image = "", category_id, total = 0, available, broken = 0, location = "warehouse" } =
+    const { name, description = "", image = "", category_id, total = 0, location = "warehouse", userId } =
       req.body || {};
 
-
-      //65bf7b329c8f2b1a3d4e6a01
     if (!name || !category_id) {
       return res.status(400).json({ message: "name and category_id are required" });
+    }
+
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
     }
 
     if (!["warehouse", "lab"].includes(location)) {
@@ -157,19 +159,33 @@ export const createDeviceWithInventory = async (req, res) => {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    const device = await Device.create({ name, description, image, category_id });
+    // Import User model để check role
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Kiểm tra role của user để set verify
+    const verify = user.role === "school_admin";
+
+    const device = await Device.create({ 
+      name, 
+      description, 
+      image, 
+      category_id, 
+      verify,
+      createdBy: userId 
+    });
 
     const parsedTotal = Number(total) || 0;
-    const parsedBroken = Number(broken) || 0;
-    const parsedAvailable =
-      available !== undefined && available !== null ? Number(available) : Math.max(parsedTotal - parsedBroken, 0);
 
     const inventory = await Inventory.create({
       device_id: device._id,
       location,
       total: parsedTotal,
-      available: parsedAvailable,
-      broken: parsedBroken
+      available: parsedTotal,
+      broken: 0
     });
 
     res.status(201).json({ success: true, data: { device, inventory } });
@@ -248,6 +264,82 @@ export const deleteDeviceWithInventory = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete device", error: error.message });
   }
 };
+// Lấy danh sách device chưa verify (verify = false)
+export const getPendingDevices = async (req, res) => {
+  try {
+    const devices = await Device.find({ verify: false })
+      .populate('category_id', 'name description')
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+    // Lấy thông tin inventory cho mỗi device
+    const devicesWithInventory = await Promise.all(
+      devices.map(async (device) => {
+        const inventory = await Inventory.findOne({ device_id: device._id });
+        return {
+          _id: device._id,
+          name: device.name,
+          description: device.description,
+          image: device.image,
+          category: device.category_id,
+          createdBy: device.createdBy,
+          inventory: inventory ? {
+            total: inventory.total,
+            location: inventory.location
+          } : null,
+          createdAt: device.createdAt
+        };
+      })
+    );
+
+    res.json({ success: true, data: devicesWithInventory });
+  } catch (error) {
+    console.error('getPendingDevices error:', error);
+    res.status(500).json({ success: false, message: "Failed to fetch pending devices", error: error.message });
+  }
+};
+
+// Duyệt device (set verify = true)
+export const approveDevice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const device = await Device.findById(id);
+    
+    if (!device) {
+      return res.status(404).json({ success: false, message: "Device not found" });
+    }
+    
+    if (device.verify) {
+      return res.status(400).json({ success: false, message: "Device already verified" });
+    }
+
+    device.verify = true;
+    await device.save();
+
+    res.json({ success: true, message: "Device approved", data: device });
+  } catch (error) {
+    console.error('approveDevice error:', error);
+    res.status(500).json({ success: false, message: "Failed to approve device", error: error.message });
+  }
+};
+// Từ chối device (xóa device và inventory)
+export const rejectDevice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const device = await Device.findById(id);
+    
+    if (!device) {
+      return res.status(404).json({ success: false, message: "Device not found" });
+    }
+
+    await Inventory.deleteMany({ device_id: id });
+    await Device.deleteOne({ _id: id });
+
+    res.json({ success: true, message: "Device rejected and deleted" });
+  } catch (error) {
+    console.error('rejectDevice error:', error);
+    res.status(500).json({ success: false, message: "Failed to reject device", error: error.message });
+  }
+};
 // categories = [
     //   {
     //     "_id": "65bf7b329c8f2b1a3d4e6a21",
@@ -262,3 +354,5 @@ export const deleteDeviceWithInventory = async (req, res) => {
     //     "createdAt": "2024-01-01T00:00:00.000Z",
     //   }
     // ]
+
+  

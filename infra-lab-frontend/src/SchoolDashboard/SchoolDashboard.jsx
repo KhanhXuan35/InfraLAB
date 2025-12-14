@@ -4,9 +4,9 @@ import '../dashboard.css';
 
 function SchoolDashboard() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('inventory'); 
+  const [activeSection, setActiveSection] = useState('inventory');
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('newest'); 
+  const [sort, setSort] = useState('newest');
   const [categories, setCategories] = useState([]);
   const [devices, setDevices] = useState([]);
   const [inventories, setInventories] = useState([]);
@@ -14,8 +14,11 @@ function SchoolDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingDevice, setViewingDevice] = useState(null);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [modalError, setModalError] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -26,6 +29,10 @@ function SchoolDashboard() {
     broken: 0,
     location: 'warehouse'
   });
+
+  // Lấy userId từ localStorage
+  const userString = localStorage.getItem('user');
+  const userId = userString ? JSON.parse(userString)?._id : null;
 
 
   // init state: khoi tao init
@@ -49,20 +56,10 @@ function SchoolDashboard() {
 
       const catData = await catRes.json();
       const devData = await devRes.json();
-      
+
       // Handle different response formats
       const categoriesList = Array.isArray(catData) ? catData : (catData?.data || []);
       const devicesList = Array.isArray(devData) ? devData : (devData?.data || []);
-      
-      // Debug: Log để kiểm tra category_id có được populate không
-      console.log('=== DEBUG DEVICES DATA ===');
-      console.log('First device:', devicesList[0]);
-      console.log('First device category_id:', devicesList[0]?.category_id);
-      console.log('First device category_id type:', typeof devicesList[0]?.category_id);
-      console.log('First device category_id name:', devicesList[0]?.category_id?.name);
-      console.log('Categories list:', categoriesList);
-      console.log('========================');
-      
       setCategories(categoriesList);
       setDevices(devicesList);
 
@@ -85,62 +82,45 @@ function SchoolDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection]);
 
-  const filteredDevices = useMemo(() => {
-    if (!devices || !Array.isArray(devices)) {
-      return [];
-    }
-    
-    const list = devices.filter((item) => {
-      if (!item) return false;
-      
-      // Filter by name
-      const nameMatches = (item.name || '').toLowerCase().includes((search || '').toLowerCase().trim());
+const filteredDevices = useMemo(() => {
+  if (!Array.isArray(devices)) return [];
 
-      // Filter by category - handle both populated object and ID string
-      let deviceCategoryId = '';
-      
-      if (item.category) {
-        // If category_id is populated object (from populate) - most common case
-        if (typeof item.category === 'object' && item.category !== null) {
-          // Check if it has _id property (populated object from MongoDB)
-          if (item.category._id) {
-            // Handle both ObjectId and string
-            deviceCategoryId = item.category._id.toString ? item.category._id.toString() : String(item.category._id);
-          }
-          // If it's an object but no _id, it might be the ID itself
-          else if (item.category.toString) {
-            deviceCategoryId = item.category.toString();
-          }
-          else {
-            deviceCategoryId = String(item.category._id);
-          }
-        } 
-        // If category_id is just an ID string
-        else if (typeof item.category._id === 'string') {
-          deviceCategoryId = item.category._id;
-        }
-        // Fallback for other formats
-        else {
-          deviceCategoryId = String(item.category._id);
-        }
-      }
+  const list = devices.filter((item) => {
+    if (!item) return false;
 
-      // Normalize both IDs for comparison - remove any whitespace and convert to string
-      const normalizedDeviceCategoryId = deviceCategoryId ? deviceCategoryId.trim().toLowerCase() : '';
-      const normalizedSelectedCategoryKey = selectedCategoryKey ? String(selectedCategoryKey).trim().toLowerCase() : '';
+    const nameMatches = (item.name || '')
+      .toLowerCase()
+      .includes((search || '').toLowerCase().trim());
 
-      const categoryMatches =
-        selectedCategoryKey === 'all' || 
-        (normalizedDeviceCategoryId && normalizedDeviceCategoryId === normalizedSelectedCategoryKey);
+    // Lấy category từ category_id hoặc category (object hoặc id)
+    const catField = item.category_id ?? item.category;
+    const deviceCategoryId =
+      catField && typeof catField === 'object'
+        ? catField._id ?? catField // populated object hoặc obj {_id}
+        : catField;                // id dạng string/number
 
-      return nameMatches && categoryMatches;
-    });
+    const normalizedDeviceCategoryId = deviceCategoryId
+      ? String(deviceCategoryId).trim().toLowerCase()
+      : '';
+    const normalizedSelectedCategoryKey = selectedCategoryKey
+      ? String(selectedCategoryKey).trim().toLowerCase()
+      : '';
 
-    return list.sort((a, b) => {
-      if (sort === 'newest') return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
-      return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
-    });
-  }, [devices, search, sort, selectedCategoryKey]);
+    const categoryMatches =
+      selectedCategoryKey === 'all' ||
+      (normalizedDeviceCategoryId &&
+        normalizedDeviceCategoryId === normalizedSelectedCategoryKey);
+
+    return nameMatches && categoryMatches;
+  });
+
+  return list.sort((a, b) => {
+    if (sort === 'newest')
+      return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
+    return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
+  });
+}, [devices, search, sort, selectedCategoryKey]);
+
 
   const resetForm = () =>
     setFormData({
@@ -153,6 +133,41 @@ function SchoolDashboard() {
       broken: 0,
       location: 'warehouse'
     });
+
+  const openView = (device) => {
+    const devId = device._id || device.id || '';
+    const inv = inventories.find((i) => {
+      const iDev = i.device_id?._id || i.device_id || '';
+      return String(iDev) === String(devId);
+    });
+
+    // Get category name
+    let categoryName = 'N/A';
+    const catField = device.category_id ?? device.category;
+    if (catField && typeof catField === 'object' && catField.name) {
+      categoryName = catField.name;
+    } else {
+      const catId = catField?._id || catField;
+      const found = categories.find(cat => String(cat._id) === String(catId));
+      categoryName = found?.name || 'N/A';
+    }
+
+    const total = inv?.total ?? 0;
+    const available = inv?.available ?? 0;
+    const broken = inv?.broken ?? 0;
+    const borrowing = Math.max(total - available - broken, 0);
+
+    setViewingDevice({
+      ...device,
+      categoryName,
+      total,
+      available,
+      broken,
+      borrowing,
+      location: inv?.location || 'warehouse'
+    });
+    setShowViewModal(true);
+  };
 
   const openEdit = (device) => {
     const devId = device._id || device.id || '';
@@ -198,21 +213,53 @@ function SchoolDashboard() {
 
   const handleSubmit = async () => {
     setSaving(true);
-    setError(null);
+    setModalError(null);
     try {
-      const payload = {
-        ...formData,
+      // Validation khi sửa
+      if (editingId) {
+        const total = Number(formData.total) || 0;
+        const available = Number(formData.available) || 0;
+        const broken = Number(formData.broken) || 0;
+
+        if (available < 0 || broken < 0) {
+          setModalError('So luong khong duoc am');
+          setSaving(false);
+          return;
+        }
+        if (available + broken > total) {
+          setModalError('Tong dang ranh + hong khong duoc vuot qua tong');
+          setSaving(false);
+          return;
+        }
+      }
+
+      const payload = editingId ? {
+        name: formData.name,
+        description: formData.description || '',
+        image: formData.image || '',
+        category_id: formData.category_id,
         total: Number(formData.total) || 0,
         available: formData.available === '' ? undefined : Math.max(Number(formData.available) || 0, 0),
-        broken: Number(formData.broken) || 0
+        broken: Number(formData.broken) || 0,
+        location: formData.location || 'warehouse',
+        userId
+      } : {
+        name: formData.name,
+        description: formData.description || '',
+        image: formData.image || '',
+        category_id: formData.category_id,
+        total: Number(formData.total) || 0,
+        location: formData.location || 'warehouse',
+        userId
       };
+
       const method = editingId ? 'PUT' : 'POST';
       const url = editingId ? `${API_BASE}/devices/${editingId}` : `${API_BASE}/devices`;
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload)  // gửi cho backend
       });
       if (!res.ok) {
         const msg = (await res.json().catch(() => ({}))).message || 'Khong them duoc thiet bi';
@@ -221,9 +268,10 @@ function SchoolDashboard() {
       setShowAddModal(false);
       resetForm();
       setEditingId(null);
+      setModalError(null);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Da co loi xay ra');
+      setModalError(err.message || 'Da co loi xay ra');
     } finally {
       setSaving(false);
     }
@@ -234,8 +282,8 @@ function SchoolDashboard() {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-top">
-          <div 
-            className="brand" 
+          <div
+            className="brand"
             onClick={() => {
               // Navigate về trang chủ theo role
               const userString = localStorage.getItem('user');
@@ -300,7 +348,7 @@ function SchoolDashboard() {
                 className="header-search-input"
               />
             </div>
-            <div 
+            <div
               className="main-user"
               onClick={() => navigate('/profile')}
               style={{ cursor: 'pointer' }}
@@ -373,6 +421,7 @@ function SchoolDashboard() {
                       <th>Dang Ranh</th>
                       <th>Dang Muon</th>
                       <th>Hong</th>
+                      <th>Hành động</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -388,16 +437,13 @@ function SchoolDashboard() {
                       const borrowing = Math.max(total - available - broken, 0);
                       // Get category name - handle both populated object and ID
                       let categoryName = 'N/A';
-                      if (device.category) {
-                        if (typeof device.category === 'object' && device.category !== null && device.category.name) {
-                          categoryName = device.category.name;
-                        } else {
-                          // If it's just an ID, try to find in categories list
-                          const category = categories.find(cat => 
-                            cat && (String(cat._id) === String(device.category))
-                          );
-                          categoryName = category?.name || 'N/A';
-                        }
+                      const catField = device.category_id ?? device.category;
+                      if (catField && typeof catField === 'object' && catField.name) {
+                        categoryName = catField.name;
+                      } else {
+                        const catId = catField?._id || catField;
+                        const found = categories.find(cat => String(cat._id) === String(catId));
+                        categoryName = found?.name || 'N/A';
                       }
 
                       return (
@@ -411,7 +457,7 @@ function SchoolDashboard() {
                           <td className="text-danger">{broken}</td>
                           <td>
                             <div className="table-actions">
-                              <button className="btn-view">Xem</button>
+                              <button className="btn-view" onClick={() => openView(device)}>Xem</button>
                               <button className="btn-edit" onClick={() => openEdit(device)}>Sua</button>
                               <button className="btn-delete" onClick={() => handleDelete(device)}>Xoa</button>
                             </div>
@@ -427,11 +473,90 @@ function SchoolDashboard() {
         )}
       </main>
 
+      {showViewModal && viewingDevice && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Chi Tiết Thiết Bị</h3>
+              <button className="modal-close" onClick={() => setShowViewModal(false)}>
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              {viewingDevice.image && (
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <img
+                    src={viewingDevice.image}
+                    alt={viewingDevice.name}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '300px',
+                      objectFit: 'contain',
+                      borderRadius: '8px',
+                      border: '1px solid #434343'
+                    }}
+                  />
+                </div>
+              )}
+
+              <div className="view-detail-grid">
+                <div className="view-detail-item">
+                  <label>Tên thiết bị:</label>
+                  <span>{viewingDevice.name}</span>
+                </div>
+
+                <div className="view-detail-item">
+                  <label>Danh mục:</label>
+                  <span>{viewingDevice.categoryName}</span>
+                </div>
+
+                <div className="view-detail-item">
+                  <label>Vị trí:</label>
+                  <span style={{ textTransform: 'capitalize' }}>{viewingDevice.location}</span>
+                </div>
+
+                <div className="view-detail-item full-width">
+                  <label>Mô tả:</label>
+                  <span>{viewingDevice.description || 'Không có mô tả'}</span>
+                </div>
+
+                <div className="view-detail-divider"></div>
+
+                <div className="view-detail-item">
+                  <label>Tổng số lượng:</label>
+                  <span className="badge badge-info">{viewingDevice.total}</span>
+                </div>
+
+                <div className="view-detail-item">
+                  <label>Đang rảnh:</label>
+                  <span className="badge badge-success">{viewingDevice.available}</span>
+                </div>
+
+                <div className="view-detail-item">
+                  <label>Đang mượn:</label>
+                  <span className="badge badge-warning">{viewingDevice.borrowing}</span>
+                </div>
+
+                <div className="view-detail-item">
+                  <label>Hỏng:</label>
+                  <span className="badge badge-danger">{viewingDevice.broken}</span>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="button-secondary" onClick={() => setShowViewModal(false)}>
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddModal && (
         <div className="modal-backdrop">
           <div className="modal">
             <div className="modal-header">
-              <h3>Them thiet bi</h3>
+              <h3>{editingId ? 'Sua thiet bi' : 'Them thiet bi'}</h3>
               <button className="modal-close" onClick={() => setShowAddModal(false)}>
                 ×
               </button>
@@ -454,12 +579,116 @@ function SchoolDashboard() {
                 />
               </div>
               <div className="form-row">
-                <label>Hinh anh (URL)</label>
-                <input
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  placeholder="https://..."
-                />
+                <label>Hình ảnh</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input
+                    id="school-image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 2 * 1024 * 1024) {
+                          setModalError('Kích thước ảnh không được vượt quá 2MB');
+                          e.target.value = '';
+                          return;
+                        }
+
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          const img = new Image();
+                          img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+
+                            const maxSize = 800;
+                            if (width > maxSize || height > maxSize) {
+                              if (width > height) {
+                                height = (height / width) * maxSize;
+                                width = maxSize;
+                              } else {
+                                width = (width / height) * maxSize;
+                                height = maxSize;
+                              }
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                            setFormData({ ...formData, image: compressedBase64 });
+                          };
+                          img.src = reader.result;
+                        };
+                        reader.onerror = () => {
+                          setModalError('Không thể đọc file ảnh');
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                  <label
+                    htmlFor="school-image-upload"
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      border: '2px dashed #434343',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: formData.image ? 'transparent' : '#1a1a1a',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {formData.image ? (
+                      <>
+                        <img
+                          src={formData.image}
+                          alt="Preview"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            background: '#ff4d4f',
+                            color: '#fff',
+                            width: '24px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '16px',
+                            cursor: 'pointer',
+                            borderBottomLeftRadius: '4px'
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setFormData({ ...formData, image: '' });
+                            document.getElementById('school-image-upload').value = '';
+                          }}
+                        >
+                          ×
+                        </div>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '40px', color: '#666' }}>+</span>
+                    )}
+                  </label>
+                </div>
               </div>
               <div className="form-row">
                 <label>Loai linh kien</label>
@@ -475,35 +704,61 @@ function SchoolDashboard() {
                   ))}
                 </select>
               </div>
-              <div className="form-row three-cols">
-                <div>
-                  <label>Tong</label>
+              {editingId ? (
+                // Khi sửa: hiển thị đầy đủ 3 trường
+                <div className="form-row three-cols">
+                  <div>
+                    <label>Tong</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.total}
+                      onChange={(e) => setFormData({ ...formData, total: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label>Dang ranh</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={formData.total}
+                      value={formData.available}
+                      onChange={(e) => {
+                        const val = Number(e.target.value) || 0;
+                        setFormData({ ...formData, available: Math.min(val, formData.total) });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label>Hong</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={formData.total}
+                      value={formData.broken}
+                      onChange={(e) => {
+                        const val = Number(e.target.value) || 0;
+                        setFormData({ ...formData, broken: Math.min(val, formData.total) });
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (   // phân biệt giưa thêm và sửa
+                // Khi thêm mới: chỉ hiển thị trường Tổng
+                <div className="form-row">
+                  <label>Tong so luong</label>
                   <input
                     type="number"
                     min="0"
                     value={formData.total}
                     onChange={(e) => setFormData({ ...formData, total: e.target.value })}
+                    placeholder="Nhap tong so luong thiet bi"
                   />
+                  <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                    Khi them moi, tat ca thiet bi se duoc danh dau la "dang ranh"
+                  </small>
                 </div>
-                <div>
-                  <label>Dang ranh</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.available}
-                    onChange={(e) => setFormData({ ...formData, available: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label>Hong</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.broken}
-                    onChange={(e) => setFormData({ ...formData, broken: e.target.value })}
-                  />
-                </div>
-              </div>
+              )}
               <div className="form-row">
                 <label>Vi tri</label>
                 <select
@@ -514,10 +769,10 @@ function SchoolDashboard() {
                   <option value="lab">lab</option>
                 </select>
               </div>
-              {error && <div className="inventory-status error">{error}</div>}
+              {modalError && <div className="inventory-status error">{modalError}</div>}
             </div>
             <div className="modal-footer">
-            <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
+              <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
                 Huy
               </button>
               <button className="button-primary" disabled={saving} onClick={handleSubmit}>

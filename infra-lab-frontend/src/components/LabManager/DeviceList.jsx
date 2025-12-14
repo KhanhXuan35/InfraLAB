@@ -3,6 +3,7 @@ import { Layout, Menu, Typography, Button } from "antd";
 import {
   DashboardOutlined,
   ToolOutlined,
+  AppstoreOutlined,
   SwapOutlined,
   FileTextOutlined,
   BellOutlined,
@@ -11,6 +12,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "./deviceList.css";
+
+const { Sider, Content } = Layout;
 
 function DeviceList() {
   const [devices, setDevices] = useState([]);
@@ -21,7 +24,7 @@ function DeviceList() {
   // FILTER STATES
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [status, setStatus] = useState("all"); // rảnh / mượn / hỏng
+  const [status, setStatus] = useState("all");
 
   // DATA FROM API
   const [categories, setCategories] = useState([]);
@@ -34,15 +37,13 @@ function DeviceList() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Lấy danh sách thiết bị từ lab
+
         const devicesResponse = await api.get('/inventory/lab');
         if (devicesResponse.data) {
           setDevices(devicesResponse.data || []);
           setAllDevices(devicesResponse.data || []);
         }
 
-        // Lấy danh sách categories
         const categoriesResponse = await api.get('/categories');
         if (categoriesResponse.data) {
           setCategories(categoriesResponse.data || []);
@@ -56,25 +57,22 @@ function DeviceList() {
 
     fetchData();
   }, []);
-  // 🔍 Realtime Search - Tối ưu để tránh flicker
+
   useEffect(() => {
     if (allDevices.length === 0) return;
-    
+
     let filtered = [...allDevices];
 
-    // Search only (realtime)
     if (search.trim() !== "") {
       filtered = filtered.filter((d) =>
         d.device.name.toLowerCase().includes(search.toLowerCase())
       );
     }
 
-    // Apply category filter if user selected
     if (category !== "all") {
       filtered = filtered.filter((d) => d.device.category === category);
     }
 
-    // Apply status filter
     if (status !== "all") {
       if (status === "available") filtered = filtered.filter((d) => d.available > 0);
       if (status === "borrowed") filtered = filtered.filter((d) => d.borrowed > 0);
@@ -85,17 +83,13 @@ function DeviceList() {
     setCurrentPage(1);
   }, [search, category, status, allDevices]);
 
-  // -------------------- FILTER FUNCTION --------------------
   const applyFilter = () => {
     let filtered = [...allDevices];
 
-
-    // Category
     if (category !== "all") {
       filtered = filtered.filter((d) => d.device.category === category);
     }
 
-    // Status filter
     if (status !== "all") {
       switch (status) {
         case "available":
@@ -113,7 +107,7 @@ function DeviceList() {
     }
 
     setDevices(filtered);
-    setCurrentPage(1); // RESET PAGE AFTER FILTER
+    setCurrentPage(1);
   };
 
   const resetFilter = () => {
@@ -124,10 +118,9 @@ function DeviceList() {
     setCurrentPage(1);
   };
 
-  // -------------------- PAGINATION LOGIC --------------------
   const filteredData = devices;
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
 
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
@@ -136,7 +129,7 @@ function DeviceList() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Layout.Sider
+      <Sider
         width={240}
         style={{
           background: "#001529",
@@ -158,7 +151,7 @@ function DeviceList() {
             InFra<span style={{ color: "#1890ff" }}>Lab</span>
           </Typography.Title>
           <Typography.Text type="secondary" style={{ color: "#8c8c8c", fontSize: 12 }}>
-            QUẢN LÝ PHÒNG LAB
+            QUAN LY PHONG LAB
           </Typography.Text>
         </div>
         <Menu
@@ -169,6 +162,7 @@ function DeviceList() {
             { key: "overview", icon: <DashboardOutlined />, label: "Thống kê" },
             { key: "devices", icon: <ToolOutlined />, label: "Quản lý thiết bị" },
             { key: "borrow", icon: <SwapOutlined />, label: "Danh sách thiết bị mượn" },
+            { key: "school-inventory", icon: <AppstoreOutlined />, label: "Kho School" },
             { key: "repairs", icon: <ToolOutlined />, label: "Danh sách sửa chữa" },
             { key: "reports", icon: <FileTextOutlined />, label: "Báo cáo" },
             { key: "notifications", icon: <BellOutlined />, label: "Thông báo" },
@@ -177,6 +171,7 @@ function DeviceList() {
           onSelect={({ key }) => {
             if (key === "overview") navigate("/teacher-dashboard");
             else if (key === "devices") navigate("/lab-manager/devices");
+            else if (key === "school-inventory") navigate("/lab-manager/school-devices");
             else if (key === "borrow") navigate("/lab-manager/devices");
             else if (key === "repairs") navigate("/lab-manager/repairs");
             else if (key === "reports") navigate("/reports");
@@ -204,21 +199,19 @@ function DeviceList() {
             icon={<LogoutOutlined />}
             style={{ width: "100%", color: "#fff" }}
           >
-            Đăng xuất
+            Dang xuat
           </Button>
         </div>
-      </Layout.Sider>
+      </Sider>
 
       <Layout style={{ marginLeft: 240, background: "#0c1424" }}>
         <Layout.Content style={{ padding: "16px 24px", background: "#f3f5f8ff" }}>
           <div className="content-wrapper">
-            <h2 className="page-title">Danh sách thiết bị phòng Lab</h2>
+            <h2 className="page-title">Danh sach thiet bi phong Lab</h2>
 
-            {/* ---------------- FILTER BAR ---------------- */}
             <div className="filter-bar">
-
               <input
-                placeholder="Tìm theo tên thiết bị..."
+                placeholder="Tim theo ten thiet bi..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="filter-input"
@@ -229,7 +222,7 @@ function DeviceList() {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                <option value="all">Tất cả danh mục</option>
+                <option value="all">Tat ca danh muc</option>
                 {categories.map((c) => (
                   <option key={c._id} value={c.name}>
                     {c.name}
@@ -242,30 +235,29 @@ function DeviceList() {
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
-                <option value="all">Tất cả trạng thái</option>
-                <option value="available">Đang rảnh &gt; 0</option>
-                <option value="borrowed">Đang mượn &gt; 0</option>
-                <option value="broken">Hỏng &gt; 0</option>
+                <option value="all">Tat ca trang thai</option>
+                <option value="available">Dang ranh &gt; 0</option>
+                <option value="borrowed">Dang muon &gt; 0</option>
+                <option value="broken">Hong &gt; 0</option>
               </select>
 
-              <button className="btn-filter" onClick={applyFilter}>Lọc</button>
+              <button className="btn-filter" onClick={applyFilter}>Loc</button>
               <button className="btn-reset" onClick={resetFilter}>Reset</button>
             </div>
 
-            {/* ---------------- TABLE ---------------- */}
             <div className="device-table">
               <table>
                 <thead>
                   <tr>
                     <th style={{ width: 40 }}>#</th>
-                    <th style={{ width: 100 }}>Ảnh</th>
-                    <th style={{ width: 220 }}>Tên thiết bị</th>
-                    <th style={{ width: 180 }}>Danh mục</th>
-                    <th style={{ width: 70 }}>Tổng</th>
-                    <th style={{ width: 90 }}>Đang rảnh</th>
-                    <th style={{ width: 90 }}>Đang mượn</th>
-                    <th style={{ width: 70 }}>Hỏng</th>
-                    <th style={{ width: 120 }}>Hành động</th>
+                    <th style={{ width: 100 }}>Anh</th>
+                    <th style={{ width: 220 }}>Ten thiet bi</th>
+                    <th style={{ width: 180 }}>Danh muc</th>
+                    <th style={{ width: 70 }}>Tong</th>
+                    <th style={{ width: 90 }}>Dang ranh</th>
+                    <th style={{ width: 90 }}>Dang muon</th>
+                    <th style={{ width: 70 }}>Hong</th>
+                    <th style={{ width: 120 }}>Hanh dong</th>
                   </tr>
                 </thead>
 
@@ -273,7 +265,7 @@ function DeviceList() {
                   {visibleItems.length === 0 && (
                     <tr>
                       <td colSpan="9" className="center" style={{ padding: 16 }}>
-                        Không có thiết bị phù hợp bộ lọc.
+                        {loading ? "Dang tai du lieu..." : "Khong co thiet bi phu hop bo loc."}
                       </td>
                     </tr>
                   )}
@@ -284,8 +276,8 @@ function DeviceList() {
                       <td className="center">
                         <div className="device-image-container">
                           {item.device.image ? (
-                            <img 
-                              src={item.device.image} 
+                            <img
+                              src={item.device.image}
                               alt={item.device.name}
                               className="device-image"
                               onError={(e) => {
@@ -310,7 +302,7 @@ function DeviceList() {
                           onClick={() => navigate(`/lab-manager/device/${item._id}`)}
                           className="btn-view"
                         >
-                          Chi tiết
+                          Chi tiet
                         </button>
                       </td>
                     </tr>
@@ -319,7 +311,6 @@ function DeviceList() {
               </table>
             </div>
 
-            {/* ---------------- PAGINATION ---------------- */}
             <div className="pagination-container">
 
               <div className="page-left">
@@ -376,7 +367,7 @@ function DeviceList() {
 
             </div>
           </div>
-        </Layout.Content>
+        </Content>
       </Layout>
     </Layout>
   );

@@ -3,13 +3,19 @@ import {
   createDeviceWithInventory,
   getDevices,
   updateDeviceWithInventory,
-  deleteDeviceWithInventory
+  deleteDeviceWithInventory,
+  getPendingDevices,
+  approveDevice,
+  rejectDevice
 } from "../../controllers/School/schoolDeviceController.js";
 
 const router = express.Router();
 
+router.get("/pending", getPendingDevices);
 router.get("/", getDevices);
 router.post("/", createDeviceWithInventory);
+router.patch("/:id/approve", approveDevice);
+router.patch("/:id/reject", rejectDevice);
 router.put("/:id", updateDeviceWithInventory);
 router.delete("/:id", deleteDeviceWithInventory);
 

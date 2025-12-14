@@ -243,3 +243,33 @@
     padding-inline: 8px;
   }
 }
+
+
+/* Borrow action (kho School) */
+.borrow-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.borrow-qty {
+  width: 56px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #1f2937;
+  background: #0f172a;
+  color: #e5e7eb;
+  text-align: center;
+}
+
+.borrow-qty:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.borrow-btn {
+  border-radius: 999px !important;
+  padding: 0 14px !important;
+}

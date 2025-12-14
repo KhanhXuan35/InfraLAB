@@ -35,12 +35,15 @@ import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
 import BorrowReturnPage from "./pages/LabManager/BorrowReturnPage";
 import LabManagerRepairDetail from "./pages/LabManager/LabManagerRepairDetail";
 import StudentManagerPage from "./pages/LabManager/StudentManagerPage";
+import DeviceListSchool from "./pages/LabManager/DeviceListSchool";
 
 // School pages
 import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
+import ViewDetailDevice from './SchoolDashboard/viewdetailDevice.jsx';
 import RepairRequestList from "./pages/School/RepairRequestList";
 import LabManagerRepairList from "./pages/LabManager/LabManagerRepairList";
-import SchoolRepairDetail from "./pages/School/SchoolRepairDetail";
+import SchoolRepairDetail from "./pages/School/SchoolRepairDetail";import BorrowRequests from "./pages/SchoolAdmin/BorrowRequests";
+
 // Profile page
 import UserProfile from "./pages/Profile/UserProfile";
 
@@ -73,6 +76,7 @@ function App() {
               <Route path="/teacher-dashboard" element={<LabManagerHomePage />} />
               <Route path="/lab-manager/repairs/:id" element={<LabManagerRepairDetail />} />
 
+              <Route path="/lab-manager/school-devices" element={<DeviceListSchool />} />
             </Route>
 
             <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
@@ -81,6 +85,8 @@ function App() {
               <Route path="/school/dashboard" element={<SchoolDashboard />} />
               <Route path={SCHOOL_ROUTES.REPAIRS} element={<RepairRequestList />} />
               <Route path={SCHOOL_ROUTES.REPAIR_DETAIL(":id")} element={<SchoolRepairDetail />} />
+              <Route path="/school/borrow-requests" element={<BorrowRequests />} />
+              <Route path="/school/device/:id" element={<ViewDetailDevice />} />
             </Route>
 
 
