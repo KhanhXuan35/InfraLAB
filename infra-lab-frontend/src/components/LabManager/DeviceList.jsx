@@ -367,7 +367,7 @@ function DeviceList() {
 
             </div>
           </div>
-        </Content>
+        </Layout.Content>
       </Layout>
     </Layout>
   );
