@@ -19,7 +19,7 @@ export const getAllDevices = async (req, res) => {
       }
     }
 
-    const devices = await Device.find(query)
+    const devices = await Device.find({ ...query, verify: true })
       .populate('category_id', 'name description')
       .sort({ createdAt: -1 });
 

@@ -38,7 +38,9 @@ console.log("DETAIL DEVICE ROUTE LOADED");
 
 
 // 3. Routes
-app.use("/api", routes);
+app.use("/api/inventories", schoolInventoryRoutes);
+app.use("/api/device-categories", deviceCategoryRoutes);
+app.use("/api/devices", deviceRoutes);
 
 // Lab Manager routes
 app.use("/api/inventory", inventoryRoutes);
@@ -53,10 +55,7 @@ app.use("/api/school-dashboard", schoolDashboardRoutes);
 // User Dashboard routes
 app.use("/api/user-dashboard", userDashboardRoutes);
 
-// School device management routes
-app.use("/api/inventories", schoolInventoryRoutes);
-app.use("/api/device-categories", deviceCategoryRoutes);
-app.use("/api/devices", deviceRoutes);
+app.use("/api", routes);
 
 // Repair routes
 app.use("/api/repairs", repairRoutes);

@@ -89,9 +89,9 @@ export const approveRequest = async (req, res) => {
       return res.status(400).json({ success: false, message: "Kho school không đủ số lượng" });
     }
 
-    // Trừ kho school
+    // Trừ kho school (giảm available, tăng borrowed, giữ nguyên total)
     invWarehouse.available -= request.qty;
-    invWarehouse.total = Math.max((invWarehouse.total || 0) - request.qty, 0);
+    invWarehouse.borrowed = (invWarehouse.borrowed || 0) + request.qty;
     await invWarehouse.save();
 
     // Cộng vào kho lab

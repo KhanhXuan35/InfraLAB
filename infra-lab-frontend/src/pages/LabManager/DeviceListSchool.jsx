@@ -12,6 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import '../../components/LabManager/deviceList.css';
+import '../../dashboard.css';
 
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -27,6 +28,17 @@ const DeviceListSchool = () => {
   const [notice, setNotice] = useState('');
   const [borrowLoading, setBorrowLoading] = useState(null);
   const [qtyMap, setQtyMap] = useState({});
+
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestFormData, setRequestFormData] = useState({
+    name: '',
+    description: '',
+    image: '',
+    category_id: '',
+    total: 1,
+  });
+  const [requestSaving, setRequestSaving] = useState(false);
+  const [requestError, setRequestError] = useState('');
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
@@ -200,27 +212,22 @@ const DeviceListSchool = () => {
       <Layout style={{ marginLeft: 240, background: '#0c1424' }}>
         <Content style={{ padding: '16px 24px', background: '#0c1424' }}>
           <div className={`content-wrapper ${loading ? 'loading' : ''}`}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 className="page-title">Danh sach linh kien kho School</h2>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button type="primary" onClick={fetchData} loading={loading}>
-                  Tai lai
-                </Button>
-              </div>
-            </div>
+            <h2 className="page-title" style={{ marginBottom: 16 }}>Danh sach linh kien kho School</h2>
 
-            <div className="filter-bar">
+            <div className="filter-bar" style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>
               <input
                 placeholder="Tim theo ten linh kien..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="filter-input"
+                style={{ flex: '1 1 200px', minWidth: '200px', height: '36px' }}
               />
 
               <select
                 className="filter-select"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                style={{ flex: '0 0 auto', width: '180px', height: '36px' }}
               >
                 <option value="all">Tat ca danh muc</option>
                 {categories.map((c) => (
@@ -234,6 +241,7 @@ const DeviceListSchool = () => {
                 className="filter-select"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
+                style={{ flex: '0 0 auto', width: '180px', height: '36px' }}
               >
                 <option value="all">Tat ca trang thai</option>
                 <option value="available">Dang ranh &gt; 0</option>
@@ -241,9 +249,17 @@ const DeviceListSchool = () => {
                 <option value="broken">Hong &gt; 0</option>
               </select>
 
-              <button className="btn-reset" onClick={resetFilter}>
+              <Button className="btn-reset" onClick={resetFilter} style={{ flex: '0 0 auto', width: '100px', height: '36px' }}>
                 Reset
-              </button>
+              </Button>
+
+              <Button onClick={() => setShowRequestModal(true)} style={{ flex: '0 0 auto', width: '180px', height: '36px' }}>
+                Tạo yêu cầu thiết bị ngoài
+              </Button>
+
+              <Button type="primary" onClick={fetchData} loading={loading} style={{ flex: '0 0 auto', width: '100px', height: '36px' }}>
+                Tai lai
+              </Button>
             </div>
 
             {error && (
@@ -278,10 +294,12 @@ const DeviceListSchool = () => {
 
                   {visibleItems.map((item, index) => {
                     const categoryName = (() => {
-                      if (item.category && typeof item.category === 'object' && item.category.name) {
-                        return item.category.name;
+                      const catField = item.category_id ?? item.category;
+                      if (catField && typeof catField === 'object' && catField.name) {
+                        return catField.name;
                       }
-                      const found = categories.find((c) => String(c._id) === String(item.category));
+                      const catId = catField?._id || catField;
+                      const found = categories.find((c) => String(c._id) === String(catId));
                       return found?.name || 'N/A';
                     })();
 
@@ -320,13 +338,16 @@ const DeviceListSchool = () => {
                             <input
                               type="number"
                               min="1"
+                              max={item.inventory?.available ?? 0}
                               value={inputQty}
-                              onChange={(e) =>
+                              onChange={(e) => {
+                                const val = Number(e.target.value) || 1;
+                                const maxAvailable = item.inventory?.available ?? 0;
                                 setQtyMap((prev) => ({
                                   ...prev,
-                                  [devId]: Number(e.target.value) || 1,
-                                }))
-                              }
+                                  [devId]: Math.min(val, maxAvailable),
+                                }));
+                              }}
                               className="borrow-qty"
                             />
                             <Button
@@ -338,8 +359,13 @@ const DeviceListSchool = () => {
                                 setError('');
                                 setNotice('');
                                 const qty = Number(inputQty) || 1;
+                                const maxAvailable = item.inventory?.available ?? 0;
                                 if (qty < 1) {
                                   setError('So luong khong hop le');
+                                  return;
+                                }
+                                if (qty > maxAvailable) {
+                                  setError(`So luong muon khong duoc vuot qua so luong dang ranh (${maxAvailable})`);
                                   return;
                                 }
                                 try {
@@ -430,7 +456,262 @@ const DeviceListSchool = () => {
           </div>
         </Content>
       </Layout>
-    </Layout>
+
+      {/* Modal tạo yêu cầu thiết bị ngoài */}
+      {showRequestModal && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Tạo yêu cầu thiết bị ngoài</h3>
+              <button
+                className="modal-close"
+                onClick={() => {
+                  setShowRequestModal(false);
+                  setRequestFormData({ name: '', description: '', image: '', category_id: '', total: 1 });
+                  setRequestError('');
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-row">
+                <label>Tên thiết bị</label>
+                <input
+                  value={requestFormData.name}
+                  onChange={(e) => setRequestFormData({ ...requestFormData, name: e.target.value })}
+                  placeholder="Nhập tên thiết bị cần mua"
+                />
+              </div>
+              <div className="form-row">
+                <label>Mô tả</label>
+                <textarea
+                  value={requestFormData.description}
+                  onChange={(e) => setRequestFormData({ ...requestFormData, description: e.target.value })}
+                  placeholder="Mô tả ngắn"
+                />
+              </div>
+              <div className="form-row">
+                <label>Hình ảnh</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        // Kiểm tra kích thước file (max 2MB)
+                        if (file.size > 2 * 1024 * 1024) {
+                          setRequestError('Kích thước ảnh không được vượt quá 2MB');
+                          e.target.value = '';
+                          return;
+                        }
+
+                        // Compress và convert to base64
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          const img = new Image();
+                          img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+
+                            // Resize nếu quá lớn (max 800px)
+                            const maxSize = 800;
+                            if (width > maxSize || height > maxSize) {
+                              if (width > height) {
+                                height = (height / width) * maxSize;
+                                width = maxSize;
+                              } else {
+                                width = (width / height) * maxSize;
+                                height = maxSize;
+                              }
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            // Convert to base64 with compression
+                            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                            setRequestFormData({ ...requestFormData, image: compressedBase64 });
+                          };
+                          img.src = reader.result;
+                        };
+                        reader.onerror = () => {
+                          setRequestError('Không thể đọc file ảnh');
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    style={{
+                      width: '100px',
+                      height: '100px',
+                      border: '2px dashed #434343',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: requestFormData.image ? 'transparent' : '#1a1a1a',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {requestFormData.image ? (
+                      <>
+                        <img
+                          src={requestFormData.image}
+                          alt="Preview"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            background: '#ff4d4f',
+                            color: '#fff',
+                            width: '24px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '16px',
+                            cursor: 'pointer',
+                            borderBottomLeftRadius: '4px'
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setRequestFormData({ ...requestFormData, image: '' });
+                            document.getElementById('image-upload').value = '';
+                          }}
+                        >
+                          ×
+                        </div>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '40px', color: '#666' }}>+</span>
+                    )}
+                  </label>
+                </div>
+              </div>
+              <div className="form-row">
+                <label>Loại linh kiện</label>
+                <select
+                  value={requestFormData.category_id}
+                  onChange={(e) => setRequestFormData({ ...requestFormData, category_id: e.target.value })}
+                >
+                  <option value="">Chọn loại</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id || cat.name} value={cat._id || ''}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row">
+                <label>Tổng số lượng</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={requestFormData.total}
+                  onChange={(e) => setRequestFormData({ ...requestFormData, total: Number(e.target.value) || 0 })}
+                  placeholder="Nhập tổng số lượng thiết bị"
+                />
+              </div>
+              {requestError && (
+                <div className="inventory-status error">
+                  {requestError}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                className="button-secondary"
+                onClick={() => {
+                  setShowRequestModal(false);
+                  setRequestFormData({ name: '', description: '', image: '', category_id: '', total: 1 });
+                  setRequestError('');
+                }}
+                disabled={requestSaving}
+              >
+                Hủy
+              </button>
+              <button
+                className="button-primary"
+                disabled={requestSaving}
+                onClick={async () => {
+                  setRequestError('');
+                  if (!requestFormData.name.trim()) {
+                    setRequestError('Vui lòng nhập tên thiết bị');
+                    return;
+                  }
+                  if (!requestFormData.category_id) {
+                    setRequestError('Vui lòng chọn loại linh kiện');
+                    return;
+                  }
+                  if (requestFormData.total < 1) {
+                    setRequestError('Số lượng phải lớn hơn 0');
+                    return;
+                  }
+
+                  try {
+                    setRequestSaving(true);
+                    const userString = localStorage.getItem('user');
+                    const userData = userString ? JSON.parse(userString) : null;
+                    const userId = userData?._id || userData?.id;
+
+                    if (!userId) {
+                      setRequestError('Không tìm thấy thông tin người dùng');
+                      setRequestSaving(false);
+                      return;
+                    }
+
+                    const payload = {
+                      name: requestFormData.name,
+                      description: requestFormData.description || '',
+                      image: requestFormData.image || '',
+                      category_id: requestFormData.category_id,
+                      total: requestFormData.total,
+                      location: 'warehouse',
+                      userId
+                    };
+
+                    await api.post('/devices', payload);
+                    setShowRequestModal(false);
+                    setRequestFormData({ name: '', description: '', image: '', category_id: '', total: 1 });
+                    setNotice('✅ Đã tạo yêu cầu thiết bị thành công! Vui lòng chờ School Admin duyệt.');
+                    await fetchData(); // Reload danh sách
+
+                    // Tự động ẩn thông báo sau 5 giây
+                    setTimeout(() => setNotice(''), 5000);
+                  } catch (err) {
+                    const msg = err?.response?.data?.message || err?.message || 'Tạo yêu cầu thất bại';
+                    setRequestError(msg);
+                  } finally {
+                    setRequestSaving(false);
+                  }
+                }}
+              >
+                {requestSaving ? 'Đang lưu...' : 'Tạo yêu cầu'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Layout >
   );
 };
 
