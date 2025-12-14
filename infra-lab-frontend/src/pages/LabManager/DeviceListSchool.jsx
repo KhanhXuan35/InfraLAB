@@ -100,11 +100,12 @@ const DeviceListSchool = () => {
     }
 
     if (category !== 'all') {
-      filtered = filtered.filter((d) => {
-        const catId = d.category?._id || d.category || '';
-        return String(catId) === String(category);
-      });
-    }
+  filtered = filtered.filter((d) => {
+    const catField = d.category_id ?? d.category;
+    const catId = typeof catField === 'object' ? catField._id : catField;
+    return String(catId) === String(category);
+  });
+}
 
     if (status !== 'all') {
       filtered = filtered.filter((d) => {

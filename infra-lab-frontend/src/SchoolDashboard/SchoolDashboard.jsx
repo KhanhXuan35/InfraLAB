@@ -82,62 +82,45 @@ function SchoolDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection]);
 
-  const filteredDevices = useMemo(() => {
-    if (!devices || !Array.isArray(devices)) {
-      return [];
-    }
+const filteredDevices = useMemo(() => {
+  if (!Array.isArray(devices)) return [];
 
-    const list = devices.filter((item) => {
-      if (!item) return false;
+  const list = devices.filter((item) => {
+    if (!item) return false;
 
-      // Filter by name
-      const nameMatches = (item.name || '').toLowerCase().includes((search || '').toLowerCase().trim());
+    const nameMatches = (item.name || '')
+      .toLowerCase()
+      .includes((search || '').toLowerCase().trim());
 
-      // Filter by category - handle both populated object and ID string
-      let deviceCategoryId = '';
+    // Lấy category từ category_id hoặc category (object hoặc id)
+    const catField = item.category_id ?? item.category;
+    const deviceCategoryId =
+      catField && typeof catField === 'object'
+        ? catField._id ?? catField // populated object hoặc obj {_id}
+        : catField;                // id dạng string/number
 
-      if (item.category) {
-        // If category_id is populated object (from populate) - most common case
-        if (typeof item.category === 'object' && item.category !== null) {
-          // Check if it has _id property (populated object from MongoDB)
-          if (item.category._id) {
-            // Handle both ObjectId and string
-            deviceCategoryId = item.category._id.toString ? item.category._id.toString() : String(item.category._id);
-          }
-          // If it's an object but no _id, it might be the ID itself
-          else if (item.category.toString) {
-            deviceCategoryId = item.category.toString();
-          }
-          else {
-            deviceCategoryId = String(item.category._id);
-          }
-        }
-        // If category_id is just an ID string
-        else if (typeof item.category._id === 'string') {
-          deviceCategoryId = item.category._id;
-        }
-        // Fallback for other formats
-        else {
-          deviceCategoryId = String(item.category._id);
-        }
-      }
+    const normalizedDeviceCategoryId = deviceCategoryId
+      ? String(deviceCategoryId).trim().toLowerCase()
+      : '';
+    const normalizedSelectedCategoryKey = selectedCategoryKey
+      ? String(selectedCategoryKey).trim().toLowerCase()
+      : '';
 
-      // Normalize both IDs for comparison - remove any whitespace and convert to string
-      const normalizedDeviceCategoryId = deviceCategoryId ? deviceCategoryId.trim().toLowerCase() : '';
-      const normalizedSelectedCategoryKey = selectedCategoryKey ? String(selectedCategoryKey).trim().toLowerCase() : '';
+    const categoryMatches =
+      selectedCategoryKey === 'all' ||
+      (normalizedDeviceCategoryId &&
+        normalizedDeviceCategoryId === normalizedSelectedCategoryKey);
 
-      const categoryMatches =
-        selectedCategoryKey === 'all' ||
-        (normalizedDeviceCategoryId && normalizedDeviceCategoryId === normalizedSelectedCategoryKey);
+    return nameMatches && categoryMatches;
+  });
 
-      return nameMatches && categoryMatches;
-    });
+  return list.sort((a, b) => {
+    if (sort === 'newest')
+      return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
+    return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
+  });
+}, [devices, search, sort, selectedCategoryKey]);
 
-    return list.sort((a, b) => {
-      if (sort === 'newest') return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
-      return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
-    });
-  }, [devices, search, sort, selectedCategoryKey]);
 
   const resetForm = () =>
     setFormData({
@@ -276,7 +259,7 @@ function SchoolDashboard() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload)  // gửi cho backend
       });
       if (!res.ok) {
         const msg = (await res.json().catch(() => ({}))).message || 'Khong them duoc thiet bi';
@@ -760,7 +743,7 @@ function SchoolDashboard() {
                     />
                   </div>
                 </div>
-              ) : (
+              ) : (   // phân biệt giưa thêm và sửa
                 // Khi thêm mới: chỉ hiển thị trường Tổng
                 <div className="form-row">
                   <label>Tong so luong</label>
