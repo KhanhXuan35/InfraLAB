@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { ConfigProvider } from "antd";
 import { CartProvider } from "./contexts/CartContext";
 import { ROUTES, STUDENT_BASE_PATH, SCHOOL_ROUTES, LAB_MANAGER_ROUTES } from "./constants/routes";
-
+import MainLayout from "./layouts/MainLayout";
 // Auth pages
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -51,8 +51,7 @@ function App() {
     <ConfigProvider>
       <CartProvider>
         <Router>
-          <ConditionalHeader />
-
+          
           <Routes>
             {/* --- AUTH --- */}
             <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
@@ -64,18 +63,33 @@ function App() {
             <Route element={<PrivateRoute allowedRoles={["student", "lab_manager"]} />}>
               <Route path={ROUTES.CHANGE_PASSWORD} element={<ChangePasswordPage />} />
             </Route>
-            {/* --- DASHBOARD BY ROLE --- */}
-            <Route element={<PrivateRoute allowedRoles={["student"]} />}>
+            {/* --- STUDENT ROUTES (Dùng MainLayout) --- */}
+            <Route element={<MainLayout allowedRoles={["student"]} />}>
               <Route path="/user-dashboard" element={<StudentHomePage />} />
+              <Route path={`${STUDENT_BASE_PATH}/devices`} element={<ViewListDevices />} />
+              <Route path={`${STUDENT_BASE_PATH}/device/:id`} element={<DeviceDetail />} />
+              <Route path={`${STUDENT_BASE_PATH}/borrow/:id`} element={<RegisterBorrow />} />
+              <Route path={`${STUDENT_BASE_PATH}/borrow/multiple`} element={<RegisterBorrowMultiple />} />
+              <Route path={`${STUDENT_BASE_PATH}/cart`} element={<Cart />} />
+              <Route path={`${STUDENT_BASE_PATH}/borrowed`} element={<LoanDeviceList />} />
+              <Route path={`${STUDENT_BASE_PATH}/conversation/:id?`} element={<Chat />} />
+              <Route path={ROUTES.CHANGE_PASSWORD} element={<ChangePasswordPage />} />
             </Route>
 
-            <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
+            {/* --- LAB MANAGER ROUTES (Dùng MainLayout) --- */}
+            <Route element={<MainLayout allowedRoles={["lab_manager"]} />}>
               <Route path="/teacher-dashboard" element={<LabManagerHomePage />} />
+              <Route path="/lab-manager/devices" element={<DeviceList />} />
+              <Route path="/lab-manager/device/:id" element={<DeviceDetailPage />} />
+              <Route path="/lab-manager/students" element={<StudentManagerPage />} />
+              <Route path={LAB_MANAGER_ROUTES.REPAIRS} element={<LabManagerRepairList />} />
               <Route path="/lab-manager/repairs/:id" element={<LabManagerRepairDetail />} />
-
+              <Route path="/lab-manager/borrow-return" element={<BorrowReturnPage />} />
+              <Route path={ROUTES.CHANGE_PASSWORD} element={<ChangePasswordPage />} />
             </Route>
 
-            <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
+            {/* --- SCHOOL ADMIN ROUTES (Dùng MainLayout) --- */}
+            <Route element={<MainLayout allowedRoles={["school_admin"]} />}>
               <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
               <Route path="/requests" element={<RepairRequestList />} />
               <Route path="/school/dashboard" element={<SchoolDashboard />} />
@@ -83,42 +97,14 @@ function App() {
               <Route path={SCHOOL_ROUTES.REPAIR_DETAIL(":id")} element={<SchoolRepairDetail />} />
             </Route>
 
-
-
-            {/* --- LAB MANAGER PAGES --- */}
-            <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
-              <Route path="/lab-manager/devices" element={<DeviceList />} />
-              <Route path="/lab-manager/device/:id" element={<DeviceDetailPage />} />
-              <Route path="/lab-manager/students" element={<StudentManagerPage />} />
-              <Route path={LAB_MANAGER_ROUTES.REPAIRS} element={<LabManagerRepairList />} />
-              <Route path="/lab-manager/repairs/:id" element={<LabManagerRepairDetail />} />
-              <Route path="/lab-manager/borrow-return" element={<BorrowReturnPage />} />
-            </Route>
-
-            {/* --- SCHOOL PAGES --- */}
-            <Route path="/repairs" element={<RepairRequestList />} />
-
-            {/* --- STUDENT PAGES --- */}
-            {/* <Route path="/" element={<ViewListDevices />} /> */}
-            <Route path={`${STUDENT_BASE_PATH}/devices`} element={<ViewListDevices />} />
-            <Route path={`${STUDENT_BASE_PATH}/device/:id`} element={<DeviceDetail />} />
-            <Route path={`${STUDENT_BASE_PATH}/borrow/:id`} element={<RegisterBorrow />} />
-            <Route path={`${STUDENT_BASE_PATH}/borrow/multiple`} element={<RegisterBorrowMultiple />} />
-            <Route path={`${STUDENT_BASE_PATH}/cart`} element={<Cart />} />
-            <Route path={`${STUDENT_BASE_PATH}/borrowed`} element={<LoanDeviceList />} />
-            <Route path={`${STUDENT_BASE_PATH}/conversation/:id?`} element={<Chat />} />
-
-            {/* --- CHAT (Available for all authenticated users) --- */}
-            <Route element={<PrivateRoute allowedRoles={["student", "lab_manager", "school_admin"]} />}>
+            {/* --- CHAT & PROFILE (Dùng chung cho tất cả) --- */}
+            <Route element={<MainLayout allowedRoles={["student", "lab_manager", "school_admin"]} />}>
               <Route path="/chat/:id?" element={<Chat />} />
             </Route>
-
-            {/* --- PROFILE PAGE (Protected) --- */}
-            <Route element={<PrivateRoute allowedRoles={["student", "lab_manager", "school_admin"]} />}>
+            <Route element={<MainLayout allowedRoles={["student", "lab_manager"]} />}>
               <Route path="/profile" element={<UserProfile />} />
             </Route>
-
-            {/* --- DEFAULT ROUTES --- */}
+            {/* --- DEFAULT --- */}
             <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
           </Routes>
         </Router>

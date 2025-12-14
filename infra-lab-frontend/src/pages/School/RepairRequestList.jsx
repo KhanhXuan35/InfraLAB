@@ -1,26 +1,21 @@
 import { useEffect, useState } from "react";
-import { Layout, Menu, Typography, Button, Modal, Input, message } from "antd";
-import {
-  DashboardOutlined,
-  ToolOutlined,
-  CheckCircleOutlined,
-  FileTextOutlined,
-  SettingOutlined,
-  LogoutOutlined,
-  BellOutlined
-} from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { Button, Modal, Input, message, Table, Tag, Space, Card, Select } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
 import "./RepairRequestList.css";
 
+// Lưu ý: Đảm bảo file css không set style global đè lên layout chính
+
 export default function RepairRequestList() {
-  const navigate = useNavigate();
   const [repairs, setRepairs] = useState([]);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
-  const [messageState, setMessageState] = useState({ type: "", text: "" });
+
+  // State Modal Preview Ảnh
   const [previewImage, setPreviewImage] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  // State Modal Từ Chối
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [selectedRepairId, setSelectedRepairId] = useState(null);
@@ -29,48 +24,22 @@ export default function RepairRequestList() {
 
   const fetchRepairs = async () => {
     setLoading(true);
-    setMessageState({ type: "", text: "" });
     try {
-      const query =
-        statusFilter && statusFilter !== "all"
-          ? `?status=${statusFilter}`
-          : "";
+      const query = statusFilter && statusFilter !== "all" ? `?status=${statusFilter}` : "";
       const url = `${API_BASE}/repairs${query}`;
-      console.log("Fetching repairs from:", url);
 
-      const res = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const json = await res.json();
-      console.log("Repairs response:", json);
-
       if (json.success) {
         setRepairs(json.data || []);
-        if ((json.data || []).length === 0) {
-          setMessageState({ type: "info", text: "Không có yêu cầu nào trong trạng thái này." });
-        }
       } else {
-        setMessageState({ type: "error", text: json.message || "Không thể tải danh sách yêu cầu" });
+        message.error(json.message || "Không thể tải danh sách yêu cầu");
       }
     } catch (error) {
       console.error("Error fetching repairs:", error);
-      let errorMessage = "Lỗi kết nối đến server";
-
-      if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
-        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra xem backend đã chạy chưa.";
-      } else if (error.message.includes("HTTP error")) {
-        errorMessage = `Lỗi server: ${error.message}`;
-      }
-
-      setMessageState({ type: "error", text: errorMessage });
+      message.error("Lỗi kết nối đến server");
       setRepairs([]);
     } finally {
       setLoading(false);
@@ -79,28 +48,21 @@ export default function RepairRequestList() {
 
   useEffect(() => {
     fetchRepairs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   const updateStatus = async (id, status, reason_rejected = null) => {
     setUpdating(id);
-    setMessageState({ type: "", text: "" });
-
     try {
       const url = `${API_BASE}/repairs/${id}/status`;
-      console.log("Updating repair status:", url, { status, reason_rejected });
-
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status, reason_rejected }),
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const json = await res.json();
-      console.log("Update response:", json);
 
       if (json.success) {
         const statusText = {
@@ -110,24 +72,14 @@ export default function RepairRequestList() {
           done: "đã hoàn thành"
         }[status] || "đã cập nhật";
 
-        message.success(`Yêu cầu đã được ${statusText} thành công!`);
-        
-        // Làm mới danh sách
-        await fetchRepairs();
+        message.success(`Yêu cầu ${statusText} thành công!`);
+        await fetchRepairs(); // Reload data
       } else {
         message.error(json.message || "Không thể cập nhật trạng thái");
       }
     } catch (error) {
       console.error("Error updating status:", error);
-      let errorMessage = "Lỗi kết nối đến server. Vui lòng thử lại.";
-
-      if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
-        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra xem backend đã chạy chưa.";
-      } else if (error.message.includes("HTTP error")) {
-        errorMessage = `Lỗi server: ${error.message}`;
-      }
-
-      message.error(errorMessage);
+      message.error("Lỗi cập nhật trạng thái");
     } finally {
       setUpdating(null);
     }
@@ -138,356 +90,196 @@ export default function RepairRequestList() {
       message.error("Vui lòng nhập lý do từ chối!");
       return;
     }
-
     await updateStatus(selectedRepairId, "rejected", rejectReason);
     setRejectModalOpen(false);
     setRejectReason("");
     setSelectedRepairId(null);
   };
 
-  const getStatusText = (status) => {
+  const getStatusTag = (status) => {
     const statusMap = {
-      pending: "Đang chờ duyệt",
-      approved: "Đã duyệt",
-      in_progress: "Đang sửa",
-      done: "Đã sửa xong",
-      rejected: "Đã từ chối"
+      pending: { color: "orange", text: "Đang chờ duyệt" },
+      approved: { color: "blue", text: "Đã duyệt" },
+      in_progress: { color: "processing", text: "Đang sửa" },
+      done: { color: "success", text: "Đã sửa xong" },
+      rejected: { color: "error", text: "Đã từ chối" }
     };
-    return statusMap[status] || status;
+    const s = statusMap[status] || { color: "default", text: status };
+    return <Tag color={s.color}>{s.text}</Tag>;
   };
 
-  const getStatusBadgeClass = (status) => {
-    const classMap = {
-      pending: "status-pending",
-      approved: "status-approved",
-      in_progress: "status-in-progress",
-      done: "status-done",
-      rejected: "status-rejected"
-    };
-    return classMap[status] || "";
-  };
+  // Cấu hình cột cho bảng Ant Design Table
+  const columns = [
+    {
+      title: 'Thiết bị',
+      dataIndex: ['device_id', 'name'],
+      key: 'device_name',
+      render: (text, record) => record.device_id?.name || "N/A",
+    },
+    {
+      title: 'Số lượng',
+      dataIndex: 'quantity',
+      key: 'quantity',
+      width: 100,
+      render: (qty) => qty || 1,
+    },
+    {
+      title: 'Lý do',
+      dataIndex: 'reason',
+      key: 'reason',
+      render: (text) => text || "Không có",
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      width: 150,
+      render: (status) => getStatusTag(status),
+    },
+    {
+      title: 'Ảnh',
+      dataIndex: 'image',
+      key: 'image',
+      width: 100,
+      render: (img) => img ? (
+        <img
+          src={img}
+          alt="hỏng"
+          style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #ddd' }}
+          onClick={() => { setPreviewImage(img); setPreviewOpen(true); }}
+        />
+      ) : <span style={{ color: '#999' }}>Không có</span>
+    },
+    {
+      title: 'Hành động',
+      key: 'action',
+      render: (_, record) => (
+        <Space size="small">
+          {record.status === "pending" && (
+            <>
+              <Button
+                type="primary"
+                size="small"
+                loading={updating === record._id}
+                onClick={() => updateStatus(record._id, "approved")}
+              >
+                Duyệt
+              </Button>
+              <Button
+                danger
+                size="small"
+                loading={updating === record._id}
+                onClick={() => { setSelectedRepairId(record._id); setRejectModalOpen(true); }}
+              >
+                Từ chối
+              </Button>
+            </>
+          )}
+          {record.status === "approved" && (
+            <Button
+              type="primary"
+              ghost
+              size="small"
+              loading={updating === record._id}
+              onClick={() => updateStatus(record._id, "in_progress")}
+            >
+              Bắt đầu sửa
+            </Button>
+          )}
+          {record.status === "in_progress" && (
+            <Button
+              type="primary"
+              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              size="small"
+              loading={updating === record._id}
+              onClick={() => updateStatus(record._id, "done")}
+            >
+              Hoàn thành
+            </Button>
+          )}
+          {(record.status === "done" || record.status === "rejected") && (
+            <Button size="small" disabled>Đã kết thúc</Button>
+          )}
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Layout.Sider
-        width={240}
-        style={{
-          background: "#001529",
-          position: "fixed",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          overflow: "auto",
-        }}
-      >
-        <div
-          style={{
-            padding: 24,
-            textAlign: "center",
-            borderBottom: "1px solid #303030",
-          }}
-        >
-          <Typography.Title level={4} style={{ color: "#fff", margin: 0 }}>
-            InFra<span style={{ color: "#1890ff" }}>Lab</span>
-          </Typography.Title>
-          <Typography.Text type="secondary" style={{ color: "#8c8c8c", fontSize: 12 }}>
-            QUẢN TRỊ HỆ THỐNG
-          </Typography.Text>
+    <div className="repair-request-list-content">
+      <h2 style={{ marginBottom: '20px', color: '#001529' }}>📋 Danh Sách Yêu Cầu Sửa Chữa</h2>
+
+      {/* Filter Section */}
+      <Card style={{ marginBottom: 20 }} bodyStyle={{ padding: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontWeight: 500 }}>Lọc theo trạng thái:</span>
+          <Select
+            defaultValue="pending"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            style={{ width: 200 }}
+            options={[
+              { value: 'pending', label: 'Đang chờ duyệt' },
+              { value: 'approved', label: 'Đã duyệt' },
+              { value: 'in_progress', label: 'Đang sửa' },
+              { value: 'done', label: 'Đã sửa xong' },
+              { value: 'rejected', label: 'Đã từ chối' },
+              { value: 'all', label: 'Tất cả' },
+            ]}
+          />
+          <Button onClick={fetchRepairs} loading={loading}>Làm mới</Button>
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={["requests"]}
-          items={[
-            { key: "overview", icon: <DashboardOutlined />, label: "Tổng quan" },
-            { key: "devices", icon: <ToolOutlined />, label: "Quản lý thiết bị" },
-            { key: "requests", icon: <CheckCircleOutlined />, label: "Danh sách sửa chữa" },
-            { key: "reports", icon: <FileTextOutlined />, label: "Báo cáo" },
-            { key: "notifications", icon: <BellOutlined />, label: "Thông báo" },
-          ]}
-          style={{ borderRight: 0, marginTop: 16 }}
-          onSelect={({ key }) => {
-            if (key === "overview") navigate("/school-dashboard");
-            else if (key === "devices") navigate("/school/dashboard");
-            else if (key === "requests") navigate("/requests");
-            else if (key === "reports") navigate("/reports");
-            else if (key === "notifications") navigate("/notifications");
-          }}
+      </Card>
+
+      {/* Table Section */}
+      <Card bodyStyle={{ padding: 0 }}>
+        <Table
+          dataSource={repairs}
+          columns={columns}
+          rowKey="_id"
+          loading={loading}
+          pagination={{ pageSize: 10 }}
+          locale={{ emptyText: "Không có yêu cầu nào" }}
         />
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: 16,
-            borderTop: "1px solid #303030",
-            cursor: "pointer",
-          }}
-          onClick={() => {
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("user");
-            navigate("/login");
-          }}
-        >
-          <Button
-            type="text"
-            icon={<LogoutOutlined />}
-            style={{ width: "100%", color: "#fff" }}
-          >
-            Đăng xuất
-          </Button>
-        </div>
-      </Layout.Sider>
+      </Card>
 
-      <Layout style={{ marginLeft: 240, background: "#0c1424", minHeight: "100vh" }}>
-        <Layout.Content style={{ padding: "24px" }}>
-          <div className="content-wrapper">
-            <h2>Yêu cầu sửa chữa thiết bị</h2>
+      {/* Modal Preview Ảnh */}
+      <Modal
+        open={previewOpen}
+        footer={null}
+        onCancel={() => setPreviewOpen(false)}
+        width={700}
+        centered
+      >
+        <img
+          src={previewImage}
+          style={{ width: "100%", borderRadius: "8px" }}
+          alt="preview"
+        />
+      </Modal>
 
-            {/* Thông báo */}
-            {messageState.text && (
-              <div
-                style={{
-                  padding: "12px 16px",
-                  marginBottom: "16px",
-                  borderRadius: "4px",
-                  backgroundColor: messageState.type === "success"
-                    ? "#d4edda"
-                    : messageState.type === "info"
-                      ? "#d1ecf1"
-                      : "#f8d7da",
-                  color: messageState.type === "success"
-                    ? "#155724"
-                    : messageState.type === "info"
-                      ? "#0c5460"
-                      : "#721c24",
-                  border: `1px solid ${messageState.type === "success"
-                    ? "#c3e6cb"
-                    : messageState.type === "info"
-                      ? "#bee5eb"
-                      : "#f5c6cb"
-                    }`,
-                }}
-              >
-                {messageState.text}
-              </div>
-            )}
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ marginRight: "8px", fontWeight: "500" }}>Lọc theo trạng thái:</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: "4px",
-                  border: "1px solid #ddd",
-                  fontSize: "14px",
-                  minWidth: "200px"
-                }}
-              >
-                <option value="pending">Đang chờ duyệt</option>
-                <option value="approved">Đã duyệt</option>
-                <option value="in_progress">Đang sửa</option>
-                <option value="done">Đã sửa xong</option>
-                <option value="rejected">Đã từ chối</option>
-                <option value="all">Tất cả</option>
-              </select>
-            </div>
-
-            <table className="device-table">
-              <thead>
-                <tr>
-                  <th>Thiết bị</th>
-                  <th>Số lượng</th>
-                  <th>Lý do</th>
-                  <th>Trạng thái</th>
-                  <th>Hành động</th>
-                  <th>Ảnh</th>
-                </tr>
-              </thead>
-              <tbody>
-                {repairs.map((r) => (
-                  <tr key={r._id}>
-                    <td>{r.device_id?.name || "N/A"}</td>
-                    <td>{r.quantity || 1}</td>
-                    <td>{r.reason || "Không có"}</td>
-                    <td>
-                      <span className={getStatusBadgeClass(r.status)} style={{
-                        padding: "4px 12px",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        fontWeight: "500",
-                        display: "inline-block"
-                      }}>
-                        {getStatusText(r.status)}
-                      </span>
-                    </td>
-                    <td>
-                      {r.status === "pending" && (
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <button
-                            onClick={() => updateStatus(r._id, "approved")}
-                            disabled={updating === r._id}
-                            style={{
-                              padding: "6px 16px",
-                              backgroundColor: "#1890ff",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "4px",
-                              cursor: updating === r._id ? "not-allowed" : "pointer",
-                              opacity: updating === r._id ? 0.6 : 1,
-                              fontSize: "14px",
-                              fontWeight: "500"
-                            }}
-                          >
-                            {updating === r._id ? "Đang xử lý..." : "Duyệt"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedRepairId(r._id);
-                              setRejectModalOpen(true);
-                            }}
-                            disabled={updating === r._id}
-                            style={{
-                              padding: "6px 16px",
-                              backgroundColor: "#ff4d4f",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "4px",
-                              cursor: updating === r._id ? "not-allowed" : "pointer",
-                              opacity: updating === r._id ? 0.6 : 1,
-                              fontSize: "14px",
-                              fontWeight: "500"
-                            }}
-                          >
-                            {updating === r._id ? "Đang xử lý..." : "Từ chối"}
-                          </button>
-                        </div>
-                      )}
-                      {r.status === "approved" && (
-                        <button
-                          onClick={() => updateStatus(r._id, "in_progress")}
-                          disabled={updating === r._id}
-                          style={{
-                            padding: "6px 16px",
-                            backgroundColor: "#52c41a",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: updating === r._id ? "not-allowed" : "pointer",
-                            opacity: updating === r._id ? 0.6 : 1,
-                            fontSize: "14px",
-                            fontWeight: "500"
-                          }}
-                        >
-                          {updating === r._id ? "Đang xử lý..." : "Bắt đầu sửa"}
-                        </button>
-                      )}
-                      {r.status === "in_progress" && (
-                        <button
-                          onClick={() => updateStatus(r._id, "done")}
-                          disabled={updating === r._id}
-                          style={{
-                            padding: "6px 16px",
-                            backgroundColor: "#722ed1",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: updating === r._id ? "not-allowed" : "pointer",
-                            opacity: updating === r._id ? 0.6 : 1,
-                            fontSize: "14px",
-                            fontWeight: "500"
-                          }}
-                        >
-                          {updating === r._id ? "Đang xử lý..." : "Đánh dấu hoàn thành"}
-                        </button>
-                      )}
-                      {(r.status === "done" || r.status === "rejected") && (
-                        <span style={{ color: "#d8c9c9ff", fontSize: "14px" }}>
-                          {r.status === "done" ? "Đã hoàn thành" : "Đã từ chối"}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      {r.image ? (
-                        <img
-                          src={r.image}
-                          onClick={() => {
-                            setPreviewImage(r.image);
-                            setPreviewOpen(true);
-                          }}
-                          style={{
-                            width: "60px",
-                            height: "60px",
-                            borderRadius: "6px",
-                            objectFit: "cover",
-                            border: "1px solid #444",
-                            cursor: "pointer"
-                          }}
-                        />
-                      ) : (
-                        <span style={{ color: "#888" }}>Không có ảnh</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-
-                {repairs.length === 0 && (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center" }}>
-                      Không có yêu cầu nào.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Modal xem ảnh */}
-          <Modal
-            open={previewOpen}
-            footer={null}
-            onCancel={() => setPreviewOpen(false)}
-            width={700}
-          >
-            <img
-              src={previewImage}
-              style={{
-                width: "100%",
-                borderRadius: "10px",
-                objectFit: "contain",
-              }}
-              alt="preview"
-            />
-          </Modal>
-
-          {/* Modal từ chối */}
-          <Modal
-            title="Lý do từ chối yêu cầu sửa chữa"
-            open={rejectModalOpen}
-            onCancel={() => {
-              setRejectModalOpen(false);
-              setRejectReason("");
-              setSelectedRepairId(null);
-            }}
-            onOk={handleReject}
-            okText="Từ chối"
-            cancelText="Hủy"
-            okButtonProps={{ danger: true }}
-          >
-            <Input.TextArea
-              rows={4}
-              placeholder="Nhập lý do từ chối..."
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              style={{ marginTop: 16 }}
-            />
-          </Modal>
-
-        </Layout.Content>
-      </Layout>
-    </Layout>
+      {/* Modal Từ Chối */}
+      <Modal
+        title="Lý do từ chối"
+        open={rejectModalOpen}
+        onCancel={() => {
+          setRejectModalOpen(false);
+          setRejectReason("");
+          setSelectedRepairId(null);
+        }}
+        onOk={handleReject}
+        okText="Từ chối"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+      >
+        <Input.TextArea
+          rows={4}
+          placeholder="Nhập lý do từ chối..."
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          style={{ marginTop: 16 }}
+        />
+      </Modal>
+    </div>
   );
 }

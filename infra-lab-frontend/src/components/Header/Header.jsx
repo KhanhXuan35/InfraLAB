@@ -1,454 +1,162 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Input, Badge, Avatar, Dropdown, Space, Typography, Button, Empty, Tooltip } from 'antd';
-import { 
-  SearchOutlined, 
-  ShoppingCartOutlined, 
-  UserOutlined,
-  MessageOutlined,
+import React, { useState, useEffect } from 'react';
+import { Layout, Badge, Avatar, Dropdown, Button, Space, Typography } from 'antd';
+import {
+  ShoppingCartOutlined,
   BellOutlined,
-  ClockCircleOutlined,
-  DeleteOutlined,
+  MessageOutlined,
   HistoryOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  SettingOutlined
 } from '@ant-design/icons';
-import { HeaderContainer, LogoText, SearchContainer, RightSection, SearchWrapper } from './style';
-import SearchResults from '../SearchResults/SearchResults';
-import { STUDENT_ROUTES } from '../../constants/routes';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
-import api from '../../services/api';
+import './style.js';
 
-const { Search } = Input;
-const { Text } = Typography;
+const { Header: AntHeader } = Layout;
+const { Title } = Typography;
 
-// ===============================
-// SEARCH HISTORY
-// ===============================
-const SEARCH_HISTORY_KEY = 'infralab_search_history';
-const MAX_HISTORY_ITEMS = 10;
-
-const getSearchHistory = () => {
-  try {
-    const history = localStorage.getItem(SEARCH_HISTORY_KEY);
-    return history ? JSON.parse(history) : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveSearchHistory = (query) => {
-  if (!query || query.trim() === '') return;
-  let history = getSearchHistory();
-  history = history.filter((item) => item.toLowerCase() !== query.toLowerCase());
-  history.unshift(query);
-  history = history.slice(0, MAX_HISTORY_ITEMS);
-  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
-};
-
-const clearSearchHistory = () => {
-  localStorage.removeItem(SEARCH_HISTORY_KEY);
-};
-
-const removeFromSearchHistory = (itemToRemove) => {
-  let history = getSearchHistory();
-  history = history.filter(item => item.toLowerCase() !== itemToRemove.toLowerCase());
-  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
-};
-
-// ===============================
-// MAIN HEADER COMPONENT
-// ===============================
 const Header = () => {
   const navigate = useNavigate();
-  const { getCartCount } = useCart();
+  // Safe check context
+  const cartContext = useCart();
+  const cartCount = cartContext ? cartContext.cartCount : 0;
 
-  const [searchValue, setSearchValue] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [searchHistory, setSearchHistory] = useState([]);
   const [user, setUser] = useState(null);
-
-  const searchTimeoutRef = useRef(null);
-  const searchContainerRef = useRef(null);
-
-  const cartCount = getCartCount();
-
-  // Lấy thông tin user từ localStorage
-  useEffect(() => {
-    const loadUser = () => {
-      try {
-        const userString = localStorage.getItem('user');
-        if (userString) {
-          const userData = JSON.parse(userString);
-          setUser(userData);
-        }
-      } catch (error) {
-        console.error('Error loading user:', error);
-      }
-    };
-
-    loadUser();
-
-    // Lắng nghe sự kiện storage để cập nhật khi user thay đổi avatar
-    const handleStorageChange = (e) => {
-      if (e.key === 'user') {
-        loadUser();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Custom event để cập nhật khi user thay đổi avatar trong cùng tab
-    const handleUserUpdate = () => {
-      loadUser();
-    };
-    
-    window.addEventListener('userUpdated', handleUserUpdate);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('userUpdated', handleUserUpdate);
-    };
-  }, []);
 
   useEffect(() => {
     const userString = localStorage.getItem('user');
     if (userString) {
-      try {
-        setUser(JSON.parse(userString));
-      } catch (e) {
-        console.error('Error parsing user:', e);
-      }
+      setUser(JSON.parse(userString));
     }
   }, []);
 
-  useEffect(() => {
-    setSearchHistory(getSearchHistory());
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
-        setShowResults(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // ===============================
-  // SEARCH API
-  // ===============================
-  const performSearch = useCallback(async (query) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setShowResults(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await api.get(`/devices?location=lab&search=${encodeURIComponent(query)}`);
-      const data = response.data;
-
-      if (data.success) {
-        const q = query.toLowerCase();
-        const results = (data.data || []).filter(
-          (d) =>
-            d.inventory &&
-            d.inventory.location === 'lab' &&
-            d.name &&
-            d.name.toLowerCase().includes(q)
-        );
-        setSearchResults(results);
-        setShowResults(true);
-      } else {
-        setSearchResults([]);
-        setShowResults(false);
-      }
-    } catch (err) {
-      console.error(err);
-      setSearchResults([]);
-      setShowResults(false);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchValue(value);
-
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
-    if (value.trim()) {
-      searchTimeoutRef.current = setTimeout(() => performSearch(value), 300);
-      setShowResults(true);
-    } else {
-      setSearchResults([]);
-      // Hiển thị lịch sử nếu có và không có text
-      if (searchHistory.length > 0) {
-        setShowResults(true);
-      } else {
-        setShowResults(false);
-      }
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('user');
+    navigate('/login');
   };
 
-  const handleSearch = (value) => {
-    if (!value.trim()) return;
-
-    saveSearchHistory(value);
-    setSearchHistory(getSearchHistory());
-    performSearch(value);
-
-    navigate(`${STUDENT_ROUTES.DEVICES}?search=${encodeURIComponent(value)}`);
-    setShowResults(false);
-  };
-
-  const handleSelectDevice = (device) => {
-    saveSearchHistory(searchValue);
-    setSearchHistory(getSearchHistory());
-    navigate(STUDENT_ROUTES.DEVICE_DETAIL(device._id));
-    setSearchValue('');
-    setShowResults(false);
-  };
-
-  const handleHistoryClick = (historyItem) => {
-    setSearchValue(historyItem);
-    handleSearch(historyItem);
-  };
-
-  const handleRemoveHistoryItem = (e, historyItem) => {
-    e.stopPropagation(); // Ngăn trigger onClick của parent
-    removeFromSearchHistory(historyItem);
-    setSearchHistory(getSearchHistory());
-  };
-
-  const handleClearAllHistory = () => {
-    clearSearchHistory();
-    setSearchHistory([]);
-  };
-
-  const handleMenuClick = ({ key }) => {
-    if (key === 'profile') {
-      navigate('/profile');
-    } else if (key === 'changepass') {
-      navigate('/change-password');
-    } else if (key === 'logout') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      navigate('/login');
-    }
-  };
-
-  const userMenuItems = [
-    { key: 'profile', label: 'Thông tin cá nhân' },
-    { key: 'changepass', label: 'Đổi mật khẩu' },
-    { key: 'logout', label: 'Đăng xuất' }
+  // Menu Dropdown cho Student và Lab Manager
+  const menuItems = [
+    {
+      key: 'profile',
+      label: 'Hồ sơ cá nhân',
+      icon: <UserOutlined />,
+      onClick: () => navigate('/profile'),
+    },
+    {
+      key: 'change-pass',
+      label: 'Đổi mật khẩu',
+      icon: <SettingOutlined />,
+      onClick: () => navigate('/change-password'),
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'logout',
+      label: 'Đăng xuất',
+      icon: <LogoutOutlined />,
+      danger: true,
+      onClick: handleLogout,
+    },
   ];
 
-  // ===============================
-  // RENDER
-  // ===============================
-  return (
-    <HeaderContainer>
-      <LogoText onClick={() => navigate(STUDENT_ROUTES.HOME)}>InfraLAB</LogoText>
+  // Logic hiển thị icon chức năng
+  const renderIcons = () => {
+    const role = user?.role;
 
-      {/* SEARCH BOX */}
-      <SearchContainer ref={searchContainerRef}>
-        <SearchWrapper>
-          <Search
-            placeholder="Tìm kiếm thiết bị theo tên..."
-            allowClear
-            enterButton={<SearchOutlined />}
-            size="large"
-            value={searchValue}
-            onChange={handleSearchChange}
-            onSearch={handleSearch}
-            onFocus={() => {
-              if (searchValue.trim()) {
-                if (searchResults.length > 0 || loading) {
-                  setShowResults(true);
-                }
-              } else {
-                // Hiển thị lịch sử khi focus và không có text
-                if (searchHistory.length > 0) {
-                  setShowResults(true);
-                }
-              }
-            }}
+    // Icon chung (Tin nhắn, Thông báo)
+    const commonIcons = (
+      <>
+        <Button
+          type="text"
+          icon={<Badge count={0} size="small"><MessageOutlined style={{ fontSize: 20 }} /></Badge>}
+          onClick={() => navigate('/chat')}
+        />
+        <Button
+          type="text"
+          icon={<Badge count={5} size="small"><BellOutlined style={{ fontSize: 20 }} /></Badge>}
+        />
+      </>
+    );
+
+    // Nếu là Student thì thêm Giỏ hàng và Lịch sử
+    if (role === 'student') {
+      return (
+        <Space size="middle">
+          <Button
+            type="text"
+            icon={<HistoryOutlined style={{ fontSize: 20 }} />}
+            onClick={() => navigate('/student/borrowed')}
+            title="Lịch sử mượn"
           />
-
-          {showResults && (
-            <>
-              {searchValue.trim() && searchResults.length > 0 ? (
-                <SearchResults 
-                  results={searchResults} 
-                  loading={loading} 
-                  onSelect={handleSelectDevice}
-                  onViewAll={() => {
-                    if (searchValue.trim()) {
-                      handleSearch(searchValue);
-                    }
-                  }}
-                />
-              ) : !searchValue.trim() && searchHistory.length > 0 ? (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  background: 'white',
-                  border: '1px solid #d9d9d9',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                  zIndex: 1001,
-                  marginTop: '4px',
-                  maxHeight: '400px',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}>
-                  <div style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #f0f0f0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    position: 'sticky',
-                    top: 0,
-                    background: 'white',
-                    zIndex: 1,
-                    flexShrink: 0
-                  }}>
-                    <Text strong style={{ fontSize: 14 }}>Lịch sử tìm kiếm</Text>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={handleClearAllHistory}
-                      style={{ color: '#999', padding: 0 }}
-                    />
-                  </div>
-                  <div style={{
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    flex: 1,
-                    maxHeight: '350px'
-                  }}>
-                    {searchHistory.map((item, index) => (
-                      <div
-                        key={index}
-                        onClick={() => handleHistoryClick(item)}
-                        style={{
-                          padding: '12px 16px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          borderBottom: index < searchHistory.length - 1 ? '1px solid #f0f0f0' : 'none',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-                          <ClockCircleOutlined style={{ color: '#999', fontSize: 16 }} />
-                          <Text style={{ fontSize: 14 }}>{item}</Text>
-                        </div>
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={(e) => handleRemoveHistoryItem(e, item)}
-                          style={{ 
-                            color: '#999', 
-                            opacity: 0.6,
-                            padding: '4px 8px'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.opacity = '1';
-                            e.currentTarget.style.color = '#ff4d4f';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.opacity = '0.6';
-                            e.currentTarget.style.color = '#999';
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : searchValue.trim() && !loading && searchResults.length === 0 ? (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  background: 'white',
-                  border: '1px solid #d9d9d9',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                  zIndex: 1001,
-                  marginTop: '4px',
-                  padding: '20px',
-                  textAlign: 'center'
-                }}>
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Không tìm thấy kết quả"
-                  />
-                </div>
-              ) : null}
-            </>
-          )}
-        </SearchWrapper>
-      </SearchContainer>
-
-      {/* RIGHT ICONS */}
-      <RightSection>
-        <Space size="large">
-          <Tooltip title="Tin nhắn">
-            <MessageOutlined 
-              style={{ fontSize: 20, cursor: 'pointer', transition: 'color 0.3s' }}
-              onClick={() => {
-                // Navigate to chat based on user role
-                if (user?.role === 'student') {
-                  navigate(STUDENT_ROUTES.Conversation);
-                } else {
-                  navigate('/chat');
-                }
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#1890ff'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
-            />
-          </Tooltip>
-          <Badge count={cartCount}>
-            <ShoppingCartOutlined style={{ fontSize: 20 }} onClick={() => navigate(STUDENT_ROUTES.CART)} />
-          </Badge>
-          <Tooltip title="Xem thiết bị đã mượn">
-            <HistoryOutlined 
-              style={{ fontSize: 20, cursor: 'pointer', transition: 'color 0.3s' }}
-              onClick={() => navigate(STUDENT_ROUTES.BORROWED)}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#1890ff'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}
-            />
-          </Tooltip>
-          <BellOutlined style={{ fontSize: 20 }} />
-
-          <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} trigger={['click']}>
-            <Avatar 
-              src={user?.avatar || null}
-              icon={!user?.avatar && <UserOutlined />}
-              style={{ cursor: 'pointer', background: '#1890ff' }}
-            >
-              {!user?.avatar && (user?.name?.charAt(0) || user?.fullName?.charAt(0) || 'U')}
-            </Avatar>
-          </Dropdown>
+          <Button
+            type="text"
+            icon={
+              <Badge count={cartCount} size="small">
+                <ShoppingCartOutlined style={{ fontSize: 20 }} />
+              </Badge>
+            }
+            onClick={() => navigate('/student/cart')}
+            title="Giỏ hàng"
+          />
+          {commonIcons}
         </Space>
-      </RightSection>
-    </HeaderContainer>
+      );
+    }
+
+    // Lab Manager và School Admin chỉ hiện icon chung
+    return <Space size="middle">{commonIcons}</Space>;
+  };
+
+  return (
+    <AntHeader
+      style={{
+        background: '#fff',
+        padding: '0 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        zIndex: 999,
+        position: 'sticky',
+        top: 0,
+        height: '64px'
+      }}
+    >
+      {/* Logo */}
+      <div className="header-left" style={{ display: 'flex', alignItems: 'center' }}>
+        <Title level={4} style={{ margin: 0, color: '#1890ff', cursor: 'pointer' }} onClick={() => navigate('/')}>
+          InFraLAB
+        </Title>
+      </div>
+
+      {/* Right Side */}
+      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+
+        {/* Render Icons */}
+        {renderIcons()}
+
+        {/* LOGIC QUAN TRỌNG: Chỉ hiện Avatar + Tên nếu KHÔNG PHẢI là School Admin */}
+        {/* Tức là chỉ hiện cho Student và Lab Manager */}
+        {user && user.role !== 'school_admin' && (
+          <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
+            <Space style={{ cursor: 'pointer', marginLeft: 8 }}>
+              <Avatar
+                src={user?.avatar}
+                icon={<UserOutlined />}
+                style={{ backgroundColor: '#1890ff' }}
+              />
+              <span style={{ display: 'none', md: 'inline-block', fontWeight: 500 }}>
+                {user?.name || user?.username || 'User'}
+              </span>
+            </Space>
+          </Dropdown>
+        )}
+      </div>
+    </AntHeader>
   );
 };
 

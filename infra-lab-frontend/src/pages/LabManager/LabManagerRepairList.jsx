@@ -92,23 +92,6 @@ export default function LabManagerRepairList() {
 
     return (
         <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
-            <Header
-                style={{
-                    background: "#ffffff",
-                    padding: "0 24px",
-                    borderBottom: "1px solid #e5e7eb",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                }}
-            >
-                <Title level={4} style={{ margin: 0 }}>
-                    Yêu cầu sửa chữa đã gửi
-                </Title>
-                <Button onClick={() => navigate(LAB_MANAGER_ROUTES.DASHBOARD)}>
-                    Về dashboard
-                </Button>
-            </Header>
 
             <Content style={{ padding: "24px 32px" }}>
                 <div
@@ -119,7 +102,7 @@ export default function LabManagerRepairList() {
                         boxShadow: "0 4px 12px rgba(15,23,42,0.06)",
                     }}
                 >
-                    <Title level={5}>Danh sách yêu cầu</Title>
+                    <Title level={5}>Danh sách yêu cầu sửa chữa</Title>
                     <Table
                         rowKey="_id"
                         columns={columns}

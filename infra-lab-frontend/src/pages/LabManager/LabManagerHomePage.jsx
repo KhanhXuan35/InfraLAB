@@ -1,47 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Layout,
   Row,
   Col,
   Card,
   Statistic,
   Typography,
   Button,
-  Space,
+  List,
   Avatar,
   Empty,
-  List,
-  Tag,
-  Divider,
-  Menu
+  Tag
 } from 'antd';
 import {
-  DashboardOutlined,
   ToolOutlined,
-  ShoppingOutlined,
-  FileTextOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  WarningOutlined,
   BellOutlined,
   PlusOutlined,
   SwapOutlined,
   SearchOutlined,
-  ExportOutlined,
-  LogoutOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  WarningOutlined,
-  MessageOutlined,
-  TeamOutlined
+  ExportOutlined
 } from '@ant-design/icons';
 import api from '../../services/api';
 import * as S from './LabManagerHomePage.styles';
 
-const { Header: LayoutHeader, Sider, Content } = Layout;
-const { Title, Paragraph, Text } = Typography;
+// Chỉ giữ lại Typography, không lấy Layout/Sider nữa
+const { Title, Text } = Typography;
 
 const LabManagerHomePage = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  // State dữ liệu
   const [stats, setStats] = useState({
     totalAssets: 0,
     active: 0,
@@ -50,15 +40,9 @@ const LabManagerHomePage = () => {
   });
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMenu, setSelectedMenu] = useState('dashboard');
 
+  // --- 1. LOAD DATA (Giữ nguyên logic cũ) ---
   useEffect(() => {
-    const userString = localStorage.getItem('user');
-    if (userString) {
-      const userData = JSON.parse(userString);
-      setUser(userData);
-    }
-
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
@@ -89,45 +73,11 @@ const LabManagerHomePage = () => {
     fetchDashboardData();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
-
-  const handleMenuClick = ({ key }) => {
-    setSelectedMenu(key);
-    switch (key) {
-      case 'devices':
-        navigate('/lab-manager/devices');
-        break;
-      case 'repairs':
-        navigate('/lab-manager/repairs');
-        break;
-      case 'chat':
-        navigate('/chat');
-        break;
-      case 'borrow':
-        navigate('/lab-manager/borrow-return');
-        break;
-      case 'reports':
-        // Navigate to reports page
-        break;
-      case 'notifications':
-        // Navigate to notifications page
-        break;
-      case 'students':
-        navigate('/lab-manager/students');
-        break;
-      default:
-        break;
-    }
-  };
-
+  // --- 2. HÀNH ĐỘNG NHANH (Giữ nguyên) ---
   const handleQuickAction = (key) => {
     switch (key) {
       case 'add-device':
-        // Navigate to add device
+        // Logic thêm thiết bị (có thể mở modal hoặc navigate)
         break;
       case 'record':
         navigate('/lab-manager/borrow-return');
@@ -136,51 +86,12 @@ const LabManagerHomePage = () => {
         navigate('/lab-manager/devices');
         break;
       case 'export':
-        // Handle export
+        // Handle export logic
         break;
       default:
         break;
     }
   };
-
-  const menuItems = [
-    {
-      key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: 'Thống kê',
-    },
-    {
-      key: 'devices',
-      icon: <ToolOutlined />,
-      label: 'Quản lý thiết bị',
-    },
-    { key: 'repairs', icon: <ToolOutlined />, label: 'Danh sách sửa chữa' },
-    {
-      key: 'chat',
-      icon: <MessageOutlined />,
-      label: 'Tin nhắn',
-    },
-    {
-      key: 'borrow',
-      icon: <ShoppingOutlined />,
-      label: 'Danh sách thiết bị mượn',
-    },
-    {
-      key: 'reports',
-      icon: <FileTextOutlined />,
-      label: 'Báo cáo',
-    },
-    {
-      key: 'students',
-      icon: <TeamOutlined />,
-      label: 'Quản lý sinh viên',
-    },
-    {
-      key: 'notifications',
-      icon: <BellOutlined />,
-      label: 'Thông báo',
-    },
-  ];
 
   const quickActions = [
     {
@@ -190,7 +101,7 @@ const LabManagerHomePage = () => {
       key: 'add-device',
     },
     {
-      title: 'Danh sách thiết bị mượn',
+      title: 'DS thiết bị mượn',
       icon: <SwapOutlined />,
       color: '#722ed1',
       key: 'record',
@@ -213,206 +124,144 @@ const LabManagerHomePage = () => {
     return <S.LoadingContainer>Đang tải...</S.LoadingContainer>;
   }
 
+  // --- 3. GIAO DIỆN (Đã bỏ Layout bao ngoài) ---
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        width={250}
-        style={{
-          background: '#001529',
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          overflow: 'auto',
-        }}
-      >
-        <div style={{ padding: 24, textAlign: 'center', borderBottom: '1px solid #303030' }}>
-          <Title level={4} style={{ color: '#fff', margin: 0 }}>
-            InFra<span style={{ color: '#1890ff' }}>Lab</span>
-          </Title>
-          <Text type="secondary" style={{ color: '#8c8c8c', fontSize: 12 }}>
-            QUẢN LÝ PHÒNG LAB
-          </Text>
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedMenu]}
-          items={menuItems}
-          style={{ borderRight: 0, marginTop: 16 }}
-          onClick={handleMenuClick}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: 16,
-            borderTop: '1px solid #303030',
-            cursor: 'pointer',
-          }}
-          onClick={handleLogout}
-        >
-          <Button
-            type="text"
-            icon={<LogoutOutlined />}
-            style={{ width: '100%', color: '#fff' }}
-          >
-            Đăng xuất
-          </Button>
-        </div>
-      </Sider>
+    <div className="lab-manager-dashboard">
+      {/* Tiêu đề trang */}
+      <div style={{ marginBottom: 24 }}>
+        <Title level={4} style={{ margin: 0 }}>
+          Dashboard Quản lý Lab
+        </Title>
+        <Text type="secondary">Tổng quan tình trạng phòng Lab và thiết bị</Text>
+      </div>
 
-      <Layout style={{ marginLeft: 250 }}>
-        <LayoutHeader style={{
-          background: '#fff',
-          padding: '0 24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <Title level={4} style={{ margin: 0 }}>
-            Dashboard Quản lý Lab
-          </Title>
-          <Space>
-            <Text>Xin chào, {user?.name || 'Giáo viên'}!</Text>
-            <Avatar style={{ backgroundColor: '#1890ff' }}>
-              {user?.name?.charAt(0) || 'G'}
-            </Avatar>
-          </Space>
-        </LayoutHeader>
+      {/* Stats Cards */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loading} hoverable>
+            <Statistic
+              title="Tổng tài sản"
+              value={stats.totalAssets}
+              prefix={<ToolOutlined />}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loading} hoverable>
+            <Statistic
+              title="Đang hoạt động"
+              value={stats.active}
+              prefix={<CheckCircleOutlined />}
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loading} hoverable>
+            <Statistic
+              title="Đang sửa chữa"
+              value={stats.underRepair}
+              prefix={<WarningOutlined />}
+              valueStyle={{ color: '#faad14' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loading} hoverable>
+            <Statistic
+              title="Hỏng/Thay thế"
+              value={stats.broken}
+              prefix={<CloseCircleOutlined />}
+              valueStyle={{ color: '#f5222d' }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
-        <Content style={{ margin: '24px', minHeight: 280 }}>
-          {/* Stats Cards */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={12} lg={6}>
-              <Card loading={loading}>
-                <Statistic
-                  title="Tổng tài sản"
-                  value={stats.totalAssets}
-                  prefix={<ToolOutlined />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card loading={loading}>
-                <Statistic
-                  title="Đang hoạt động"
-                  value={stats.active}
-                  prefix={<CheckCircleOutlined />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card loading={loading}>
-                <Statistic
-                  title="Đang sửa chữa"
-                  value={stats.underRepair}
-                  prefix={<WarningOutlined />}
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card loading={loading}>
-                <Statistic
-                  title="Hỏng/Thay thế"
-                  value={stats.broken}
-                  prefix={<CloseCircleOutlined />}
-                  valueStyle={{ color: '#f5222d' }}
-                />
-              </Card>
-            </Col>
-          </Row>
-
-          <Row gutter={[16, 16]}>
-            {/* Recent Activities */}
-            <Col xs={24} lg={12}>
-              <Card title="Hoạt động gần đây" extra={<Button type="link">Xem tất cả</Button>}>
-                {activities.length > 0 ? (
-                  <List
-                    dataSource={activities}
-                    renderItem={(item) => (
-                      <List.Item>
-                        <List.Item.Meta
-                          avatar={
-                            <Avatar
-                              style={{
-                                backgroundColor:
-                                  item.type === 'ok'
-                                    ? '#52c41a'
-                                    : item.type === 'error'
-                                      ? '#f5222d'
-                                      : '#1890ff',
-                              }}
-                              icon={
-                                item.type === 'ok' ? (
-                                  <CheckCircleOutlined />
-                                ) : item.type === 'error' ? (
-                                  <CloseCircleOutlined />
-                                ) : (
-                                  <BellOutlined />
-                                )
-                              }
-                            />
-                          }
-                          title={
-                            <Text style={{ fontSize: 14 }}>{item.message}</Text>
-                          }
-                          description={
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              {new Date(item.createdAt).toLocaleString('vi-VN')}
-                            </Text>
+      <Row gutter={[16, 16]}>
+        {/* Recent Activities */}
+        <Col xs={24} lg={12}>
+          <Card title="Hoạt động gần đây" extra={<Button type="link">Xem tất cả</Button>}>
+            {activities.length > 0 ? (
+              <List
+                dataSource={activities}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar
+                          style={{
+                            backgroundColor:
+                              item.type === 'ok'
+                                ? '#52c41a'
+                                : item.type === 'error'
+                                  ? '#f5222d'
+                                  : '#1890ff',
+                          }}
+                          icon={
+                            item.type === 'ok' ? (
+                              <CheckCircleOutlined />
+                            ) : item.type === 'error' ? (
+                              <CloseCircleOutlined />
+                            ) : (
+                              <BellOutlined />
+                            )
                           }
                         />
-                      </List.Item>
-                    )}
-                  />
-                ) : (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Chưa có hoạt động nào"
-                  />
-                )}
-              </Card>
-            </Col>
-
-            {/* Quick Actions */}
-            <Col xs={24} lg={12}>
-              <Card title="Hành động nhanh">
-                <Row gutter={[12, 12]}>
-                  {quickActions.map((action, index) => (
-                    <Col xs={12} key={index}>
-                      <Card
-                        hoverable
-                        onClick={() => handleQuickAction(action.key)}
-                        style={{
-                          textAlign: 'center',
-                          background: `linear-gradient(135deg, ${action.color}15 0%, ${action.color}05 100%)`,
-                          cursor: 'pointer',
-                        }}
-                        bodyStyle={{ padding: '20px 12px' }}
-                      >
-                        <div style={{ fontSize: 32, color: action.color, marginBottom: 8 }}>
-                          {action.icon}
-                        </div>
-                        <Text strong style={{ fontSize: 12 }}>
-                          {action.title}
+                      }
+                      title={
+                        <Text style={{ fontSize: 14 }}>{item.message}</Text>
+                      }
+                      description={
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {new Date(item.createdAt).toLocaleString('vi-VN')}
                         </Text>
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
-              </Card>
-            </Col>
-          </Row>
-        </Content>
-      </Layout>
-    </Layout>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Chưa có hoạt động nào"
+              />
+            )}
+          </Card>
+        </Col>
+
+        {/* Quick Actions */}
+        <Col xs={24} lg={12}>
+          <Card title="Hành động nhanh">
+            <Row gutter={[12, 12]}>
+              {quickActions.map((action, index) => (
+                <Col xs={12} key={index}>
+                  <Card
+                    hoverable
+                    onClick={() => handleQuickAction(action.key)}
+                    style={{
+                      textAlign: 'center',
+                      background: `linear-gradient(135deg, ${action.color}15 0%, ${action.color}05 100%)`,
+                      cursor: 'pointer',
+                      border: '1px solid #f0f0f0'
+                    }}
+                    bodyStyle={{ padding: '20px 12px' }}
+                  >
+                    <div style={{ fontSize: 32, color: action.color, marginBottom: 8 }}>
+                      {action.icon}
+                    </div>
+                    <Text strong style={{ fontSize: 12 }}>
+                      {action.title}
+                    </Text>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+        </Col>
+      </Row>
+    </div>
   );
 };
 

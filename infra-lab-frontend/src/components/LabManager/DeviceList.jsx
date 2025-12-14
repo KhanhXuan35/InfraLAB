@@ -1,384 +1,263 @@
 import React, { useEffect, useState } from "react";
-import { Layout, Menu, Typography, Button } from "antd";
 import {
-  DashboardOutlined,
-  ToolOutlined,
-  SwapOutlined,
-  FileTextOutlined,
-  BellOutlined,
-  LogoutOutlined,
+  Table,
+  Card,
+  Typography,
+  Button,
+  Input,
+  Select,
+  Tag,
+  Image,
+  Row,
+  Col,
+  Tooltip,
+  Space
+} from "antd";
+import {
+  SearchOutlined,
+  ReloadOutlined,
+  EyeOutlined
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "./deviceList.css";
 
+// Lưu ý: Đảm bảo file css không set style global đè lên layout chính
+
+const { Title } = Typography;
+const { Option } = Select;
+
 function DeviceList() {
-  const [devices, setDevices] = useState([]);
-  const [allDevices, setAllDevices] = useState([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // FILTER STATES
+  // --- STATE DỮ LIỆU ---
+  const [allDevices, setAllDevices] = useState([]); // Dữ liệu gốc
+  const [filteredDevices, setFilteredDevices] = useState([]); // Dữ liệu sau khi lọc (hiển thị lên bảng)
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // --- STATE BỘ LỌC ---
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [status, setStatus] = useState("all"); // rảnh / mượn / hỏng
+  const [status, setStatus] = useState("all");
 
-  // DATA FROM API
-  const [categories, setCategories] = useState([]);
+  // --- HÀM LẤY DỮ LIỆU ---
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Gọi song song 2 API để tối ưu tốc độ
+      const [devicesRes, categoriesRes] = await Promise.all([
+        api.get('/inventory/lab'),
+        api.get('/categories')
+      ]);
 
-  // PAGINATION
-  const [itemsPerPage, setItemsPerPage] = useState(5);
-  const [currentPage, setCurrentPage] = useState(1);
+      if (devicesRes.data) {
+        setAllDevices(devicesRes.data || []);
+        setFilteredDevices(devicesRes.data || []); // Ban đầu hiển thị hết
+      }
+
+      if (categoriesRes.data) {
+        setCategories(categoriesRes.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Lấy danh sách thiết bị từ lab
-        const devicesResponse = await api.get('/inventory/lab');
-        if (devicesResponse.data) {
-          setDevices(devicesResponse.data || []);
-          setAllDevices(devicesResponse.data || []);
-        }
-
-        // Lấy danh sách categories
-        const categoriesResponse = await api.get('/categories');
-        if (categoriesResponse.data) {
-          setCategories(categoriesResponse.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
-  // 🔍 Realtime Search - Tối ưu để tránh flicker
-  useEffect(() => {
-    if (allDevices.length === 0) return;
-    
-    let filtered = [...allDevices];
 
-    // Search only (realtime)
-    if (search.trim() !== "") {
-      filtered = filtered.filter((d) =>
-        d.device.name.toLowerCase().includes(search.toLowerCase())
+  // --- LOGIC LỌC DỮ LIỆU (Chạy mỗi khi search/category/status thay đổi) ---
+  useEffect(() => {
+    let result = [...allDevices];
+
+    // 1. Lọc theo tên
+    if (search.trim()) {
+      result = result.filter(item =>
+        item.device?.name?.toLowerCase().includes(search.toLowerCase())
       );
     }
 
-    // Apply category filter if user selected
+    // 2. Lọc theo danh mục
     if (category !== "all") {
-      filtered = filtered.filter((d) => d.device.category === category);
+      result = result.filter(item => item.device?.category === category);
     }
 
-    // Apply status filter
+    // 3. Lọc theo trạng thái
     if (status !== "all") {
-      if (status === "available") filtered = filtered.filter((d) => d.available > 0);
-      if (status === "borrowed") filtered = filtered.filter((d) => d.borrowed > 0);
-      if (status === "broken") filtered = filtered.filter((d) => d.broken > 0);
+      if (status === "available") result = result.filter((d) => d.available > 0);
+      if (status === "borrowed") result = result.filter((d) => d.borrowed > 0);
+      if (status === "broken") result = result.filter((d) => d.broken > 0);
     }
 
-    setDevices(filtered);
-    setCurrentPage(1);
+    setFilteredDevices(result);
   }, [search, category, status, allDevices]);
 
-  // -------------------- FILTER FUNCTION --------------------
-  const applyFilter = () => {
-    let filtered = [...allDevices];
-
-
-    // Category
-    if (category !== "all") {
-      filtered = filtered.filter((d) => d.device.category === category);
-    }
-
-    // Status filter
-    if (status !== "all") {
-      switch (status) {
-        case "available":
-          filtered = filtered.filter((d) => d.available > 0);
-          break;
-        case "borrowed":
-          filtered = filtered.filter((d) => d.borrowed > 0);
-          break;
-        case "broken":
-          filtered = filtered.filter((d) => d.broken > 0);
-          break;
-        default:
-          break;
-      }
-    }
-
-    setDevices(filtered);
-    setCurrentPage(1); // RESET PAGE AFTER FILTER
-  };
-
-  const resetFilter = () => {
+  // Reset bộ lọc
+  const handleReset = () => {
     setSearch("");
     setCategory("all");
     setStatus("all");
-    setDevices(allDevices);
-    setCurrentPage(1);
   };
 
-  // -------------------- PAGINATION LOGIC --------------------
-  const filteredData = devices;
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-
-  const visibleItems = filteredData.slice(indexOfFirst, indexOfLast);
+  // --- CẤU HÌNH CỘT BẢNG ---
+  const columns = [
+    {
+      title: '#',
+      key: 'index',
+      width: 60,
+      align: 'center',
+      render: (_, __, index) => index + 1,
+    },
+    {
+      title: 'Ảnh',
+      dataIndex: ['device', 'image'],
+      key: 'image',
+      width: 100,
+      align: 'center',
+      render: (img) => (
+        <Image
+          width={50}
+          height={50}
+          src={img}
+          fallback="https://via.placeholder.com/50x50?text=No+Image"
+          style={{ objectFit: 'cover', borderRadius: '4px', border: '1px solid #f0f0f0' }}
+        />
+      ),
+    },
+    {
+      title: 'Tên thiết bị',
+      dataIndex: ['device', 'name'],
+      key: 'name',
+      render: (text) => <b>{text}</b>,
+    },
+    {
+      title: 'Danh mục',
+      dataIndex: ['device', 'category'],
+      key: 'category',
+      render: (cat) => <Tag color="blue">{cat}</Tag>,
+    },
+    {
+      title: 'Tổng',
+      dataIndex: 'total',
+      key: 'total',
+      width: 80,
+      align: 'center',
+      sorter: (a, b) => a.total - b.total,
+    },
+    {
+      title: 'Rảnh',
+      dataIndex: 'available',
+      key: 'available',
+      width: 80,
+      align: 'center',
+      render: (val) => <span style={{ color: '#52c41a', fontWeight: 'bold' }}>{val}</span>,
+    },
+    {
+      title: 'Mượn',
+      dataIndex: 'borrowed',
+      key: 'borrowed',
+      width: 80,
+      align: 'center',
+      render: (val) => <span style={{ color: '#faad14', fontWeight: 'bold' }}>{val}</span>,
+    },
+    {
+      title: 'Hỏng',
+      dataIndex: 'broken',
+      key: 'broken',
+      width: 80,
+      align: 'center',
+      render: (val) => <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{val}</span>,
+    },
+    {
+      title: 'Hành động',
+      key: 'action',
+      align: 'center',
+      width: 120,
+      render: (_, record) => (
+        <Tooltip title="Xem chi tiết">
+          <Button
+            type="primary"
+            icon={<EyeOutlined />}
+            size="small"
+            onClick={() => navigate(`/lab-manager/device/${record._id}`)}
+          >
+            Chi tiết
+          </Button>
+        </Tooltip>
+      ),
+    },
+  ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Layout.Sider
-        width={240}
-        style={{
-          background: "#001529",
-          position: "fixed",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          overflow: "auto",
-        }}
-      >
-        <div
-          style={{
-            padding: 24,
-            textAlign: "center",
-            borderBottom: "1px solid #e6e1e1ff",
+    <div className="device-list-content">
+      {/* HEADER PAGE */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <Title level={3} style={{ margin: 0, color: '#001529' }}>📦 Quản Lý Thiết Bị</Title>
+        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+      </div>
+
+      <Card bordered={false} className="shadow-sm">
+        {/* FILTER TOOLBAR */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+          <Col xs={24} md={8}>
+            <Input
+              placeholder="Tìm theo tên thiết bị..."
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} md={5}>
+            <Select
+              style={{ width: '100%' }}
+              value={category}
+              onChange={setCategory}
+              placeholder="Chọn danh mục"
+            >
+              <Option value="all">Tất cả danh mục</Option>
+              {categories.map((c) => (
+                <Option key={c._id} value={c.name}>{c.name}</Option>
+              ))}
+            </Select>
+          </Col>
+          <Col xs={24} md={5}>
+            <Select
+              style={{ width: '100%' }}
+              value={status}
+              onChange={setStatus}
+            >
+              <Option value="all">Tất cả trạng thái</Option>
+              <Option value="available">Còn hàng (Available)</Option>
+              <Option value="borrowed">Đang mượn (Borrowed)</Option>
+              <Option value="broken">Hỏng (Broken)</Option>
+            </Select>
+          </Col>
+          <Col xs={24} md={6} style={{ textAlign: 'right' }}>
+            <Button onClick={handleReset}>Reset bộ lọc</Button>
+          </Col>
+        </Row>
+
+        {/* DATA TABLE */}
+        <Table
+          columns={columns}
+          dataSource={filteredDevices}
+          rowKey="_id"
+          loading={loading}
+          pagination={{
+            defaultPageSize: 10,
+            showSizeChanger: true,
+            pageSizeOptions: ['5', '10', '20', '50'],
+            showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} thiết bị`
           }}
-        >
-          <Typography.Title level={4} style={{ color: "#fff", margin: 0 }}>
-            InFra<span style={{ color: "#1890ff" }}>Lab</span>
-          </Typography.Title>
-          <Typography.Text type="secondary" style={{ color: "#8c8c8c", fontSize: 12 }}>
-            QUẢN LÝ PHÒNG LAB
-          </Typography.Text>
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={["devices"]}
-          items={[
-            { key: "overview", icon: <DashboardOutlined />, label: "Thống kê" },
-            { key: "devices", icon: <ToolOutlined />, label: "Quản lý thiết bị" },
-            { key: "borrow", icon: <SwapOutlined />, label: "Danh sách thiết bị mượn" },
-            { key: "repairs", icon: <ToolOutlined />, label: "Danh sách sửa chữa" },
-            { key: "reports", icon: <FileTextOutlined />, label: "Báo cáo" },
-            { key: "notifications", icon: <BellOutlined />, label: "Thông báo" },
-          ]}
-          style={{ borderRight: 0, marginTop: 16 }}
-          onSelect={({ key }) => {
-            if (key === "overview") navigate("/teacher-dashboard");
-            else if (key === "devices") navigate("/lab-manager/devices");
-            else if (key === "borrow") navigate("/lab-manager/devices");
-            else if (key === "repairs") navigate("/lab-manager/repairs");
-            else if (key === "reports") navigate("/reports");
-            else if (key === "notifications") navigate("/notifications");
-          }}
+          scroll={{ x: 1000 }} // Hỗ trợ cuộn ngang trên mobile
         />
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: 16,
-            borderTop: "1px solid #303030",
-            cursor: "pointer",
-          }}
-          onClick={() => {
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("user");
-            navigate("/login");
-          }}
-        >
-          <Button
-            type="text"
-            icon={<LogoutOutlined />}
-            style={{ width: "100%", color: "#fff" }}
-          >
-            Đăng xuất
-          </Button>
-        </div>
-      </Layout.Sider>
-
-      <Layout style={{ marginLeft: 240, background: "#0c1424" }}>
-        <Layout.Content style={{ padding: "16px 24px", background: "#f3f5f8ff" }}>
-          <div className="content-wrapper">
-            <h2 className="page-title">Danh sách thiết bị phòng Lab</h2>
-
-            {/* ---------------- FILTER BAR ---------------- */}
-            <div className="filter-bar">
-
-              <input
-                placeholder="Tìm theo tên thiết bị..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="filter-input"
-              />
-
-              <select
-                className="filter-select"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="all">Tất cả danh mục</option>
-                {categories.map((c) => (
-                  <option key={c._id} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="filter-select"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                <option value="all">Tất cả trạng thái</option>
-                <option value="available">Đang rảnh &gt; 0</option>
-                <option value="borrowed">Đang mượn &gt; 0</option>
-                <option value="broken">Hỏng &gt; 0</option>
-              </select>
-
-              <button className="btn-filter" onClick={applyFilter}>Lọc</button>
-              <button className="btn-reset" onClick={resetFilter}>Reset</button>
-            </div>
-
-            {/* ---------------- TABLE ---------------- */}
-            <div className="device-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th style={{ width: 40 }}>#</th>
-                    <th style={{ width: 100 }}>Ảnh</th>
-                    <th style={{ width: 220 }}>Tên thiết bị</th>
-                    <th style={{ width: 180 }}>Danh mục</th>
-                    <th style={{ width: 70 }}>Tổng</th>
-                    <th style={{ width: 90 }}>Đang rảnh</th>
-                    <th style={{ width: 90 }}>Đang mượn</th>
-                    <th style={{ width: 70 }}>Hỏng</th>
-                    <th style={{ width: 120 }}>Hành động</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {visibleItems.length === 0 && (
-                    <tr>
-                      <td colSpan="9" className="center" style={{ padding: 16 }}>
-                        Không có thiết bị phù hợp bộ lọc.
-                      </td>
-                    </tr>
-                  )}
-
-                  {visibleItems.map((item, index) => (
-                    <tr key={item._id}>
-                      <td className="center">{indexOfFirst + index + 1}</td>
-                      <td className="center">
-                        <div className="device-image-container">
-                          {item.device.image ? (
-                            <img 
-                              src={item.device.image} 
-                              alt={item.device.name}
-                              className="device-image"
-                              onError={(e) => {
-                                e.target.src = 'https://via.placeholder.com/60x60?text=No+Image';
-                              }}
-                            />
-                          ) : (
-                            <div className="device-image-placeholder">
-                              <span>No Image</span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td>{item.device.name}</td>
-                      <td>{item.device.category}</td>
-                      <td className="center">{item.total}</td>
-                      <td className="ok center">{item.available}</td>
-                      <td className="warn center">{item.borrowed}</td>
-                      <td className="error center">{item.broken}</td>
-                      <td className="center">
-                        <button
-                          onClick={() => navigate(`/lab-manager/device/${item._id}`)}
-                          className="btn-view"
-                        >
-                          Chi tiết
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ---------------- PAGINATION ---------------- */}
-            <div className="pagination-container">
-
-              <div className="page-left">
-                <span>Show</span>
-                <select
-                  className="page-size-select"
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-                <span>items per page</span>
-              </div>
-
-              <div className="page-right">
-                <span>
-                  {filteredData.length === 0
-                    ? "0 items"
-                    : `${indexOfFirst + 1} - ${Math.min(indexOfLast, filteredData.length)} of ${filteredData.length} items`}
-                </span>
-
-                <button
-                  className="page-btn"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                >
-                  Previous
-                </button>
-
-                {[...Array(totalPages)].map((_, i) => (
-                  <button
-                    key={i}
-                    className={`page-number ${currentPage === i + 1 ? "active" : ""}`}
-                    onClick={() => setCurrentPage(i + 1)}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-
-                <button
-                  className="page-btn"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                >
-                  Next
-                </button>
-              </div>
-
-            </div>
-          </div>
-        </Layout.Content>
-      </Layout>
-    </Layout>
+      </Card>
+    </div>
   );
 }
 
