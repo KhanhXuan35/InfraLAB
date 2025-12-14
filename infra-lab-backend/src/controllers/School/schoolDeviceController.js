@@ -115,7 +115,22 @@ export const getDevices = async (req, res) => {
       console.warn(`Warning: ${devicesPlain.length - validDevices.length} devices without category_id found`);
     }
     
-    res.json({ success: true, data: validDevices });
+    // Fetch inventory for each device and attach to device object
+    const devicesWithInventory = await Promise.all(
+      validDevices.map(async (device) => {
+        const inventory = await Inventory.findOne({ 
+          device_id: device._id, 
+          location 
+        }).lean();
+        
+        return {
+          ...device,
+          inventory: inventory || null
+        };
+      })
+    );
+    
+    res.json({ success: true, data: devicesWithInventory });
   } catch (error) {
     console.error('Error in getDevices:', error);
     res.status(500).json({ success: false, message: "Failed to fetch devices", error: error.message });

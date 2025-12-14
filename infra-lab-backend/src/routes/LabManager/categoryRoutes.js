@@ -6,10 +6,10 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const data = await Category.find({}).lean();
-    res.json({ data });
+    res.json({ success: true, data });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 });
 

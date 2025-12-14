@@ -157,9 +157,18 @@ const ViewListDevices = () => {
 
   // Lọc và sắp xếp thiết bị
   const filteredAndSortedDevices = React.useMemo(() => {
-    let filtered = devices.filter(device => device.inventory && device.inventory.location === 'lab');
+    let filtered = [...devices];
     
-    // Nếu có search query, chỉ filter theo tên thiết bị (không filter theo category)
+    // Filter by category if selected (API already filters by location)
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(device => 
+        device.category_id && 
+        (device.category_id.name === selectedCategory || 
+         (typeof device.category_id === 'object' && device.category_id.name === selectedCategory))
+      );
+    }
+    
+    // Nếu có search query, filter theo tên thiết bị
     if (searchQuery && searchQuery.trim() !== '') {
       const queryLower = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(device => 
@@ -168,7 +177,7 @@ const ViewListDevices = () => {
     }
     
     return sortDevices(filtered);
-  }, [devices, sortOrder, searchQuery]);
+  }, [devices, sortOrder, searchQuery, selectedCategory]);
 
   // Tính toán thiết bị cho trang hiện tại
   const paginatedDevices = React.useMemo(() => {
@@ -203,7 +212,7 @@ const ViewListDevices = () => {
       
       {error && (
         <Alert
-          message="Lỗi"
+          title="Lỗi"
           description={error}
           type="error"
           showIcon
@@ -333,8 +342,12 @@ const ViewListDevices = () => {
                   <Card.Meta
                     title={device.name}
                     description={
-                      device.category && (
-                        <Tag color="blue">{device.category.name}</Tag>
+                      device.category_id && (
+                        <Tag color="blue">
+                          {typeof device.category_id === 'object' 
+                            ? device.category_id.name 
+                            : device.category_id}
+                        </Tag>
                       )
                     }
                   />
