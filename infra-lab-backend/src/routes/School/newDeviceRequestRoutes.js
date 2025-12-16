@@ -1,9 +1,4 @@
 import express from "express";
-import {
-  getDevices,
-  updateDeviceWithInventory,
-  deleteDeviceWithInventory,
-} from "../../controllers/School/schoolDeviceController.js";
 import { createNewDeviceRequest } from "../../controllers/School/newDeviceRequest/createNewDeviceRequest.js";
 import { listPendingDevices } from "../../controllers/School/newDeviceRequest/listPendingDevices.js";
 import { approveNewDevice } from "../../controllers/School/newDeviceRequest/approveNewDevice.js";
@@ -11,15 +6,17 @@ import { rejectNewDevice } from "../../controllers/School/newDeviceRequest/rejec
 
 const router = express.Router();
 
-// Yêu cầu thiết bị mới 
-router.get("/pending", listPendingDevices);
+// Lab Manager tạo yêu cầu thiết bị mới
 router.post("/", createNewDeviceRequest);
+
+// School Admin xem danh sách thiết bị chờ duyệt
+router.get("/pending", listPendingDevices);
+
+// School Admin duyệt thiết bị mới
 router.patch("/:id/approve", approveNewDevice);
+
+// School Admin từ chối thiết bị mới
 router.patch("/:id/reject", rejectNewDevice);
 
-// Các chức năng khác 
-router.get("/", getDevices);
-router.put("/:id", updateDeviceWithInventory);
-router.delete("/:id", deleteDeviceWithInventory);
-
 export default router;
+

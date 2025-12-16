@@ -298,7 +298,7 @@ export const getPendingDevices = async (req, res) => {
   }
 };
 
-// Duyệt device (set verify = true)
+// Duyệt device (set verify = true và chuyển vào kho Lab Manager)
 export const approveDevice = async (req, res) => {
   try {
     const { id } = req.params;
@@ -312,10 +312,46 @@ export const approveDevice = async (req, res) => {
       return res.status(400).json({ success: false, message: "Device already verified" });
     }
 
+    // Set verify = true
     device.verify = true;
     await device.save();
 
-    res.json({ success: true, message: "Device approved", data: device });
+    // Tìm inventory hiện tại (thường ở warehouse)
+    const invWarehouse = await Inventory.findOne({ 
+      device_id: id, 
+      location: "warehouse" 
+    });
+
+    if (invWarehouse) {
+      // Chuyển từ warehouse sang lab
+      let invLab = await Inventory.findOne({ 
+        device_id: id, 
+        location: "lab" 
+      });
+
+      if (!invLab) {
+        // Tạo mới inventory ở lab
+        invLab = await Inventory.create({
+          device_id: id,
+          location: "lab",
+          total: invWarehouse.total,
+          available: invWarehouse.available,
+          broken: invWarehouse.broken || 0,
+        });
+      } else {
+        // Cộng thêm vào inventory lab nếu đã có
+        invLab.total += invWarehouse.total;
+        invLab.available += invWarehouse.available;
+        invLab.broken = (invLab.broken || 0) + (invWarehouse.broken || 0);
+        await invLab.save();
+      }
+
+      // Xóa inventory ở warehouse (hoặc giữ lại tùy logic nghiệp vụ)
+      // Ở đây ta xóa để thiết bị chỉ ở lab
+      await Inventory.deleteOne({ _id: invWarehouse._id });
+    }
+
+    res.json({ success: true, message: "Device approved and moved to lab inventory", data: device });
   } catch (error) {
     console.error('approveDevice error:', error);
     res.status(500).json({ success: false, message: "Failed to approve device", error: error.message });

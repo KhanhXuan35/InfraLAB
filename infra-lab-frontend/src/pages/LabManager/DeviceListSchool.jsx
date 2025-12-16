@@ -11,6 +11,8 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { createBorrowRequest } from '../../services/borrowRequestService';
+import { createNewDeviceRequest } from '../../services/newDeviceRequestService';
 import '../../components/LabManager/deviceList.css';
 import '../../dashboard.css';
 
@@ -375,7 +377,7 @@ const DeviceListSchool = () => {
                                   const userString = localStorage.getItem('user');
                                   const userData = userString ? JSON.parse(userString) : null;
                                   const userId = userData?._id || userData?.id;
-                                  await api.post('/request-lab', { device_id: devId, qty, user_id: userId });
+                                  await createBorrowRequest(devId, qty, userId);  //  labmanager gửi yêu cầu mượn thiết bị
                                   setShowSuccessModal(true);
                                 } catch (err) {
                                   const msg = err?.message || err?.response?.data?.message || 'Gửi yêu cầu thất bại';
@@ -696,17 +698,13 @@ const DeviceListSchool = () => {
                       return;
                     }
 
-                    const payload = {
+                    await createNewDeviceRequest({
                       name: requestFormData.name,
                       description: requestFormData.description || '',
                       image: requestFormData.image || '',
                       category_id: requestFormData.category_id,
                       total: requestFormData.total,
-                      location: 'warehouse',
-                      userId
-                    };
-
-                    await api.post('/devices', payload);
+                    }, userId); // gửi yêu cầu tạo thiết bị mới
                     setShowRequestModal(false);
                     setRequestFormData({ name: '', description: '', image: '', category_id: '', total: 1 });
                     setNotice('✅ Đã tạo yêu cầu thiết bị thành công! Vui lòng chờ School Admin duyệt.');

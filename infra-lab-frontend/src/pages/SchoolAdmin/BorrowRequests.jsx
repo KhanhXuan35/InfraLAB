@@ -6,7 +6,8 @@ import {
   CloseCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import api from '../../services/api';
+import { listBorrowRequests, approveBorrowRequest, rejectBorrowRequest } from '../../services/borrowRequestService';
+import { listPendingDevices, approveNewDevice, rejectNewDevice } from '../../services/newDeviceRequestService';
 import './BorrowRequests.css';
 
 const { Content } = Layout;
@@ -22,8 +23,7 @@ const BorrowRequests = () => {
   const loadBorrowRequests = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/request-lab?status=WAITING');
-      const list = Array.isArray(res) ? res : res?.data || [];
+      const list = await listBorrowRequests('WAITING');
       setBorrowData(list);
     } catch (err) {
       message.error(err?.message || 'Không lấy được danh sách yêu cầu mượn');
@@ -35,8 +35,7 @@ const BorrowRequests = () => {
   const loadPendingDevices = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/devices/pending');
-      const list = Array.isArray(res) ? res : res?.data || [];
+      const list = await listPendingDevices();
       setDeviceData(list);
     } catch (err) {
       message.error(err?.message || 'Không lấy được danh sách thiết bị chờ duyệt');
@@ -56,7 +55,11 @@ const BorrowRequests = () => {
   const handleBorrowAction = async (id, action) => {
     setProcessingId(id);
     try {
-      await api.patch(`/request-lab/${id}/${action}`);
+      if (action === 'approve') {
+        await approveBorrowRequest(id);
+      } else if (action === 'reject') {
+        await rejectBorrowRequest(id);
+      }
       message.success(action === 'approve' ? 'Đã duyệt yêu cầu mượn' : 'Đã từ chối yêu cầu mượn');
       await loadBorrowRequests();
     } catch (err) {
@@ -70,7 +73,11 @@ const BorrowRequests = () => {
   const handleDeviceAction = async (id, action) => {
     setProcessingId(id);
     try {
-      await api.patch(`/devices/${id}/${action}`);
+      if (action === 'approve') {
+        await approveNewDevice(id);  // school admin duyệt yêu cầu tạo thiết bị mới
+      } else if (action === 'reject') {
+        await rejectNewDevice(id);  // school admin từ chối yêu cầu tạo thiết bị mới
+      }
       message.success(action === 'approve' ? 'Đã duyệt thiết bị' : 'Đã từ chối thiết bị');
       await loadPendingDevices();
     } catch (err) {
