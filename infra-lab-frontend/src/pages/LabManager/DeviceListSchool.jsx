@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Layout, Menu, Typography, Button } from 'antd';
+import { Layout, Menu, Typography, Button, Modal } from 'antd';
 import {
   DashboardOutlined,
   ToolOutlined,
@@ -28,6 +28,7 @@ const DeviceListSchool = () => {
   const [notice, setNotice] = useState('');
   const [borrowLoading, setBorrowLoading] = useState(null);
   const [qtyMap, setQtyMap] = useState({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestFormData, setRequestFormData] = useState({
@@ -210,10 +211,10 @@ const DeviceListSchool = () => {
         </div>
       </Sider>
 
-      <Layout style={{ marginLeft: 240, background: '#0c1424' }}>
-        <Content style={{ padding: '16px 24px', background: '#0c1424' }}>
+      <Layout style={{ marginLeft: 240, background: '#ffffff' }}>
+        <Content style={{ padding: '16px 24px', background: '#ffffff' }}>
           <div className={`content-wrapper ${loading ? 'loading' : ''}`}>
-            <h2 className="page-title" style={{ marginBottom: 16 }}>Danh sach linh kien kho School</h2>
+            <h2 className="page-title" style={{ marginBottom: 16, color: '#0f172a' }}>Danh sach linh kien kho School</h2>
 
             <div className="filter-bar" style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>
               <input
@@ -375,7 +376,7 @@ const DeviceListSchool = () => {
                                   const userData = userString ? JSON.parse(userString) : null;
                                   const userId = userData?._id || userData?.id;
                                   await api.post('/request-lab', { device_id: devId, qty, user_id: userId });
-                                  setNotice('Đã gửi yêu cầu mượn');
+                                  setShowSuccessModal(true);
                                 } catch (err) {
                                   const msg = err?.message || err?.response?.data?.message || 'Gửi yêu cầu thất bại';
                                   setError(msg);
@@ -395,11 +396,26 @@ const DeviceListSchool = () => {
               </table>
             </div>
 
-            {notice && (
-              <div className="inventory-status" style={{ marginTop: 12 }}>
-                {notice}
+            <Modal
+              open={showSuccessModal}
+              onOk={() => {
+                setShowSuccessModal(false);
+                fetchData(); // Reload data after successful borrow
+              }}
+              onCancel={() => {
+                setShowSuccessModal(false);
+                fetchData(); // Reload data after successful borrow
+              }}
+              okText="Đóng"
+              cancelButtonProps={{ style: { display: 'none' } }}
+              centered
+            >
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+                <h3 style={{ marginBottom: '8px', color: '#111827' }}>Thành công!</h3>
+                <p style={{ color: '#6b7280', fontSize: '16px' }}>Đã gửi yêu cầu mượn sản phẩm</p>
               </div>
-            )}
+            </Modal>
 
             <div className="pagination-container">
               <div className="page-left">

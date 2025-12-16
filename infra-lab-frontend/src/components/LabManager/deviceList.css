@@ -2,7 +2,7 @@
 .content-wrapper {
   padding: 20px 16px 24px;
   width: 100%;
-  background: #f3f4f6;
+  background: #ffffff;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color: #111827;
 }
@@ -257,9 +257,9 @@
   width: 56px;
   padding: 6px 10px;
   border-radius: 8px;
-  border: 1px solid #1f2937;
-  background: #0f172a;
-  color: #e5e7eb;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
   text-align: center;
 }
 
