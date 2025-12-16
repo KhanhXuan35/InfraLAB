@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import styled from "styled-components";
-import { Input } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { Input, Dropdown, Modal, message as antdMessage } from "antd";
+import { SearchOutlined, DeleteOutlined, MoreOutlined } from "@ant-design/icons";
 import ChatInput from "./ChatInput";
 import ChatMessage from "./ChatMessage";
 
-const ChatWindow = ({ conversation, messages, onSend, onSendImage }) => {
+const ChatWindow = ({ conversation, messages, onSend, onSendImage, onEdit, onDelete, onDeleteConversation }) => {
   const currentUser = JSON.parse(localStorage.getItem("user")) || null;
   const currentUserId = currentUser?._id || currentUser?.id;
   const messageEndRef = useRef(null);
@@ -82,8 +82,44 @@ const ChatWindow = ({ conversation, messages, onSend, onSendImage }) => {
           >
             <SearchOutlined style={{ fontSize: 18 }} />
           </HeaderIconButton>
-          <HeaderIconButton title="Thông tin" aria-label="Thông tin">ℹ️</HeaderIconButton>
-          <HeaderIconButton title="Tùy chọn" aria-label="Tùy chọn">⋯</HeaderIconButton>
+          {onDeleteConversation && (
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: "delete",
+                    label: "Xóa cuộc trò chuyện",
+                    icon: <DeleteOutlined />,
+                    danger: true,
+                    onClick: () => {
+                      Modal.confirm({
+                        title: "Xóa cuộc trò chuyện",
+                        content: "Bạn có chắc chắn muốn xóa cuộc trò chuyện này? Hành động này không thể hoàn tác.",
+                        okText: "Xóa",
+                        cancelText: "Hủy",
+                        okType: "danger",
+                        onOk: async () => {
+                          try {
+                            await onDeleteConversation(conversation._id);
+                            antdMessage.success("Đã xóa cuộc trò chuyện");
+                          } catch (error) {
+                            console.error("Error deleting conversation:", error);
+                            antdMessage.error(error.response?.data?.message || "Không thể xóa cuộc trò chuyện");
+                          }
+                        },
+                      });
+                    },
+                  },
+                ],
+              }}
+              trigger={["click"]}
+              placement="bottomRight"
+            >
+              <HeaderIconButton title="Tùy chọn" aria-label="Tùy chọn">
+                <MoreOutlined />
+              </HeaderIconButton>
+            </Dropdown>
+          )}
         </HeaderIcons>
       </Header>
 
@@ -119,15 +155,20 @@ const ChatWindow = ({ conversation, messages, onSend, onSendImage }) => {
             filteredMessages.map((m) => (
               <ChatMessage
                 key={m._id}
+                messageId={m._id}
                 message={{
                   type: m.type,
                   content: m.content,
                   sender: m.sender,
                   time: m.createdAt,
                   createdAt: m.createdAt,
+                  deleted: m.deleted,
+                  edited: m.edited,
                 }}
                 isOwn={(m.sender?._id || m.sender?.id) === currentUserId}
                 highlightText={searchQuery}
+                onEdit={onEdit}
+                onDelete={onDelete}
               />
             ))
           )}

@@ -53,7 +53,6 @@ const ChatSidebar = ({
         ];
       case "school_admin":
         return [
-          { key: "student", label: "Sinh viên", roles: ["student"] },
           { key: "lab_manager", label: "Quản lý phòng lab", roles: ["lab_manager"] },
         ];
       default:

@@ -14,7 +14,8 @@ import {
   InputNumber,
   Modal,
   Table,
-  Empty
+  Empty,
+  Popover
 } from 'antd';
 import { 
   ArrowLeftOutlined,
@@ -28,6 +29,7 @@ import api from '../../../services/api';
 import { Container, DetailCard, ImageContainer, ActionSection } from './style';
 import { STUDENT_ROUTES } from '../../../constants/routes';
 import { useCart } from '../../../contexts/CartContext';
+import { conversationService } from '../../../services/conversationService';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -139,18 +141,120 @@ const DeviceDetail = () => {
     return <Tag color={config.color}>{config.text}</Tag>;
   };
 
+  // Handle chat with user
+  const handleChatWithUser = async (studentId) => {
+    if (!studentId) {
+      message.error('Không tìm thấy thông tin người dùng');
+      return;
+    }
+
+    try {
+      // Đóng modal lịch sử
+      setHistoryModalVisible(false);
+      
+      // Lấy danh sách conversations để kiểm tra xem đã có conversation với user này chưa
+      const conversationsResponse = await conversationService.getAllConversations();
+      const conversations = conversationsResponse?.data || conversationsResponse || [];
+      
+      // Tìm conversation với user này
+      const currentUser = JSON.parse(localStorage.getItem('user')) || null;
+      const currentUserId = currentUser?._id || currentUser?.id;
+      const studentIdStr = studentId.toString();
+      const currentUserIdStr = currentUserId?.toString();
+      
+      const existingConversation = conversations.find((conv) => {
+        const participants = conv.participants || [];
+        return participants.some((p) => {
+          const participantId = (p._id || p.id)?.toString();
+          return participantId === studentIdStr && participantId !== currentUserIdStr;
+        });
+      });
+
+      if (existingConversation && existingConversation._id) {
+        // Nếu đã có conversation, điều hướng đến conversation đó
+        navigate(`${STUDENT_ROUTES.Conversation}/${existingConversation._id}`);
+      } else {
+        // Nếu chưa có, tạo conversation mới (API sẽ trả về conversation đã tồn tại nếu có)
+        const createResponse = await conversationService.createConversation(studentId);
+        const newConversation = createResponse?.data || createResponse;
+        
+        if (newConversation?._id) {
+          navigate(`${STUDENT_ROUTES.Conversation}/${newConversation._id}`);
+        } else {
+          message.error('Không thể tạo cuộc trò chuyện');
+        }
+      }
+    } catch (error) {
+      console.error('Error handling chat:', error);
+      message.error('Có lỗi xảy ra khi mở chat');
+    }
+  };
+
   const historyColumns = [
     {
       title: 'Sinh viên',
       key: 'student',
-      render: (_, record) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{record.student?.name || 'N/A'}</div>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {record.student?.student_code || record.student?.email}
-          </Text>
-        </div>
-      ),
+      render: (_, record) => {
+        const studentId = record.student?._id || record.student?.id;
+        const studentName = record.student?.name || 'N/A';
+        const hasStudentId = !!studentId;
+        
+        const chatContent = (
+          <div style={{ padding: '4px 0', fontSize: '13px', color: '#666' }}>
+            Chat with
+          </div>
+        );
+
+        // Chỉ hiển thị popover và cho phép click nếu có studentId
+        if (hasStudentId) {
+          return (
+            <Popover
+              content={chatContent}
+              trigger="hover"
+              placement="top"
+              overlayStyle={{ padding: '4px' }}
+            >
+              <div 
+                style={{ 
+                  cursor: 'pointer',
+                  padding: '4px 0'
+                }}
+                onClick={() => handleChatWithUser(studentId)}
+              >
+                <div 
+                  className="student-name-link"
+                  style={{ 
+                    fontWeight: 500, 
+                    transition: 'color 0.2s',
+                    color: 'inherit'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#1890ff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'inherit';
+                  }}
+                >
+                  {studentName}
+                </div>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {record.student?.student_code || record.student?.email}
+                </Text>
+              </div>
+            </Popover>
+          );
+        }
+
+        // Nếu không có studentId, chỉ hiển thị tên
+        return (
+          <div style={{ padding: '4px 0' }}>
+            <div style={{ fontWeight: 500 }}>{studentName}</div>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.student?.student_code || record.student?.email}
+            </Text>
+          </div>
+        );
+      },
       width: 200,
     },
     {

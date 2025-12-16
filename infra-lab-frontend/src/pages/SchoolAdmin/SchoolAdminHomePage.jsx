@@ -22,6 +22,7 @@ import {
   LogoutOutlined,
   TeamOutlined,
   ClockCircleOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
 import * as S from './SchoolAdminHomePage.styles';
@@ -120,6 +121,12 @@ const SchoolAdminHomePage = () => {
     { title: 'Duyệt yêu cầu', 
       icon: <CheckCircleOutlined />, 
       color: '#52c41a', onClick: () => navigate('/requests') },
+      {
+    key: 'chat',
+    icon: <MessageOutlined />,
+    label: 'Tin nhắn',
+     color: '#52c41a', onClick: () => navigate('/chat')
+  },
     {
       title: 'Danh sach sửa chữa',
       icon: <CheckCircleOutlined />,
@@ -200,6 +207,7 @@ const SchoolAdminHomePage = () => {
             else if (key === 'reports') navigate('/reports');
             else if (key === 'settings') navigate('/settings');
             else if (key === 'profile') navigate('/profile');
+            else if (key === 'chat') navigate('/chat')
           }}
         />
         <div

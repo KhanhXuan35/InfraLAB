@@ -156,3 +156,107 @@ export const createMessage = async (req, res) => {
     });
   }
 };
+
+// Delete/Recall message
+export const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(messageId)) {
+      return res.status(400).json({ success: false, message: "Invalid message id" });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, message: "Message not found" });
+    }
+
+    // Chỉ cho phép người gửi xóa tin nhắn của chính họ
+    if (message.sender.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền xóa tin nhắn này" });
+    }
+
+    // Soft delete - đánh dấu là deleted
+    message.deleted = true;
+    message.deletedAt = new Date();
+    message.content = "Tin nhắn đã được thu hồi";
+    await message.save();
+
+    const populatedMessage = await message.populate("sender", "name email role avatar _id");
+    
+    // Emit socket event để cập nhật real-time
+    emitNewMessage(message.conversationId.toString(), populatedMessage.toObject());
+    
+    res.status(200).json({
+      success: true,
+      message: "Message deleted successfully",
+      data: populatedMessage,
+    });
+  } catch (error) {
+    console.error("Error deleting message:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Edit message
+export const editMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content } = req.body;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(messageId)) {
+      return res.status(400).json({ success: false, message: "Invalid message id" });
+    }
+
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({ success: false, message: "Nội dung tin nhắn không được để trống" });
+    }
+
+    if (content.length > 2000) {
+      return res.status(400).json({ success: false, message: "Nội dung tin nhắn quá dài (tối đa 2000 ký tự)" });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, message: "Message not found" });
+    }
+
+    // Kiểm tra tin nhắn đã bị xóa chưa
+    if (message.deleted) {
+      return res.status(400).json({ success: false, message: "Không thể chỉnh sửa tin nhắn đã bị xóa" });
+    }
+
+    // Chỉ cho phép người gửi chỉnh sửa tin nhắn của chính họ
+    if (message.sender.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền chỉnh sửa tin nhắn này" });
+    }
+
+    // Cập nhật nội dung
+    message.content = content.trim();
+    message.edited = true;
+    message.editedAt = new Date();
+    await message.save();
+
+    const populatedMessage = await message.populate("sender", "name email role avatar _id");
+    
+    // Emit socket event để cập nhật real-time
+    emitNewMessage(message.conversationId.toString(), populatedMessage.toObject());
+    
+    res.status(200).json({
+      success: true,
+      message: "Message edited successfully",
+      data: populatedMessage,
+    });
+  } catch (error) {
+    console.error("Error editing message:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

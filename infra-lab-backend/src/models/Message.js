@@ -20,6 +20,10 @@ const messageSchema = new mongoose.Schema(
     attachmentType: { type: String },
     status: { type: String, enum: ["sent", "delivered", "read"], default: "sent" },
     readAt: { type: Date },
+    deleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
+    edited: { type: Boolean, default: false },
+    editedAt: { type: Date },
   },
   {
     timestamps: true,

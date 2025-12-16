@@ -105,3 +105,52 @@ export const createConversation = async (req, res) => {
     });
   }
 };
+
+// Delete conversation
+export const deleteConversation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid conversation id",
+      });
+    }
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    // Kiểm tra user có thuộc conversation không
+    const isParticipant = conversation.participants
+      .map((p) => p.toString())
+      .includes(userId.toString());
+    
+    if (!isParticipant) {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn không có quyền xóa cuộc trò chuyện này",
+      });
+    }
+
+    // Xóa conversation (hard delete)
+    await Conversation.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Conversation deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting conversation:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
