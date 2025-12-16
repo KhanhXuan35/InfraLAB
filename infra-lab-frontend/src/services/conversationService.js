@@ -54,5 +54,20 @@ export const conversationService = {
       throw error;
     }
   },
+
+  // Xóa tin nhắn (thu hồi)
+  deleteMessage: (messageId) => {
+    return api.delete(`/conversations/messages/${messageId}`);
+  },
+
+  // Chỉnh sửa tin nhắn
+  editMessage: (messageId, content) => {
+    return api.put(`/conversations/messages/${messageId}`, { content });
+  },
+
+  // Xóa cuộc trò chuyện
+  deleteConversation: (conversationId) => {
+    return api.delete(`/conversations/${conversationId}`);
+  },
 };
 

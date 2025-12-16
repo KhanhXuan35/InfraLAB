@@ -437,6 +437,98 @@ const Chat = () => {
     loadConversations(false); // Không hiển thị loading khi refresh sau khi tạo mới
   };
 
+  // Handle edit message
+  const handleEditMessage = async (messageId, newContent) => {
+    try {
+      const response = await conversationService.editMessage(messageId, newContent);
+      const updatedMessage = response?.data || response;
+      
+      // Cập nhật message trong messages list
+      setMessages((prev) => {
+        return prev.map((msg) => {
+          if (msg._id === messageId) {
+            return { ...msg, ...updatedMessage };
+          }
+          return msg;
+        });
+      });
+      
+      // Cập nhật lastMessage nếu là tin nhắn cuối cùng
+      if (selectedConversation?.lastMessage?._id === messageId) {
+        setConversations((prev) => {
+          return prev.map((conv) => {
+            if (conv._id === selectedConversation._id) {
+              return {
+                ...conv,
+                lastMessage: updatedMessage,
+              };
+            }
+            return conv;
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Error editing message:", error);
+      throw error; // Re-throw để component xử lý
+    }
+  };
+
+  // Handle delete message
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const response = await conversationService.deleteMessage(messageId);
+      const deletedMessage = response?.data || response;
+      
+      // Cập nhật message trong messages list
+      setMessages((prev) => {
+        return prev.map((msg) => {
+          if (msg._id === messageId) {
+            return { ...msg, ...deletedMessage };
+          }
+          return msg;
+        });
+      });
+      
+      // Cập nhật lastMessage nếu là tin nhắn cuối cùng
+      if (selectedConversation?.lastMessage?._id === messageId) {
+        setConversations((prev) => {
+          return prev.map((conv) => {
+            if (conv._id === selectedConversation._id) {
+              return {
+                ...conv,
+                lastMessage: deletedMessage,
+              };
+            }
+            return conv;
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      throw error; // Re-throw để component xử lý
+    }
+  };
+
+  // Handle delete conversation
+  const handleDeleteConversation = async (conversationId) => {
+    try {
+      await conversationService.deleteConversation(conversationId);
+      
+      // Xóa conversation khỏi danh sách
+      setConversations((prev) => prev.filter((conv) => conv._id !== conversationId));
+      
+      // Nếu đang xem conversation này, chuyển về trang trống
+      if (selectedConversation?._id === conversationId) {
+        setSelectedConversation(null);
+        setMessages([]);
+        navigate("/student/conversation");
+      }
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      throw error; // Re-throw để component xử lý
+    }
+  };
+
   // Memoize sidebar props để tránh re-render không cần thiết
   const sidebarProps = useMemo(() => ({
     conversations,
@@ -462,6 +554,9 @@ const Chat = () => {
             messages={messages}
             onSend={handleSendMessage}
             onSendImage={handleSendImage}
+            onEdit={handleEditMessage}
+            onDelete={handleDeleteMessage}
+            onDeleteConversation={handleDeleteConversation}
           />
         )}
       </ChatWindowContainer>

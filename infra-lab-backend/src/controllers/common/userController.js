@@ -19,8 +19,8 @@ export const getChatableUsers = async (req, res) => {
         allowedRoles = ["student", "school_admin"];
         break;
       case "school_admin":
-        // School admin có thể chat với tất cả
-        allowedRoles = ["student", "lab_manager", "school_admin"];
+        // School admin chỉ có thể chat với lab_manager
+        allowedRoles = ["lab_manager"];
         break;
       default:
         allowedRoles = [];
