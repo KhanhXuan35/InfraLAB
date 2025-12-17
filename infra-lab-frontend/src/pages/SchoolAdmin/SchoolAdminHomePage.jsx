@@ -11,23 +11,18 @@ import {
   Space,
   Avatar,
   Empty,
-  Menu,
 } from 'antd';
 import {
-  DashboardOutlined,
   ToolOutlined,
-  CheckCircleOutlined,
-  FileTextOutlined,
-  SettingOutlined,
-  LogoutOutlined,
   TeamOutlined,
   ClockCircleOutlined,
-  MessageOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
+import SchoolAdminSidebar from '../../components/SchoolAdmin/SchoolAdminSidebar';
 import * as S from './SchoolAdminHomePage.styles';
 
-const { Header: LayoutHeader, Sider, Content } = Layout;
+const { Header: LayoutHeader, Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
 
 const SchoolAdminHomePage = () => {
@@ -39,8 +34,8 @@ const SchoolAdminHomePage = () => {
     activeDevices: 0,
     brokenDevices: 0,
   });
+  const [creatingDevice, setCreatingDevice] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selectedMenu, setSelectedMenu] = useState('overview');
 
   useEffect(() => {
     const userString = localStorage.getItem('user');
@@ -71,42 +66,6 @@ const SchoolAdminHomePage = () => {
     fetchDashboardData();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
-
-  const menuItems = [
-    {
-      key: 'overview',
-      icon: <DashboardOutlined />,
-      label: 'Tổng quan',
-    },
-    {
-      key: 'devices',
-      icon: <ToolOutlined />,
-      label: 'Quản lý thiết bị',
-    },
-    { key: 'borrow-requests', 
-      icon: <CheckCircleOutlined />,
-       label: 'Yêu cầu mượn' },
-    {
-      key: 'requests',
-      icon: <CheckCircleOutlined />,
-      label: 'Danh sách sửa chữa',
-    },
-    {
-      key: 'reports',
-      icon: <FileTextOutlined />,
-      label: 'Báo cáo',
-    },
-    {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: 'Thông báo',
-    },
-  ];
 
   const quickActions = [
     {
@@ -115,20 +74,20 @@ const SchoolAdminHomePage = () => {
       color: '#1890ff',
       onClick: () => navigate('/school/dashboard'),
     },
-    { title: 'Yêu cầu mượn', icon: <CheckCircleOutlined />, 
-      color: '#13c2c2', 
-      onClick: () => navigate('/school/borrow-requests') },
-    { title: 'Duyệt yêu cầu', 
-      icon: <CheckCircleOutlined />, 
-      color: '#52c41a', onClick: () => navigate('/requests') },
-      {
-    key: 'chat',
-    icon: <MessageOutlined />,
-    label: 'Tin nhắn',
-     color: '#52c41a', onClick: () => navigate('/chat')
-  },
     {
-      title: 'Danh sach sửa chữa',
+      title: 'Thêm thiết bị mới',
+      icon: <ToolOutlined />,
+      color: '#13c2c2',
+      onClick: () => navigate('/school/devices/create-with-instances'),
+    },
+    {
+      title: 'Yêu cầu mượn',
+      icon: <CheckCircleOutlined />,
+      color: '#13c2c2',
+      onClick: () => navigate('/school/borrow-requests'),
+    },
+    {
+      title: 'Danh sách sửa chữa',
       icon: <CheckCircleOutlined />,
       color: '#52c41a',
       onClick: () => navigate('/requests'),
@@ -139,12 +98,6 @@ const SchoolAdminHomePage = () => {
       color: '#722ed1',
       onClick: () => navigate('/users'),
     },
-    {
-      title: 'Xem báo cáo',
-      icon: <FileTextOutlined />,
-      color: '#faad14',
-      onClick: () => navigate('/reports'),
-    },
   ];
 
   if (loading) {
@@ -153,80 +106,7 @@ const SchoolAdminHomePage = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        width={260}
-        style={{
-          background: '#001529',
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          overflow: 'auto',
-        }}
-      >
-        <div
-          style={{ padding: 24, textAlign: 'center', borderBottom: '1px solid #303030', cursor: 'pointer' }}
-          onClick={() => {
-            const userString = localStorage.getItem('user');
-            if (userString) {
-              const userData = JSON.parse(userString);
-              const role = userData?.role;
-              if (role === 'school_admin') {
-                navigate('/school-dashboard');
-              } else if (role === 'lab_manager') {
-                navigate('/teacher-dashboard');
-              } else if (role === 'student') {
-                navigate('/user-dashboard');
-              } else {
-                navigate('/school-dashboard');
-              }
-            } else {
-              navigate('/school-dashboard');
-            }
-          }}
-        >
-          <Title level={4} style={{ color: '#fff', margin: 0 }}>
-            InFra<span style={{ color: '#1890ff' }}>Lab</span>
-          </Title>
-          <Text type="secondary" style={{ color: '#8c8c8c', fontSize: 12 }}>
-            QUẢN TRỊ HỆ THỐNG
-          </Text>
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedMenu]}
-          items={menuItems}
-          style={{ borderRight: 0, marginTop: 16 }}
-          onSelect={({ key }) => {
-            setSelectedMenu(key);
-            if (key === 'overview') navigate('/school-dashboard');
-            else if (key === 'devices') navigate('/school/dashboard');
-            else if (key === 'borrow-requests') navigate('/school/borrow-requests');
-            else if (key === 'requests') navigate('/requests');
-            else if (key === 'reports') navigate('/reports');
-            else if (key === 'settings') navigate('/settings');
-            else if (key === 'profile') navigate('/profile');
-            else if (key === 'chat') navigate('/chat')
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: 16,
-            borderTop: '1px solid #303030',
-            cursor: 'pointer',
-          }}
-          onClick={handleLogout}
-        >
-          <Button type="text" icon={<LogoutOutlined />} style={{ width: '100%', color: '#fff' }}>
-            Đăng xuất
-          </Button>
-        </div>
-      </Sider>
+      <SchoolAdminSidebar />
 
       <Layout style={{ marginLeft: 260 }}>
         <LayoutHeader

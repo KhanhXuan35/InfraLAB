@@ -69,5 +69,41 @@ export const conversationService = {
   deleteConversation: (conversationId) => {
     return api.delete(`/conversations/${conversationId}`);
   },
+
+  // Cập nhật biệt danh
+  updateNickname: (conversationId, userId, nickname) => {
+    return api.put(`/conversations/${conversationId}/nickname`, {
+      userId,
+      nickname,
+    });
+  },
+
+  // Lấy tin nhắn đã ghim
+  getPinnedMessages: (conversationId) => {
+    return api.get(`/conversations/${conversationId}/pinned-messages`);
+  },
+
+  // Ghim tin nhắn
+  pinMessage: (conversationId, messageId) => {
+    return api.post(`/conversations/${conversationId}/pin-message`, {
+      messageId,
+    });
+  },
+
+  // Bỏ ghim tin nhắn
+  unpinMessage: (conversationId, messageId) => {
+    return api.post(`/conversations/${conversationId}/unpin-message`, {
+      messageId,
+    });
+  },
+
+  // Lấy các file đã gửi (ảnh, file, link)
+  getSentFiles: (conversationId, page = 1, limit = 50, type = null) => {
+    const params = { page, limit };
+    if (type) {
+      params.type = type;
+    }
+    return api.get(`/conversations/${conversationId}/files`, { params });
+  },
 };
 

@@ -36,3 +36,7 @@ export const authorize = (...roles) => {
         next();
     };
 };
+
+// Aliases for compatibility
+export const verifyToken = checkAuthMiddleware;
+export const checkRole = authorize;

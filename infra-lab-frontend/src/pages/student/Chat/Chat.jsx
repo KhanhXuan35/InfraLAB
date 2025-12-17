@@ -327,6 +327,40 @@ const Chat = () => {
     setSelectedConversation(conversation);
   };
 
+  // Refresh conversation để cập nhật thông tin mới nhất (nicknames, pinned messages, etc.)
+  const handleRefreshConversation = useCallback(async () => {
+    if (!selectedConversation?._id) return;
+    
+    try {
+      // Reload conversations để lấy thông tin mới nhất
+      const response = await conversationService.getAllConversations();
+      const data = response?.data || response || [];
+      
+      // Transform conversations để có otherUser
+      const currentUserId = currentUser?._id || currentUser?.id;
+      const transformedConversations = data.map((conv) => {
+        const otherUser = conv.participants?.find(
+          (p) => (p._id || p.id) !== currentUserId
+        );
+        return {
+          ...conv,
+          otherUser,
+        };
+      });
+      
+      // Cập nhật conversations
+      setConversations(transformedConversations);
+      
+      // Cập nhật selectedConversation với dữ liệu mới nhất
+      const updated = transformedConversations.find((c) => c._id === selectedConversation._id);
+      if (updated) {
+        setSelectedConversation(updated);
+      }
+    } catch (error) {
+      console.error("Error refreshing conversation:", error);
+    }
+  }, [selectedConversation?._id, currentUser]);
+
   // Handle send message
   const handleSendMessage = async (content) => {
     if (!selectedConversation?._id || !content.trim()) return;
@@ -557,6 +591,7 @@ const Chat = () => {
             onEdit={handleEditMessage}
             onDelete={handleDeleteMessage}
             onDeleteConversation={handleDeleteConversation}
+            onRefresh={handleRefreshConversation}
           />
         )}
       </ChatWindowContainer>

@@ -11,8 +11,9 @@ export const getChatableUsers = async (req, res) => {
     
     switch (currentUserRole) {
       case "student":
-        // Student có thể chat với lab_manager và student khác (không chat với school_admin)
-        allowedRoles = ["lab_manager", "student"];
+        // Student chỉ có thể chat với lab_manager
+        // KHÔNG cho phép student chat với student khác để tránh spam và lạm dụng
+        allowedRoles = ["lab_manager"];
         break;
       case "lab_manager":
         // Lab manager có thể chat với student và school_admin

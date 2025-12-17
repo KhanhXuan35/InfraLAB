@@ -1,788 +1,416 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../dashboard.css';
+import {
+  Layout,
+  Card,
+  Table,
+  Input,
+  Select,
+  Button,
+  Space,
+  Tag,
+  Typography,
+  message,
+  Popconfirm,
+} from 'antd';
+import {
+  SearchOutlined,
+  PlusOutlined,
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
+import dayjs from 'dayjs';
+import api from '../services/api';
+import SchoolAdminSidebar from '../components/SchoolAdmin/SchoolAdminSidebar';
+
+const { Content } = Layout;
+const { Title } = Typography;
+const { Option } = Select;
 
 function SchoolDashboard() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('inventory');
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('newest');
-  const [categories, setCategories] = useState([]);
   const [devices, setDevices] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [inventories, setInventories] = useState([]);
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [viewingDevice, setViewingDevice] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [modalError, setModalError] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    image: '',
-    category_id: '',
-    total: 0,
-    available: '',
-    broken: 0,
-    location: 'warehouse'
-  });
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sort, setSort] = useState('newest');
+  const [sortState, setSortState] = useState({}); // Track sort state for each column
 
-  // Lấy userId từ localStorage
-  const userString = localStorage.getItem('user');
-  const userId = userString ? JSON.parse(userString)?._id : null;
-
-
-  // init state: khoi tao init
-  // useeffect : call api be luu vao state
-  // show state ra la dc
-
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const loadData = async () => {
-    if (activeSection !== 'inventory') return;
     setLoading(true);
     setError(null);
     try {
-      const locationFilter = 'warehouse';
-      const [catRes, devRes] = await Promise.all([
-        fetch(`${API_BASE}/device-categories`),
-        fetch(`${API_BASE}/devices?location=${locationFilter}`)
+      const [catRes, devRes, invRes] = await Promise.all([
+        api.get('/device-categories'),
+        api.get('/devices?location=warehouse'),
+        api.get('/inventories'),
       ]);
-      if (!catRes.ok) throw new Error('Khong lay duoc danh sach loai linh kien');
-      if (!devRes.ok) throw new Error('Khong lay duoc danh sach thiet bi');
 
-      const catData = await catRes.json();
-      const devData = await devRes.json();
-
-      // Handle different response formats
-      const categoriesList = Array.isArray(catData) ? catData : (catData?.data || []);
-      const devicesList = Array.isArray(devData) ? devData : (devData?.data || []);
-      setCategories(categoriesList);
-      setDevices(devicesList);
-
-      const invRes = await fetch(`${API_BASE}/inventories`);
-      if (invRes.ok) {
-        const invData = await invRes.json();
-        // Handle different response formats
-        const inventoriesList = Array.isArray(invData) ? invData : (invData?.data || []);
-        setInventories(inventoriesList);
-      }
+      setCategories(catRes?.data || []);
+      setDevices(devRes?.data || []);
+      setInventories(invRes?.data || []);
     } catch (err) {
-      setError(err.message || 'Da co loi xay ra');
+      console.error('Load data error:', err);
+      setError(err.message || 'Không thể tải dữ liệu');
+      message.error('Không thể tải dữ liệu');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection]);
+  const filteredDevices = useMemo(() => {
+    if (!Array.isArray(devices)) return [];
 
-const filteredDevices = useMemo(() => {
-  if (!Array.isArray(devices)) return [];
+    let list = devices.filter((item) => {
+      if (!item) return false;
 
-  const list = devices.filter((item) => {
-    if (!item) return false;
+      const nameMatches = (item.name || '')
+        .toLowerCase()
+        .includes((search || '').toLowerCase().trim());
 
-    const nameMatches = (item.name || '')
-      .toLowerCase()
-      .includes((search || '').toLowerCase().trim());
+      const catField = item.category_id ?? item.category;
+      const deviceCategoryId =
+        catField && typeof catField === 'object'
+          ? catField._id ?? catField
+          : catField;
 
-    // Lấy category từ category_id hoặc category (object hoặc id)
-    const catField = item.category_id ?? item.category;
-    const deviceCategoryId =
-      catField && typeof catField === 'object'
-        ? catField._id ?? catField // populated object hoặc obj {_id}
-        : catField;                // id dạng string/number
+      const normalizedDeviceCategoryId = deviceCategoryId
+        ? String(deviceCategoryId).trim().toLowerCase()
+        : '';
+      const normalizedSelectedCategory = selectedCategory
+        ? String(selectedCategory).trim().toLowerCase()
+        : '';
 
-    const normalizedDeviceCategoryId = deviceCategoryId
-      ? String(deviceCategoryId).trim().toLowerCase()
-      : '';
-    const normalizedSelectedCategoryKey = selectedCategoryKey
-      ? String(selectedCategoryKey).trim().toLowerCase()
-      : '';
+      const categoryMatches =
+        selectedCategory === 'all' ||
+        (normalizedDeviceCategoryId &&
+          normalizedDeviceCategoryId === normalizedSelectedCategory);
 
-    const categoryMatches =
-      selectedCategoryKey === 'all' ||
-      (normalizedDeviceCategoryId &&
-        normalizedDeviceCategoryId === normalizedSelectedCategoryKey);
-
-    return nameMatches && categoryMatches;
-  });
-
-  return list.sort((a, b) => {
-    if (sort === 'newest')
-      return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
-    return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
-  });
-}, [devices, search, sort, selectedCategoryKey]);
-
-
-  const resetForm = () =>
-    setFormData({
-      name: '',
-      description: '',
-      image: '',
-      category_id: '',
-      total: 0,
-      available: '',
-      broken: 0,
-      location: 'warehouse'
+      return nameMatches && categoryMatches;
     });
 
-  const openView = (device) => {
+    // Sort
+    list = list.sort((a, b) => {
+      if (sort === 'newest') {
+        return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
+      }
+      return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
+    });
+
+    return list;
+  }, [devices, search, selectedCategory, sort]);
+
+  const handleDelete = async (device) => {
+    try {
+      const devId = device._id || device.id;
+      await api.delete(`/devices/${devId}`);
+      message.success('Đã xóa thiết bị thành công');
+      await loadData();
+    } catch (error) {
+      console.error('Delete device error:', error);
+      message.error(error.message || 'Không thể xóa thiết bị');
+    }
+  };
+
+  const getInventoryInfo = (device) => {
     const devId = device._id || device.id || '';
     const inv = inventories.find((i) => {
       const iDev = i.device_id?._id || i.device_id || '';
       return String(iDev) === String(devId);
     });
-
-    // Get category name
-    let categoryName = 'N/A';
-    const catField = device.category_id ?? device.category;
-    if (catField && typeof catField === 'object' && catField.name) {
-      categoryName = catField.name;
-    } else {
-      const catId = catField?._id || catField;
-      const found = categories.find(cat => String(cat._id) === String(catId));
-      categoryName = found?.name || 'N/A';
-    }
-
     const total = inv?.total ?? 0;
     const available = inv?.available ?? 0;
     const broken = inv?.broken ?? 0;
     const borrowing = Math.max(total - available - broken, 0);
-
-    setViewingDevice({
-      ...device,
-      categoryName,
-      total,
-      available,
-      broken,
-      borrowing,
-      location: inv?.location || 'warehouse'
-    });
-    setShowViewModal(true);
+    return { total, available, broken, borrowing };
   };
 
-  const openEdit = (device) => {
-    const devId = device._id || device.id || '';
-    const inv = inventories.find((i) => {
-      const iDev = i.device_id?._id || i.device_id || '';
-      return String(iDev) === String(devId);
-    });
-
-    setFormData({
-      name: device.name || '',
-      description: device.description || '',
-      image: device.image || '',
-      category_id: device.category_id?._id || '',
-      total: inv?.total ?? 0,
-      available: inv?.available ?? '',
-      broken: inv?.broken ?? 0,
-      location: inv?.location || 'warehouse'
-    });
-    setEditingId(devId);
-    setShowAddModal(true);
-  };
-
-  const handleDelete = async (device) => {
-    const devId = device._id || device.id || '';
-    if (!devId) return;
-    const ok = window.confirm(`Xoa thiet bi "${device.name}"?`);
-    if (!ok) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch(`${API_BASE}/devices/${devId}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const msg = (await res.json().catch(() => ({}))).message || 'Khong xoa duoc thiet bi';
-        throw new Error(msg);
-      }
-      await loadData();
-    } catch (err) {
-      setError(err.message || 'Da co loi xay ra');
-    } finally {
-      setSaving(false);
+  const getCategoryName = (device) => {
+    const catField = device.category_id ?? device.category;
+    if (catField && typeof catField === 'object' && catField.name) {
+      return catField.name;
     }
+    const catId = catField?._id || catField;
+    const found = categories.find((cat) => String(cat._id) === String(catId));
+    return found?.name || 'N/A';
   };
 
-  const handleSubmit = async () => {
-    setSaving(true);
-    setModalError(null);
-    try {
-      // Validation khi sửa
-      if (editingId) {
-        const total = Number(formData.total) || 0;
-        const available = Number(formData.available) || 0;
-        const broken = Number(formData.broken) || 0;
-
-        if (available < 0 || broken < 0) {
-          setModalError('So luong khong duoc am');
-          setSaving(false);
-          return;
-        }
-        if (available + broken > total) {
-          setModalError('Tong dang ranh + hong khong duoc vuot qua tong');
-          setSaving(false);
-          return;
-        }
-      }
-
-      const payload = editingId ? {
-        name: formData.name,
-        description: formData.description || '',
-        image: formData.image || '',
-        category_id: formData.category_id,
-        total: Number(formData.total) || 0,
-        available: formData.available === '' ? undefined : Math.max(Number(formData.available) || 0, 0),
-        broken: Number(formData.broken) || 0,
-        location: formData.location || 'warehouse',
-        userId
-      } : {
-        name: formData.name,
-        description: formData.description || '',
-        image: formData.image || '',
-        category_id: formData.category_id,
-        total: Number(formData.total) || 0,
-        location: formData.location || 'warehouse',
-        userId
-      };
-
-      const method = editingId ? 'PUT' : 'POST';
-      const url = editingId ? `${API_BASE}/devices/${editingId}` : `${API_BASE}/devices`;
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)  // gửi cho backend
-      });
-      if (!res.ok) {
-        const msg = (await res.json().catch(() => ({}))).message || 'Khong them duoc thiet bi';
-        throw new Error(msg);
-      }
-      setShowAddModal(false);
-      resetForm();
-      setEditingId(null);
-      setModalError(null);
-      await loadData();
-    } catch (err) {
-      setModalError(err.message || 'Da co loi xay ra');
-    } finally {
-      setSaving(false);
-    }
-  };
+  // Recreate columns when sortState changes to ensure sorter functions have access to latest state
+  const columns = useMemo(() => [
+    {
+      title: '#',
+      key: 'index',
+      width: 60,
+      render: (_, __, index) => index + 1,
+    },
+    {
+      title: 'Tên Thiết Bị',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text) => <strong>{text}</strong>,
+    },
+    {
+      title: 'Danh Mục',
+      key: 'category',
+      render: (_, record) => <Tag color="blue">{getCategoryName(record)}</Tag>,
+    },
+    {
+      title: 'Ngày Nhập',
+      key: 'createdAt',
+      width: 140,
+      render: (_, record) => {
+        const date = record.createdAt || record.created_at;
+        if (!date) return <span>-</span>;
+        return (
+          <span style={{ fontSize: '13px' }}>
+            {dayjs(date).format('DD/MM/YYYY')}
+          </span>
+        );
+      },
+      sorter: (a, b) => {
+        const dateA = new Date(a.createdAt || a.created_at || 0);
+        const dateB = new Date(b.createdAt || b.created_at || 0);
+        // Mũi tên lên (ascend) = cao → thấp (mới → cũ)
+        // Mũi tên xuống (descend) = thấp → cao (cũ → mới)
+        const order = sortState['createdAt'];
+        if (order === 'ascend') return dateB - dateA; // Cao → thấp
+        if (order === 'descend') return dateA - dateB; // Thấp → cao
+        return dateB - dateA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Tổng',
+      key: 'total',
+      align: 'center',
+      width: 100,
+      render: (_, record) => {
+        const { total } = getInventoryInfo(record);
+        return <span>{total}</span>;
+      },
+      sorter: (a, b) => {
+        const { total: totalA } = getInventoryInfo(a);
+        const { total: totalB } = getInventoryInfo(b);
+        // Mũi tên lên (ascend) = cao → thấp
+        // Mũi tên xuống (descend) = thấp → cao
+        const order = sortState['total'];
+        if (order === 'ascend') return totalB - totalA; // Cao → thấp
+        if (order === 'descend') return totalA - totalB; // Thấp → cao
+        return totalB - totalA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Đang Rảnh',
+      key: 'available',
+      align: 'center',
+      width: 120,
+      render: (_, record) => {
+        const { available } = getInventoryInfo(record);
+        return <Tag color="success">{available}</Tag>;
+      },
+      sorter: (a, b) => {
+        const { available: availableA } = getInventoryInfo(a);
+        const { available: availableB } = getInventoryInfo(b);
+        // Mũi tên lên (ascend) = cao → thấp
+        // Mũi tên xuống (descend) = thấp → cao
+        const order = sortState['available'];
+        if (order === 'ascend') return availableB - availableA; // Cao → thấp
+        if (order === 'descend') return availableA - availableB; // Thấp → cao
+        return availableB - availableA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Đang Mượn',
+      key: 'borrowing',
+      align: 'center',
+      width: 120,
+      render: (_, record) => {
+        const { borrowing } = getInventoryInfo(record);
+        return <Tag color="warning">{borrowing}</Tag>;
+      },
+      sorter: (a, b) => {
+        const { borrowing: borrowingA } = getInventoryInfo(a);
+        const { borrowing: borrowingB } = getInventoryInfo(b);
+        // Mũi tên lên (ascend) = cao → thấp
+        // Mũi tên xuống (descend) = thấp → cao
+        const order = sortState['borrowing'];
+        if (order === 'ascend') return borrowingB - borrowingA; // Cao → thấp
+        if (order === 'descend') return borrowingA - borrowingB; // Thấp → cao
+        return borrowingB - borrowingA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Hỏng',
+      key: 'broken',
+      align: 'center',
+      width: 100,
+      render: (_, record) => {
+        const { broken } = getInventoryInfo(record);
+        return <Tag color="error">{broken}</Tag>;
+      },
+      sorter: (a, b) => {
+        const { broken: brokenA } = getInventoryInfo(a);
+        const { broken: brokenB } = getInventoryInfo(b);
+        // Mũi tên lên (ascend) = cao → thấp
+        // Mũi tên xuống (descend) = thấp → cao
+        const order = sortState['broken'];
+        if (order === 'ascend') return brokenB - brokenA; // Cao → thấp
+        if (order === 'descend') return brokenA - brokenB; // Thấp → cao
+        return brokenB - brokenA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
+    },
+    {
+      title: 'Hành động',
+      key: 'actions',
+      width: 200,
+      render: (_, record) => {
+        const devId = record._id || record.id;
+        return (
+          <Space>
+            <Button
+              type="primary"
+              icon={<EyeOutlined />}
+              size="small"
+              onClick={() => navigate(`/school/device/${devId}`)}
+            >
+              Xem
+            </Button>
+            <Button
+              type="default"
+              icon={<EditOutlined />}
+              size="small"
+              onClick={() => navigate(`/school/device/${devId}`)}
+            >
+              Sửa
+            </Button>
+            <Popconfirm
+              title="Xóa thiết bị"
+              description={`Bạn có chắc chắn muốn xóa thiết bị "${record.name}"?`}
+              onConfirm={() => handleDelete(record)}
+              okText="Xóa"
+              cancelText="Hủy"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                size="small"
+              >
+                Xóa
+              </Button>
+            </Popconfirm>
+          </Space>
+        );
+      },
+    },
+  ], [sortState, categories, inventories, navigate]);
 
   return (
-    <div className="app-shell">
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-top">
-          <div
-            className="brand"
-            onClick={() => {
-              // Navigate về trang chủ theo role
-              const userString = localStorage.getItem('user');
-              if (userString) {
-                const userData = JSON.parse(userString);
-                const role = userData?.role;
-                if (role === 'school_admin') {
-                  navigate('/school-dashboard');
-                } else if (role === 'lab_manager') {
-                  navigate('/teacher-dashboard');
-                } else if (role === 'student') {
-                  navigate('/user-dashboard');
-                } else {
-                  navigate('/school-dashboard'); // Default
-                }
-              } else {
-                navigate('/school-dashboard'); // Default nếu không có user
+    <Layout style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+      <SchoolAdminSidebar />
+      <Layout style={{ marginLeft: 260 }}>
+        <Content style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
+        {/* Header */}
+        <Card style={{ marginBottom: 24, background: '#fff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Title level={3} style={{ margin: 0 }}>
+              Danh sách thiết bị
+            </Title>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              size="large"
+              onClick={() => navigate('/school/devices/create-with-instances')}
+            >
+              Thêm Thiết Bị
+            </Button>
+          </div>
+        </Card>
+
+        {/* Filters */}
+        <Card style={{ marginBottom: 24, background: '#fff' }}>
+          <Space wrap style={{ width: '100%' }}>
+            <Select
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              style={{ width: 200 }}
+              placeholder="Loại linh kiện"
+            >
+              <Option value="all">Tất Cả</Option>
+              {categories.map((cat) => (
+                <Option key={cat._id || cat.name} value={cat._id || ''}>
+                  {cat.name}
+                </Option>
+              ))}
+            </Select>
+
+            <Input
+              placeholder="Tìm kiếm thiết bị theo tên..."
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 300 }}
+              allowClear
+            />
+
+            <Select
+              value={sort}
+              onChange={setSort}
+              style={{ width: 180 }}
+              placeholder="Sắp xếp"
+            >
+              <Option value="newest">Mới Nhất</Option>
+              <Option value="oldest">Cũ Nhất</Option>
+            </Select>
+          </Space>
+        </Card>
+
+        {/* Table */}
+        <Card style={{ background: '#fff' }}>
+          {error && (
+            <div style={{ padding: '16px', color: '#ff4d4f', marginBottom: 16 }}>
+              {error}
+            </div>
+          )}
+
+          <Table
+            columns={columns}
+            dataSource={filteredDevices}
+            rowKey={(record) => record._id || record.id}
+            loading={loading}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `Tổng ${total} thiết bị`,
+            }}
+            locale={{
+              emptyText: 'Không có thiết bị nào',
+            }}
+            onChange={(pagination, filters, sorter) => {
+              if (sorter && sorter.columnKey) {
+                setSortState({
+                  [sorter.columnKey]: sorter.order || null,
+                });
               }
             }}
-            style={{ cursor: 'pointer' }}
-          >
-            InFra<span>Lab</span>
-          </div>
-
-          <div>
-            <div className="sidebar-menu-title">School</div>
-            <div className="menu-list">
-              <div
-                className={`menu-item ${activeSection === 'inventory' ? 'active' : ''}`}
-                onClick={() => setActiveSection('inventory')}
-              >
-                <span>📦 Kho Thiết Bị</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="sidebar-footer"
-          onClick={() => {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('user');
-            navigate('/login');
-          }}
-          style={{ cursor: 'pointer' }}
-        >
-          Đăng xuất
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="main">
-        <header className="main-header">
-          <div className="main-title">Trung Tâm Quản Lý Linh Kiện InFraLab</div>
-          <div className="main-header-right">
-            <div className="header-search">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm kiếm thiết bị theo tên..."
-                className="header-search-input"
-              />
-            </div>
-            <div
-              className="main-user"
-              onClick={() => navigate('/profile')}
-              style={{ cursor: 'pointer' }}
-            >
-              <span>Xin chao, School Admin!</span>
-              <div className="user-avatar" />
-            </div>
-          </div>
-        </header>
-
-        {activeSection === 'inventory' && (
-          <section className="inventory-section">
-            <div className="inventory-toolbar">
-              <button className="inventory-side-btn">View list of devices</button>
-
-              <div className="inventory-actions">
-                <div className="category-dropdown">
-                  <label htmlFor="categorySelect">Loại linh kiện:</label>
-                  <select
-                    id="categorySelect"
-                    value={selectedCategoryKey}
-                    onChange={(e) => setSelectedCategoryKey(e.target.value)}
-                  >
-                    <option value="all">Tất Cả</option>
-                    {categories.map((cat) => (
-                      <option key={cat._id || cat.name} value={cat._id || ''}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="inventory-search">
-                  <span className="search-icon">?</span>
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="search"
-                  />
-                </div>
-
-                <div className="inventory-sort">
-                  <span>Sắp Xếp Theo</span>
-                  <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                    <option value="newest">Mới Nhất</option>
-                    <option value="oldest">Cũ Nhất</option>
-                  </select>
-                </div>
-
-                <button className="button-primary add-device-btn" onClick={() => setShowAddModal(true)}>
-                  Thêm Thiết Bị
-                </button>
-              </div>
-            </div>
-
-            {loading && <div className="inventory-status">Dang tai du lieu...</div>}
-            {error && !loading && <div className="inventory-status error">{error}</div>}
-            {!loading && !error && filteredDevices.length === 0 && (
-              <div className="inventory-status">Khong co thiet bi phu hop</div>
-            )}
-            {!loading && !error && filteredDevices.length > 0 && (
-              <div className="device-table-wrapper">
-                <table className="device-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Ten Thiet Bi</th>
-                      <th>Danh Muc</th>
-                      <th>Tong</th>
-                      <th>Dang Ranh</th>
-                      <th>Dang Muon</th>
-                      <th>Hong</th>
-                      <th>Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredDevices.map((device, idx) => {
-                      const devId = device._id || device.id || '';
-                      const inv = inventories.find((i) => {
-                        const iDev = i.device_id?._id || i.device_id || '';
-                        return String(iDev) === String(devId);
-                      });
-                      const total = inv?.total ?? 0;
-                      const available = inv?.available ?? 0;
-                      const broken = inv?.broken ?? 0;
-                      const borrowing = Math.max(total - available - broken, 0);
-                      // Get category name - handle both populated object and ID
-                      let categoryName = 'N/A';
-                      const catField = device.category_id ?? device.category;
-                      if (catField && typeof catField === 'object' && catField.name) {
-                        categoryName = catField.name;
-                      } else {
-                        const catId = catField?._id || catField;
-                        const found = categories.find(cat => String(cat._id) === String(catId));
-                        categoryName = found?.name || 'N/A';
-                      }
-
-                      return (
-                        <tr key={devId}>
-                          <td>{idx + 1}</td>
-                          <td className="cell-name">{device.name}</td>
-                          <td>{categoryName}</td>
-                          <td>{total}</td>
-                          <td className="text-success">{available}</td>
-                          <td className="text-warning">{borrowing}</td>
-                          <td className="text-danger">{broken}</td>
-                          <td>
-                            <div className="table-actions">
-                              <button className="btn-view" onClick={() => openView(device)}>Xem</button>
-                              <button className="btn-edit" onClick={() => openEdit(device)}>Sua</button>
-                              <button className="btn-delete" onClick={() => handleDelete(device)}>Xoa</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        )}
-      </main>
-
-      {showViewModal && viewingDevice && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Chi Tiết Thiết Bị</h3>
-              <button className="modal-close" onClick={() => setShowViewModal(false)}>
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              {viewingDevice.image && (
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                  <img
-                    src={viewingDevice.image}
-                    alt={viewingDevice.name}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '300px',
-                      objectFit: 'contain',
-                      borderRadius: '8px',
-                      border: '1px solid #434343'
-                    }}
-                  />
-                </div>
-              )}
-
-              <div className="view-detail-grid">
-                <div className="view-detail-item">
-                  <label>Tên thiết bị:</label>
-                  <span>{viewingDevice.name}</span>
-                </div>
-
-                <div className="view-detail-item">
-                  <label>Danh mục:</label>
-                  <span>{viewingDevice.categoryName}</span>
-                </div>
-
-                <div className="view-detail-item">
-                  <label>Vị trí:</label>
-                  <span style={{ textTransform: 'capitalize' }}>{viewingDevice.location}</span>
-                </div>
-
-                <div className="view-detail-item full-width">
-                  <label>Mô tả:</label>
-                  <span>{viewingDevice.description || 'Không có mô tả'}</span>
-                </div>
-
-                <div className="view-detail-divider"></div>
-
-                <div className="view-detail-item">
-                  <label>Tổng số lượng:</label>
-                  <span className="badge badge-info">{viewingDevice.total}</span>
-                </div>
-
-                <div className="view-detail-item">
-                  <label>Đang rảnh:</label>
-                  <span className="badge badge-success">{viewingDevice.available}</span>
-                </div>
-
-                <div className="view-detail-item">
-                  <label>Đang mượn:</label>
-                  <span className="badge badge-warning">{viewingDevice.borrowing}</span>
-                </div>
-
-                <div className="view-detail-item">
-                  <label>Hỏng:</label>
-                  <span className="badge badge-danger">{viewingDevice.broken}</span>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="button-secondary" onClick={() => setShowViewModal(false)}>
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddModal && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>{editingId ? 'Sua thiet bi' : 'Them thiet bi'}</h3>
-              <button className="modal-close" onClick={() => setShowAddModal(false)}>
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-row">
-                <label>Ten thiet bi</label>
-                <input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Nhap ten"
-                />
-              </div>
-              <div className="form-row">
-                <label>Mo ta</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Mo ta ngan"
-                />
-              </div>
-              <div className="form-row">
-                <label>Hình ảnh</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input
-                    id="school-image-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (file.size > 2 * 1024 * 1024) {
-                          setModalError('Kích thước ảnh không được vượt quá 2MB');
-                          e.target.value = '';
-                          return;
-                        }
-
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          const img = new Image();
-                          img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            let width = img.width;
-                            let height = img.height;
-
-                            const maxSize = 800;
-                            if (width > maxSize || height > maxSize) {
-                              if (width > height) {
-                                height = (height / width) * maxSize;
-                                width = maxSize;
-                              } else {
-                                width = (width / height) * maxSize;
-                                height = maxSize;
-                              }
-                            }
-
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, width, height);
-
-                            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                            setFormData({ ...formData, image: compressedBase64 });
-                          };
-                          img.src = reader.result;
-                        };
-                        reader.onerror = () => {
-                          setModalError('Không thể đọc file ảnh');
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    style={{ display: 'none' }}
-                  />
-                  <label
-                    htmlFor="school-image-upload"
-                    style={{
-                      width: '100px',
-                      height: '100px',
-                      border: '2px dashed #434343',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: formData.image ? 'transparent' : '#1a1a1a',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {formData.image ? (
-                      <>
-                        <img
-                          src={formData.image}
-                          alt="Preview"
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
-                        />
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            background: '#ff4d4f',
-                            color: '#fff',
-                            width: '24px',
-                            height: '24px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            cursor: 'pointer',
-                            borderBottomLeftRadius: '4px'
-                          }}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setFormData({ ...formData, image: '' });
-                            document.getElementById('school-image-upload').value = '';
-                          }}
-                        >
-                          ×
-                        </div>
-                      </>
-                    ) : (
-                      <span style={{ fontSize: '40px', color: '#666' }}>+</span>
-                    )}
-                  </label>
-                </div>
-              </div>
-              <div className="form-row">
-                <label>Loai linh kien</label>
-                <select
-                  value={formData.category_id}
-                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                >
-                  <option value="">Chon loai</option>
-                  {categories.map((cat) => (
-                    <option key={cat._id || cat.name} value={cat._id || ''}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {editingId ? (
-                // Khi sửa: hiển thị đầy đủ 3 trường
-                <div className="form-row three-cols">
-                  <div>
-                    <label>Tong</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.total}
-                      onChange={(e) => setFormData({ ...formData, total: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label>Dang ranh</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max={formData.total}
-                      value={formData.available}
-                      onChange={(e) => {
-                        const val = Number(e.target.value) || 0;
-                        setFormData({ ...formData, available: Math.min(val, formData.total) });
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label>Hong</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max={formData.total}
-                      value={formData.broken}
-                      onChange={(e) => {
-                        const val = Number(e.target.value) || 0;
-                        setFormData({ ...formData, broken: Math.min(val, formData.total) });
-                      }}
-                    />
-                  </div>
-                </div>
-              ) : (   // phân biệt giưa thêm và sửa
-                // Khi thêm mới: chỉ hiển thị trường Tổng
-                <div className="form-row">
-                  <label>Tong so luong</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.total}
-                    onChange={(e) => setFormData({ ...formData, total: e.target.value })}
-                    placeholder="Nhap tong so luong thiet bi"
-                  />
-                  <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
-                    Khi them moi, tat ca thiet bi se duoc danh dau la "dang ranh"
-                  </small>
-                </div>
-              )}
-              <div className="form-row">
-                <label>Vi tri</label>
-                <select
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                >
-                  <option value="warehouse">warehouse</option>
-                  <option value="lab">lab</option>
-                </select>
-              </div>
-              {modalError && <div className="inventory-status error">{modalError}</div>}
-            </div>
-            <div className="modal-footer">
-              <button className="button-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
-                Huy
-              </button>
-              <button className="button-primary" disabled={saving} onClick={handleSubmit}>
-                {saving ? 'Dang luu...' : 'Luu'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+          />
+        </Card>
+        </Content>
+      </Layout>
+    </Layout>
   );
 }
 

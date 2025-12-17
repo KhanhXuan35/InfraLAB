@@ -4,6 +4,11 @@ import {
   getAllConversationsByUser,
   createConversation,
   deleteConversation,
+  updateNickname,
+  getPinnedMessages,
+  pinMessage,
+  unpinMessage,
+  getSentFiles,
 } from "../controllers/common/conversationController.js";
 import {
   getConversationDetail,
@@ -33,6 +38,13 @@ router.post("/:id/messages", checkAuthMiddleware, validateConversationId, create
 // Message routes
 router.delete("/messages/:messageId", checkAuthMiddleware, deleteMessage);
 router.put("/messages/:messageId", checkAuthMiddleware, editMessage);
+
+// Conversation features routes
+router.put("/:id/nickname", checkAuthMiddleware, validateConversationId, updateNickname);
+router.get("/:id/pinned-messages", checkAuthMiddleware, validateConversationId, getPinnedMessages);
+router.post("/:id/pin-message", checkAuthMiddleware, validateConversationId, pinMessage);
+router.post("/:id/unpin-message", checkAuthMiddleware, validateConversationId, unpinMessage);
+router.get("/:id/files", checkAuthMiddleware, validateConversationId, getSentFiles);
 
 // User routes for chat
 router.get("/users/chatable", checkAuthMiddleware, getChatableUsers);

@@ -1,16 +1,18 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import styled from "styled-components";
 import { Input, Dropdown, Modal, message as antdMessage } from "antd";
-import { SearchOutlined, DeleteOutlined, MoreOutlined } from "@ant-design/icons";
+import { SearchOutlined, DeleteOutlined, MoreOutlined, SettingOutlined } from "@ant-design/icons";
 import ChatInput from "./ChatInput";
 import ChatMessage from "./ChatMessage";
+import ChatSettingsModal from "./ChatSettingsModal";
 
-const ChatWindow = ({ conversation, messages, onSend, onSendImage, onEdit, onDelete, onDeleteConversation }) => {
+const ChatWindow = ({ conversation, messages, onSend, onSendImage, onEdit, onDelete, onDeleteConversation, onRefresh }) => {
   const currentUser = JSON.parse(localStorage.getItem("user")) || null;
   const currentUserId = currentUser?._id || currentUser?.id;
   const messageEndRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   useEffect(() => {
     if (messageEndRef.current) {
@@ -81,6 +83,13 @@ const ChatWindow = ({ conversation, messages, onSend, onSendImage, onEdit, onDel
             style={{ background: showSearch ? "#e7f3ff" : "transparent" }}
           >
             <SearchOutlined style={{ fontSize: 18 }} />
+          </HeaderIconButton>
+          <HeaderIconButton 
+            title="Cài đặt" 
+            aria-label="Cài đặt"
+            onClick={() => setSettingsVisible(true)}
+          >
+            <SettingOutlined style={{ fontSize: 18 }} />
           </HeaderIconButton>
           {onDeleteConversation && (
             <Dropdown
@@ -177,6 +186,15 @@ const ChatWindow = ({ conversation, messages, onSend, onSendImage, onEdit, onDel
       </MessageArea>
       
       <ChatInput onSend={onSend} onSendImage={onSendImage} />
+      
+      {/* Settings Modal */}
+      <ChatSettingsModal
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+        conversation={conversation}
+        currentUser={currentUser}
+        onRefresh={onRefresh}
+      />
     </Window>
   );
 };

@@ -7,6 +7,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
+import SchoolAdminSidebar from '../../components/SchoolAdmin/SchoolAdminSidebar';
 import './BorrowRequests.css';
 
 const { Content } = Layout;
@@ -257,28 +258,28 @@ const BorrowRequests = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Content style={{ padding: 24 }}>
-        <div className="br-header">
-          <h2>Quản lý yêu cầu</h2>
-          <div className="br-header-actions">
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => activeTab === 'borrow' ? loadBorrowRequests() : loadPendingDevices()}
-              loading={loading}
-            >
-              Tải lại
-            </Button>
-            <Button type="link" onClick={() => navigate('/school-dashboard')}>
-              Về dashboard
-            </Button>
+      <SchoolAdminSidebar />
+      <Layout style={{ marginLeft: 260 }}>
+        <Content style={{ padding: 24 }}>
+          <div className="br-header">
+            <h2>Quản lý yêu cầu</h2>
+            <div className="br-header-actions">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => activeTab === 'borrow' ? loadBorrowRequests() : loadPendingDevices()}
+                loading={loading}
+              >
+                Tải lại
+              </Button>
+            </div>
           </div>
-        </div>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={tabItems}
-        />
-      </Content>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={tabItems}
+          />
+        </Content>
+      </Layout>
     </Layout>
   );
 };

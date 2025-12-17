@@ -42,7 +42,9 @@ import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
 import ViewDetailDevice from './SchoolDashboard/viewdetailDevice.jsx';
 import RepairRequestList from "./pages/School/RepairRequestList";
 import LabManagerRepairList from "./pages/LabManager/LabManagerRepairList";
-import SchoolRepairDetail from "./pages/School/SchoolRepairDetail";import BorrowRequests from "./pages/SchoolAdmin/BorrowRequests";
+import SchoolRepairDetail from "./pages/School/SchoolRepairDetail";
+import BorrowRequests from "./pages/SchoolAdmin/BorrowRequests";
+import CreateDeviceWithInstances from "./pages/SchoolAdmin/CreateDeviceWithInstances.jsx";
 
 // Profile page
 import UserProfile from "./pages/Profile/UserProfile";
@@ -83,6 +85,7 @@ function App() {
               <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
               <Route path="/requests" element={<RepairRequestList />} />
               <Route path="/school/dashboard" element={<SchoolDashboard />} />
+              <Route path="/school/devices/create-with-instances" element={<CreateDeviceWithInstances />} />
               <Route path={SCHOOL_ROUTES.REPAIRS} element={<RepairRequestList />} />
               <Route path={SCHOOL_ROUTES.REPAIR_DETAIL(":id")} element={<SchoolRepairDetail />} />
               <Route path="/school/borrow-requests" element={<BorrowRequests />} />

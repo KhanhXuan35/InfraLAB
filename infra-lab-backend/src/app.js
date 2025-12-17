@@ -17,6 +17,7 @@ import repairRoutes from "./routes/LabManager/repairRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import borrowRoutes from "./routes/borrowRoutes.js";
 import borrowReturnRoutes from "./routes/LabManager/borrowReturnRoutes.js";
+import deviceInstanceRoutes from "./routes/deviceInstanceRoutes.js";
 import { uploadImage, uploadSingle } from "./controllers/common/uploadController.js";
 import { checkAuthMiddleware } from "./middlewares/authMiddleware.js";
 import path from "path";
@@ -102,6 +103,9 @@ app.use("/api/borrow", borrowRoutes);
 
 // Repair routes
 app.use("/api/repairs", repairRoutes);
+
+// Device Instance routes (NEW)
+app.use("/api", deviceInstanceRoutes);
 
 app.use("/api", routes);
 
