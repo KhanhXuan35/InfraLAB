@@ -1,20 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Layout, Menu, Typography, Button } from 'antd';
-import {
-  DashboardOutlined,
-  ToolOutlined,
-  ShoppingOutlined,
-  FileTextOutlined,
-  BellOutlined,
-  AppstoreOutlined,
-  LogoutOutlined,
-} from '@ant-design/icons';
+import { Layout, Typography, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import LabManagerSidebar from '../../components/Sidebar/LabManagerSidebar';
 import '../../components/LabManager/deviceList.css';
 import '../../dashboard.css';
 
-const { Sider, Content } = Layout;
+const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const DeviceListSchool = () => {
@@ -77,9 +69,16 @@ const DeviceListSchool = () => {
         };
       });
 
+      // Sắp xếp theo bảng chữ cái
+      const sorted = merged.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB, 'vi');
+      });
+
       setCategories(categoriesList);
-      setAllDevices(merged);
-      setDevices(merged);
+      setAllDevices(sorted);
+      setDevices(sorted);
     } catch (err) {
       setError('Khong lay duoc danh sach kho school');
     } finally {
@@ -117,6 +116,16 @@ const DeviceListSchool = () => {
       });
     }
 
+    // Sắp xếp theo bảng chữ cái khi không có filter nào được chọn
+    const hasNoFilters = !search.trim() && category === 'all' && status === 'all';
+    if (hasNoFilters) {
+      filtered.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB, 'vi');
+      });
+    }
+
     setDevices(filtered);
     setCurrentPage(1);
   }, [search, category, status, allDevices]);
@@ -125,7 +134,13 @@ const DeviceListSchool = () => {
     setSearch('');
     setCategory('all');
     setStatus('all');
-    setDevices(allDevices);
+    // Sắp xếp lại theo bảng chữ cái khi reset
+    const sorted = [...allDevices].sort((a, b) => {
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+      return nameA.localeCompare(nameB, 'vi');
+    });
+    setDevices(sorted);
     setCurrentPage(1);
   };
 
@@ -137,100 +152,87 @@ const DeviceListSchool = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        width={240}
-        style={{
-          background: '#001529',
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          overflow: 'auto',
-        }}
-      >
-        <div
-          style={{
-            padding: 24,
-            textAlign: 'center',
-            borderBottom: '1px solid #303030',
-          }}
-        >
-          <Title level={4} style={{ color: '#fff', margin: 0 }}>
-            InFra<span style={{ color: '#1890ff' }}>Lab</span>
+      <LabManagerSidebar />
+
+      <Layout style={{ marginLeft: 240, background: '#f5f7fa' }}>
+        <Content style={{ padding: '24px', background: '#f5f7fa', minHeight: '100vh' }}>
+          <div className={`content-wrapper ${loading ? 'loading' : ''}`} style={{ background: 'transparent' }}>
+            {/* Header Section */}
+            <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <Title level={2} style={{ margin: 0, color: '#1a202c', fontWeight: 700 }}>
+                  Danh sách linh kiện kho School
           </Title>
-          <Text type="secondary" style={{ color: '#8c8c8c', fontSize: 12 }}>
-            QUAN LY PHONG LAB
+                <Text type="secondary" style={{ fontSize: 14, color: '#718096' }}>
+                  Quản lý và mượn thiết bị từ kho School
           </Text>
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={['school-inventory']}
-          items={[
-            { key: 'overview', icon: <DashboardOutlined />, label: 'Thong ke' },
-            { key: 'devices', icon: <ToolOutlined />, label: 'Quan ly thiet bi' },
-            { key: 'school-inventory', icon: <AppstoreOutlined />, label: 'Kho School' },
-            { key: 'borrow', icon: <ShoppingOutlined />, label: 'Muon/Tra' },
-            { key: 'reports', icon: <FileTextOutlined />, label: 'Bao cao' },
-            { key: 'notifications', icon: <BellOutlined />, label: 'Thong bao' },
-          ]}
-          style={{ borderRight: 0, marginTop: 16 }}
-          onSelect={({ key }) => {
-            if (key === 'overview') navigate('/teacher-dashboard');
-            else if (key === 'devices') navigate('/lab-manager/devices');
-            else if (key === 'school-inventory') navigate('/lab-manager/school-devices');
-            else if (key === 'borrow') navigate('/lab-manager/devices');
-            else if (key === 'reports') navigate('/reports');
-            else if (key === 'notifications') navigate('/notifications');
-          }}
-        />
-        <div
+              <Button 
+                type="primary" 
+                onClick={fetchData} 
+                loading={loading}
+                size="large"
           style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: 16,
-            borderTop: '1px solid #303030',
-            cursor: 'pointer',
-          }}
-          onClick={() => {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('user');
-            navigate('/login');
+                  height: '40px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  boxShadow: '0 2px 8px rgba(24, 144, 255, 0.2)'
           }}
         >
-          <Button
-            type="text"
-            icon={<LogoutOutlined />}
-            style={{ width: '100%', color: '#fff' }}
-          >
-            Dang xuat
+                Tải lại
           </Button>
         </div>
-      </Sider>
 
-      <Layout style={{ marginLeft: 240, background: '#0c1424' }}>
-        <Content style={{ padding: '16px 24px', background: '#0c1424' }}>
-          <div className={`content-wrapper ${loading ? 'loading' : ''}`}>
-            <h2 className="page-title" style={{ marginBottom: 16 }}>Danh sach linh kien kho School</h2>
-
-            <div className="filter-bar" style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>
+            {/* Filter Bar - Redesigned */}
+            <div 
+              style={{ 
+                background: '#ffffff',
+                padding: '20px',
+                borderRadius: '12px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                marginBottom: 20,
+                display: 'flex',
+                gap: 12,
+                alignItems: 'center',
+                flexWrap: 'wrap'
+              }}
+            >
               <input
-                placeholder="Tim theo ten linh kien..."
+                placeholder="Tìm theo tên linh kiện..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="filter-input"
-                style={{ flex: '1 1 200px', minWidth: '200px', height: '36px' }}
+                style={{ 
+                  flex: '1 1 250px',
+                  minWidth: '250px',
+                  height: '40px',
+                  padding: '0 16px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#1890ff'}
+                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
               />
 
               <select
-                className="filter-select"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                style={{ flex: '0 0 auto', width: '180px', height: '36px' }}
+                style={{ 
+                  flex: '0 0 auto',
+                  width: '200px',
+                  height: '40px',
+                  padding: '0 16px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
               >
-                <option value="all">Tat ca danh muc</option>
+                <option value="all">Tất cả danh mục</option>
                 {categories.map((c) => (
                   <option key={c._id || c.name} value={c._id || ''}>
                     {c.name}
@@ -239,49 +241,100 @@ const DeviceListSchool = () => {
               </select>
 
               <select
-                className="filter-select"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                style={{ flex: '0 0 auto', width: '180px', height: '36px' }}
+                style={{ 
+                  flex: '0 0 auto',
+                  width: '200px',
+                  height: '40px',
+                  padding: '0 16px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
               >
-                <option value="all">Tat ca trang thai</option>
-                <option value="available">Dang ranh &gt; 0</option>
-                <option value="borrowed">Dang muon &gt; 0</option>
-                <option value="broken">Hong &gt; 0</option>
+                <option value="all">Tất cả trạng thái</option>
+                <option value="available">Đang rảnh &gt; 0</option>
+                <option value="borrowed">Đang mượn &gt; 0</option>
+                <option value="broken">Hỏng &gt; 0</option>
               </select>
 
-              <Button className="btn-reset" onClick={resetFilter} style={{ flex: '0 0 auto', width: '100px', height: '36px' }}>
+              <Button 
+                onClick={resetFilter}
+                style={{ 
+                  flex: '0 0 auto',
+                  height: '40px',
+                  borderRadius: '8px',
+                  borderColor: '#e2e8f0'
+                }}
+              >
                 Reset
               </Button>
 
-              <Button onClick={() => setShowRequestModal(true)} style={{ flex: '0 0 auto', width: '180px', height: '36px' }}>
+              <Button 
+                onClick={() => setShowRequestModal(true)}
+                style={{ 
+                  flex: '0 0 auto',
+                  height: '40px',
+                  borderRadius: '8px',
+                  fontWeight: 600
+                }}
+              >
                 Tạo yêu cầu thiết bị ngoài
-              </Button>
-
-              <Button type="primary" onClick={fetchData} loading={loading} style={{ flex: '0 0 auto', width: '100px', height: '36px' }}>
-                Tai lai
               </Button>
             </div>
 
             {error && (
-              <div className="inventory-status error" style={{ marginBottom: 12 }}>
+              <div 
+                style={{ 
+                  marginBottom: 16,
+                  padding: '12px 16px',
+                  background: '#fff2f0',
+                  border: '1px solid #ffccc7',
+                  borderRadius: '8px',
+                  color: '#cf1322'
+                }}
+              >
                 {error}
               </div>
             )}
 
-            <div className="device-table">
+            {notice && (
+              <div 
+                style={{ 
+                  marginBottom: 16,
+                  padding: '12px 16px',
+                  background: '#f6ffed',
+                  border: '1px solid #b7eb8f',
+                  borderRadius: '8px',
+                  color: '#389e0d'
+                }}
+              >
+                {notice}
+              </div>
+            )}
+
+            <div className="device-table" style={{ 
+              background: '#ffffff',
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              overflow: 'hidden'
+            }}>
               <table>
                 <thead>
-                  <tr>
-                    <th style={{ width: 40 }}>#</th>
-                    <th style={{ width: 110 }}>Anh</th>
-                    <th style={{ width: 220 }}>Ten linh kien</th>
-                    <th style={{ width: 180 }}>Danh muc</th>
-                    <th style={{ width: 80 }}>Tong</th>
-                    <th style={{ width: 100 }}>Dang ranh</th>
-                    <th style={{ width: 100 }}>Dang muon</th>
-                    <th style={{ width: 80 }}>Hong</th>
-                    <th style={{ width: 160 }}>Hanh dong</th>
+                  <tr style={{ background: '#f8f9fa' }}>
+                    <th style={{ width: 50, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>#</th>
+                    <th style={{ width: 110, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>Ảnh</th>
+                    <th style={{ width: 220, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>Tên linh kiện</th>
+                    <th style={{ width: 180, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>Danh mục</th>
+                    <th style={{ width: 80, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Tổng</th>
+                    <th style={{ width: 100, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Đang rảnh</th>
+                    <th style={{ width: 100, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Đang mượn</th>
+                    <th style={{ width: 80, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Hỏng</th>
+                    <th style={{ width: 180, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -308,34 +361,73 @@ const DeviceListSchool = () => {
                     const inputQty = qtyMap[devId] ?? 1;
 
                     return (
-                      <tr key={item._id || index}>
-                        <td className="center">{indexOfFirst + index + 1}</td>
-                        <td>
-                          <div className="device-image-container">
+                      <tr 
+                        key={item._id || index}
+                        style={{ 
+                          borderBottom: '1px solid #f0f0f0',
+                          transition: 'background-color 0.2s'
+                        }}
+                      >
+                        <td style={{ padding: '16px 12px', textAlign: 'center', color: '#718096', fontSize: '14px' }}>
+                          {indexOfFirst + index + 1}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {item.image ? (
                               <img
                                 src={item.image}
                                 alt={item.name}
-                                className="device-image"
+                                style={{
+                                  width: 60,
+                                  height: 60,
+                                  borderRadius: '8px',
+                                  objectFit: 'cover',
+                                  border: '1px solid #e2e8f0',
+                                  background: '#ffffff'
+                                }}
                                 onError={(e) => {
-                                  e.currentTarget.src = 'https://via.placeholder.com/80?text=No+Image';
+                                  e.currentTarget.src = 'https://via.placeholder.com/60?text=No+Image';
                                 }}
                               />
                             ) : (
-                              <div className="device-image-placeholder">
-                                <span>No Image</span>
+                              <div style={{
+                                width: 60,
+                                height: 60,
+                                borderRadius: '8px',
+                                border: '1px dashed #d1d5db',
+                                background: '#f9fafb',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#9ca3af',
+                                fontSize: '10px',
+                                textAlign: 'center'
+                              }}>
+                                No Image
                               </div>
                             )}
                           </div>
                         </td>
-                        <td>{item.name}</td>
-                        <td>{categoryName}</td>
-                        <td className="center">{item.inventory?.total ?? 0}</td>
-                        <td className="ok center">{item.inventory?.available ?? 0}</td>
-                        <td className="warn center">{item.inventory?.borrowing ?? 0}</td>
-                        <td className="error center">{item.inventory?.broken ?? 0}</td>
-                        <td className="center">
-                          <div className="borrow-action">
+                        <td style={{ padding: '16px 12px' }}>
+                          <Text strong style={{ fontSize: '14px', color: '#1a202c' }}>{item.name}</Text>
+                        </td>
+                        <td style={{ padding: '16px 12px' }}>
+                          <Text style={{ fontSize: '14px', color: '#4a5568' }}>{categoryName}</Text>
+                        </td>
+                        <td style={{ padding: '16px 12px', textAlign: 'center', fontSize: '14px', color: '#1a202c', fontWeight: 500 }}>
+                          {item.inventory?.total ?? 0}
+                        </td>
+                        <td style={{ padding: '16px 12px', textAlign: 'center', fontSize: '14px', color: '#16a34a', fontWeight: 600 }}>
+                          {item.inventory?.available ?? 0}
+                        </td>
+                        <td style={{ padding: '16px 12px', textAlign: 'center', fontSize: '14px', color: '#ca8a04', fontWeight: 600 }}>
+                          {item.inventory?.borrowing ?? 0}
+                        </td>
+                        <td style={{ padding: '16px 12px', textAlign: 'center', fontSize: '14px', color: '#dc2626', fontWeight: 600 }}>
+                          {item.inventory?.broken ?? 0}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                             <input
                               type="number"
                               min="1"
@@ -349,13 +441,22 @@ const DeviceListSchool = () => {
                                   [devId]: Math.min(val, maxAvailable),
                                 }));
                               }}
-                              className="borrow-qty"
+                              style={{
+                                width: '60px',
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid #e2e8f0',
+                                background: '#ffffff',
+                                color: '#1a202c',
+                                textAlign: 'center',
+                                fontSize: '13px',
+                                outline: 'none'
+                              }}
                             />
                             <Button
                               size="small"
                               type="primary"
                               loading={borrowLoading === devId}
-                              className="borrow-btn"
                               onClick={async () => {
                                 setError('');
                                 setNotice('');
@@ -374,14 +475,28 @@ const DeviceListSchool = () => {
                                   const userString = localStorage.getItem('user');
                                   const userData = userString ? JSON.parse(userString) : null;
                                   const userId = userData?._id || userData?.id;
-                                  await api.post('/request-lab', { device_id: devId, qty, user_id: userId });
-                                  setNotice('Đã gửi yêu cầu mượn');
+                                  // Gửi yêu cầu mượn với role lab_manager để School Admin duyệt
+                                  await api.post('/request-lab', { 
+                                    device_id: devId, 
+                                    qty, 
+                                    user_id: userId,
+                                    requester_role: 'lab_manager',
+                                    status: 'WAITING'
+                                  });
+                                  setNotice('Đã gửi yêu cầu mượn. Vui lòng chờ School Admin duyệt.');
+                                  await fetchData(); // Reload danh sách
                                 } catch (err) {
                                   const msg = err?.message || err?.response?.data?.message || 'Gửi yêu cầu thất bại';
                                   setError(msg);
                                 } finally {
                                   setBorrowLoading(null);
                                 }
+                              }}
+                              style={{
+                                borderRadius: '6px',
+                                fontWeight: 600,
+                                height: '32px',
+                                padding: '0 16px'
                               }}
                             >
                               Mượn

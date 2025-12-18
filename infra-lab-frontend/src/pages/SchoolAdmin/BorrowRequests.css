@@ -29,4 +29,36 @@
 .br-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Modal đơn mượn */
+.borrow-detail-modal .ant-modal-body {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Print styles cho đơn mượn */
+@media print {
+  .ant-modal-header,
+  .ant-modal-footer,
+  .ant-modal-close {
+    display: none !important;
+  }
+  
+  .ant-modal {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .ant-modal-body {
+    padding: 20px !important;
+  }
+  
+  #borrow-detail-content {
+    page-break-inside: avoid;
+  }
 }

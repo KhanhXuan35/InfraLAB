@@ -19,7 +19,6 @@ import {
   Row,
   Col,
   Divider,
-  Menu,
   Select,
   DatePicker,
 } from 'antd';
@@ -28,22 +27,19 @@ import {
   UserOutlined,
   ShoppingOutlined,
   CalendarOutlined,
-  DashboardOutlined,
-  ToolOutlined,
-  FileTextOutlined,
-  BellOutlined,
-  LogoutOutlined,
   ShoppingCartOutlined,
   ExclamationCircleOutlined,
   WarningOutlined,
   CloseCircleOutlined,
   EyeOutlined,
   CheckCircleOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
+import LabManagerSidebar from '../../components/Sidebar/LabManagerSidebar';
 import dayjs from 'dayjs';
 
-const { Header: LayoutHeader, Sider, Content } = Layout;
+const { Header: LayoutHeader, Content } = Layout;
 const { Title, Text } = Typography;
 
 const BorrowReturnPage = () => {
@@ -59,7 +55,6 @@ const BorrowReturnPage = () => {
   const [brokenQuantity, setBrokenQuantity] = useState(0);
   const [brokenReason, setBrokenReason] = useState('');
   const [isRepairedItem, setIsRepairedItem] = useState(false); // Flag để phân biệt thiết bị đã sửa
-  const [selectedMenu, setSelectedMenu] = useState('borrow');
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedBorrowRequest, setSelectedBorrowRequest] = useState(null);
   const [filteredInfo, setFilteredInfo] = useState({});
@@ -74,62 +69,6 @@ const BorrowReturnPage = () => {
     fetchBorrowingStudents();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
-
-  const handleMenuClick = ({ key }) => {
-    setSelectedMenu(key);
-    switch (key) {
-      case 'dashboard':
-        navigate('/teacher-dashboard');
-        break;
-      case 'devices':
-        navigate('/lab-manager/devices');
-        break;
-      case 'borrow':
-        // Đã ở trang này rồi
-        break;
-      case 'reports':
-        // Navigate to reports page
-        break;
-      case 'notifications':
-        // Navigate to notifications page
-        break;
-      default:
-        break;
-    }
-  };
-
-  const menuItems = [
-    {
-      key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: 'Thống kê',
-    },
-    {
-      key: 'devices',
-      icon: <ToolOutlined />,
-      label: 'Quản lý thiết bị',
-    },
-    {
-      key: 'borrow',
-      icon: <ShoppingCartOutlined />,
-      label: 'Danh sách thiết bị mượn',
-    },
-    {
-      key: 'reports',
-      icon: <FileTextOutlined />,
-      label: 'Báo cáo',
-    },
-    {
-      key: 'notifications',
-      icon: <BellOutlined />,
-      label: 'Thông báo',
-    },
-  ];
 
   const fetchBorrowingStudents = async () => {
     try {
@@ -573,57 +512,18 @@ const BorrowReturnPage = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        width={250}
-        style={{
-          background: '#001529',
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          overflow: 'auto',
-        }}
-      >
-        <div style={{ padding: 24, textAlign: 'center', borderBottom: '1px solid #303030' }}>
-          <Title level={4} style={{ color: '#fff', margin: 0 }}>
-            InFra<span style={{ color: '#1890ff' }}>Lab</span>
-          </Title>
-          <Text type="secondary" style={{ color: '#8c8c8c', fontSize: 12 }}>
-            QUẢN LÝ PHÒNG LAB
-          </Text>
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedMenu]}
-          items={menuItems}
-          style={{ borderRight: 0, marginTop: 16 }}
-          onClick={handleMenuClick}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: 16,
-            borderTop: '1px solid #303030',
-            cursor: 'pointer',
-          }}
-          onClick={handleLogout}
-        >
-          <Button
-            type="text"
-            icon={<LogoutOutlined />}
-            style={{ width: '100%', color: '#fff' }}
-          >
-            Đăng xuất
-          </Button>
-        </div>
-      </Sider>
+      <LabManagerSidebar />
 
-      <Layout style={{ marginLeft: 250 }}>
+      <Layout style={{ marginLeft: 240 }}>
         <Content style={{ margin: '24px', minHeight: 280 }}>
+          <div style={{ marginBottom: 24 }}>
+            <Title level={2} style={{ margin: 0, marginBottom: 8 }}>
+              Danh sách thiết bị mượn
+            </Title>
+            <Text type="secondary">
+              Quản lý và ghi nhận mượn/trả thiết bị
+            </Text>
+          </div>
           <Card>
             <Spin spinning={loading}>
               {borrowRequests.length === 0 ? (

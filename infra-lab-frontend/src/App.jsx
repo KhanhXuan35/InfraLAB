@@ -12,7 +12,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 // Home dashboards
-import StudentHomePage from "./pages/Student/StudentHomePage";
+import StudentHomePage from "./pages/student/StudentHomePage";
 import LabManagerHomePage from "./pages/LabManager/LabManagerHomePage";
 import SchoolAdminHomePage from "./pages/SchoolAdmin/SchoolAdminHomePage";
 
@@ -36,6 +36,7 @@ import BorrowReturnPage from "./pages/LabManager/BorrowReturnPage";
 import LabManagerRepairDetail from "./pages/LabManager/LabManagerRepairDetail";
 import StudentManagerPage from "./pages/LabManager/StudentManagerPage";
 import DeviceListSchool from "./pages/LabManager/DeviceListSchool";
+import CertificatesPage from "./pages/LabManager/CertificatesPage";
 
 // School pages
 import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
@@ -74,11 +75,30 @@ function App() {
               <Route path="/user-dashboard" element={<StudentHomePage />} />
             </Route>
 
+            {/* --- LAB MANAGER PAGES --- */}
             <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
-              <Route path="/teacher-dashboard" element={<LabManagerHomePage />} />
-              <Route path="/lab-manager/repairs/:id" element={<LabManagerRepairDetail />} />
-
-              <Route path="/lab-manager/school-devices" element={<DeviceListSchool />} />
+              {/* Dashboard */}
+              <Route path={LAB_MANAGER_ROUTES.DASHBOARD} element={<LabManagerHomePage />} />
+              
+              {/* Devices Management */}
+              <Route path={LAB_MANAGER_ROUTES.DEVICES} element={<DeviceList />} />
+              <Route path={LAB_MANAGER_ROUTES.DEVICE_DETAIL(":id")} element={<DeviceDetailPage />} />
+              
+              {/* School Inventory */}
+              <Route path={LAB_MANAGER_ROUTES.SCHOOL_DEVICES} element={<DeviceListSchool />} />
+              
+              {/* Borrow/Return */}
+              <Route path={LAB_MANAGER_ROUTES.BORROW_RETURN} element={<BorrowReturnPage />} />
+              
+              {/* Repairs */}
+              <Route path={LAB_MANAGER_ROUTES.REPAIRS} element={<LabManagerRepairList />} />
+              <Route path={LAB_MANAGER_ROUTES.REPAIR_DETAIL(":id")} element={<LabManagerRepairDetail />} />
+              
+              {/* Students Management */}
+              <Route path={LAB_MANAGER_ROUTES.STUDENTS} element={<StudentManagerPage />} />
+              
+              {/* Certificates */}
+              <Route path={LAB_MANAGER_ROUTES.CERTIFICATES} element={<CertificatesPage />} />
             </Route>
 
             <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
@@ -90,18 +110,6 @@ function App() {
               <Route path={SCHOOL_ROUTES.REPAIR_DETAIL(":id")} element={<SchoolRepairDetail />} />
               <Route path="/school/borrow-requests" element={<BorrowRequests />} />
               <Route path="/school/device/:id" element={<ViewDetailDevice />} />
-            </Route>
-
-
-
-            {/* --- LAB MANAGER PAGES --- */}
-            <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
-              <Route path="/lab-manager/devices" element={<DeviceList />} />
-              <Route path="/lab-manager/device/:id" element={<DeviceDetailPage />} />
-              <Route path="/lab-manager/students" element={<StudentManagerPage />} />
-              <Route path={LAB_MANAGER_ROUTES.REPAIRS} element={<LabManagerRepairList />} />
-              <Route path="/lab-manager/repairs/:id" element={<LabManagerRepairDetail />} />
-              <Route path="/lab-manager/borrow-return" element={<BorrowReturnPage />} />
             </Route>
 
             {/* --- SCHOOL PAGES --- */}
@@ -117,14 +125,20 @@ function App() {
             <Route path={`${STUDENT_BASE_PATH}/borrowed`} element={<LoanDeviceList />} />
             <Route path={`${STUDENT_BASE_PATH}/conversation/:id?`} element={<Chat />} />
 
-            {/* --- CHAT (Available for all authenticated users) --- */}
+            {/* --- SHARED PAGES (Available for multiple roles) --- */}
             <Route element={<PrivateRoute allowedRoles={["student", "lab_manager", "school_admin"]} />}>
+              {/* Chat */}
+              <Route path={LAB_MANAGER_ROUTES.CHAT} element={<Chat />} />
               <Route path="/chat/:id?" element={<Chat />} />
+
+              {/* Profile */}
+              <Route path="/profile" element={<UserProfile />} />
             </Route>
 
-            {/* --- PROFILE PAGE (Protected) --- */}
-            <Route element={<PrivateRoute allowedRoles={["student", "lab_manager", "school_admin"]} />}>
-              <Route path="/profile" element={<UserProfile />} />
+            {/* --- REPORTS & NOTIFICATIONS (Available for lab_manager and school_admin) --- */}
+            <Route element={<PrivateRoute allowedRoles={["lab_manager", "school_admin"]} />}>
+              <Route path={LAB_MANAGER_ROUTES.REPORTS} element={<div>Reports Page - Coming Soon</div>} />
+              <Route path={LAB_MANAGER_ROUTES.NOTIFICATIONS} element={<div>Notifications Page - Coming Soon</div>} />
             </Route>
 
             {/* --- DEFAULT ROUTES --- */}

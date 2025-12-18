@@ -60,9 +60,9 @@
   border-bottom: none;
 }
 
-.device-table tbody tr:hover {
+/* .device-table tbody tr:hover {
   background: #f3f4f6;
-}
+} */
 
 /* =============== STATUS BADGES =============== */
 .status-pending,
@@ -110,12 +110,12 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  /* transition: background 0.15s, box-shadow 0.15s, transform 0.1s; */
 }
 
-.device-table button:hover:not(:disabled) {
+/* .device-table button:hover:not(:disabled) {
   transform: translateY(-1px);
-}
+} */
 
 .device-table button:disabled {
   opacity: 0.6;
@@ -172,7 +172,7 @@
   border-bottom: 1px solid #e5e7eb !important;
 }
 
-.device-table tbody tr:hover td {
+/* .device-table tbody tr:hover td {
   background: #f3f4f6 !important;
   color: #111 !important;
-}
+} */

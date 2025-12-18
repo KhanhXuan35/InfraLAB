@@ -13,7 +13,8 @@ import {
     Input,
     InputNumber,
     Upload,
-    message
+    message,
+    Table
 } from "antd";
 
 import { UploadOutlined } from "@ant-design/icons";
@@ -30,6 +31,9 @@ export default function DeviceDetail() {
     const [loadingSubmit, setLoadingSubmit] = useState(false);
     // Form sửa chữa
     const [form] = Form.useForm();
+    // Device instances (serial numbers)
+    const [deviceInstances, setDeviceInstances] = useState([]);
+    const [loadingInstances, setLoadingInstances] = useState(false);
 
     // repair states
     const [showRepairModal, setShowRepairModal] = useState(false);
@@ -61,6 +65,28 @@ export default function DeviceDetail() {
 
         fetchDeviceDetail();
     }, [id]);
+
+    // =================== LOAD DEVICE INSTANCES ===================
+    useEffect(() => {
+        if (!device?._id) return;
+
+        const fetchDeviceInstances = async () => {
+            try {
+                setLoadingInstances(true);
+                // Chỉ lấy các thiết bị đang ở phòng lab
+                const response = await api.get(`/school-admin/devices/${device._id}/instances?location=lab&limit=1000`);
+                if (response.success) {
+                    setDeviceInstances(response.data || []);
+                }
+            } catch (err) {
+                console.error("Fetch device instances error:", err);
+            } finally {
+                setLoadingInstances(false);
+            }
+        };
+
+        fetchDeviceInstances();
+    }, [device]);
 
     useEffect(() => {
         if (openReport) {
@@ -94,8 +120,20 @@ export default function DeviceDetail() {
     if (!device || !inventory)
         return <p className="error">Không tìm thấy thiết bị.</p>;
 
-    const borrowed =
-        inventory.total - inventory.available - (inventory.broken || 0);
+    // Tính toán thống kê từ device instances thực tế ở lab
+    const labInstances = deviceInstances.filter(inst => inst.location === 'lab');
+    const totalLab = labInstances.length;
+    const availableLab = labInstances.filter(inst => inst.status === 'available').length;
+    const borrowedLab = labInstances.filter(inst => inst.status === 'borrowed').length;
+    const brokenLab = labInstances.filter(inst => inst.status === 'broken').length;
+
+    // Sử dụng số liệu từ device instances nếu đã load, nếu chưa thì dùng inventory
+    const stats = {
+        total: loadingInstances ? inventory.total : totalLab,
+        available: loadingInstances ? inventory.available : availableLab,
+        borrowed: loadingInstances ? (inventory.total - inventory.available - (inventory.broken || 0)) : borrowedLab,
+        broken: loadingInstances ? (inventory.broken || 0) : brokenLab,
+    };
 
     const getStatusColor = (type) => {
         const colors = {
@@ -204,7 +242,7 @@ export default function DeviceDetail() {
                                 </div>
                                 <div className="inventory-info">
                                     <span className="inventory-label">TỔNG</span>
-                                    <span className="inventory-value">{inventory.total}</span>
+                                    <span className="inventory-value">{stats.total}</span>
                                 </div>
                             </div>
 
@@ -216,7 +254,7 @@ export default function DeviceDetail() {
                                 </div>
                                 <div className="inventory-info">
                                     <span className="inventory-label">CÓ SẴN</span>
-                                    <span className="inventory-value">{inventory.available}</span>
+                                    <span className="inventory-value">{stats.available}</span>
                                 </div>
                             </div>
 
@@ -229,7 +267,7 @@ export default function DeviceDetail() {
                                 </div>
                                 <div className="inventory-info">
                                     <span className="inventory-label">ĐANG MƯỢN</span>
-                                    <span className="inventory-value">{borrowed}</span>
+                                    <span className="inventory-value">{stats.borrowed}</span>
                                 </div>
                             </div>
 
@@ -242,7 +280,7 @@ export default function DeviceDetail() {
                                 </div>
                                 <div className="inventory-info">
                                     <span className="inventory-label">HỎNG</span>
-                                    <span className="inventory-value">{inventory.broken ?? 0}</span>
+                                    <span className="inventory-value">{stats.broken}</span>
                                 </div>
                             </div>
 
@@ -259,11 +297,11 @@ export default function DeviceDetail() {
                                 <div className="progress-label">
                                     <span>Có sẵn</span>
                                     <span className="progress-percent">
-                                        {Math.round((inventory.available / inventory.total) * 100)}%
+                                        {stats.total > 0 ? Math.round((stats.available / stats.total) * 100) : 0}%
                                     </span>
                                 </div>
                                 <div className="progress-bar">
-                                    <div className="progress-fill available" style={{ width: `${(inventory.available / inventory.total) * 100}%` }}></div>
+                                    <div className="progress-fill available" style={{ width: `${stats.total > 0 ? (stats.available / stats.total) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
 
@@ -271,11 +309,11 @@ export default function DeviceDetail() {
                                 <div className="progress-label">
                                     <span>Đang mượn</span>
                                     <span className="progress-percent">
-                                        {Math.round((borrowed / inventory.total) * 100)}%
+                                        {stats.total > 0 ? Math.round((stats.borrowed / stats.total) * 100) : 0}%
                                     </span>
                                 </div>
                                 <div className="progress-bar">
-                                    <div className="progress-fill borrowed" style={{ width: `${(borrowed / inventory.total) * 100}%` }}></div>
+                                    <div className="progress-fill borrowed" style={{ width: `${stats.total > 0 ? (stats.borrowed / stats.total) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
 
@@ -283,15 +321,131 @@ export default function DeviceDetail() {
                                 <div className="progress-label">
                                     <span>Hỏng</span>
                                     <span className="progress-percent">
-                                        {Math.round((inventory.broken / inventory.total) * 100)}%
+                                        {stats.total > 0 ? Math.round((stats.broken / stats.total) * 100) : 0}%
                                     </span>
                                 </div>
                                 <div className="progress-bar">
-                                    <div className="progress-fill broken" style={{ width: `${(inventory.broken / inventory.total) * 100}%` }}></div>
+                                    <div className="progress-fill broken" style={{ width: `${stats.total > 0 ? (stats.broken / stats.total) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
 
                         </div>
+                    </div>
+
+                    {/* DEVICE INSTANCES TABLE */}
+                    <div className="instances-section" style={{ marginTop: 24 }}>
+                        <h3 className="section-title">Danh sách mã thiết bị</h3>
+                        <Table
+                            dataSource={deviceInstances}
+                            loading={loadingInstances}
+                            rowKey="_id"
+                            pagination={{ pageSize: 10 }}
+                            columns={[
+                                {
+                                    title: 'STT',
+                                    key: 'index',
+                                    width: 50,
+                                    align: 'center',
+                                    render: (_, __, index) => index + 1,
+                                },
+                                {
+                                    title: 'Mã Serial Number',
+                                    dataIndex: 'serial_number',
+                                    key: 'serial_number',
+                                    width: 180,
+                                    sorter: (a, b) => {
+                                        const serialA = (a.serial_number || '').toLowerCase();
+                                        const serialB = (b.serial_number || '').toLowerCase();
+                                        return serialA.localeCompare(serialB);
+                                    },
+                                    render: (text) => <span style={{ color: '#1890ff', cursor: 'pointer' }}>{text}</span>,
+                                },
+                                {
+                                    title: 'Tình trạng',
+                                    dataIndex: 'condition',
+                                    key: 'condition',
+                                    width: 100,
+                                    align: 'center',
+                                    render: (condition) => {
+                                        const conditionMap = {
+                                            'new': { label: 'Mới', color: 'green' },
+                                            'good': { label: 'Tốt', color: 'blue' },
+                                            'fair': { label: 'Khá', color: 'orange' },
+                                            'poor': { label: 'Kém', color: 'red' },
+                                        };
+                                        const config = conditionMap[condition] || { label: condition, color: 'default' };
+                                        return <Tag color={config.color}>{config.label}</Tag>;
+                                    },
+                                },
+                                {
+                                    title: 'Trạng thái',
+                                    dataIndex: 'status',
+                                    key: 'status',
+                                    width: 110,
+                                    align: 'center',
+                                    render: (status) => {
+                                        const statusMap = {
+                                            'available': { label: 'Có sẵn', color: 'green' },
+                                            'borrowed': { label: 'Đang mượn', color: 'orange' },
+                                            'repairing': { label: 'Đang sửa', color: 'blue' },
+                                            'broken': { label: 'Hỏng', color: 'red' },
+                                            'retired': { label: 'Ngừng sử dụng', color: 'default' },
+                                            'maintenance': { label: 'Bảo trì', color: 'purple' },
+                                        };
+                                        const config = statusMap[status] || { label: status, color: 'default' };
+                                        return <Tag color={config.color}>{config.label}</Tag>;
+                                    },
+                                },
+                                {
+                                    title: 'Vị trí',
+                                    dataIndex: 'location',
+                                    key: 'location',
+                                    width: 100,
+                                    align: 'center',
+                                    render: (location) => {
+                                        const locationMap = {
+                                            'warehouse': 'Kho tổng',
+                                            'lab': 'Lab',
+                                            'borrowed': 'Đang mượn',
+                                            'repair_shop': 'Cửa hàng sửa chữa',
+                                        };
+                                        return locationMap[location] || location;
+                                    },
+                                },
+                                {
+                                    title: 'Vị trí lưu trữ',
+                                    dataIndex: 'storage_position',
+                                    key: 'storage_position',
+                                    width: 130,
+                                    render: (text) => text || '-',
+                                },
+                                {
+                                    title: 'Ngày mua',
+                                    dataIndex: 'purchase_date',
+                                    key: 'purchase_date',
+                                    width: 110,
+                                    align: 'center',
+                                    render: (date) => date ? new Date(date).toLocaleDateString('vi-VN') : '-',
+                                },
+                                {
+                                    title: 'Bảo hành đến',
+                                    dataIndex: 'warranty_until',
+                                    key: 'warranty_until',
+                                    width: 120,
+                                    align: 'center',
+                                    render: (date) => {
+                                        if (!date) return '-';
+                                        const warrantyDate = new Date(date);
+                                        const now = new Date();
+                                        const isExpired = warrantyDate < now;
+                                        const style = isExpired ? { color: '#ff4d4f' } : { color: '#52c41a' };
+                                        return <span style={style}>{warrantyDate.toLocaleDateString('vi-VN')}</span>;
+                                    },
+                                },
+                            ]}
+                            scroll={{ x: 'max-content' }}
+                            size="small"
+                        />
                     </div>
 
                 </div>

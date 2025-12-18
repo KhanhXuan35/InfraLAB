@@ -53,6 +53,13 @@ export const LAB_MANAGER_ROUTES = {
   DASHBOARD: "/teacher-dashboard",
   DEVICES: `${LAB_MANAGER_BASE_PATH}/devices`,
   DEVICE_DETAIL: (id) => `${LAB_MANAGER_BASE_PATH}/device/${id}`,
+  SCHOOL_DEVICES: `${LAB_MANAGER_BASE_PATH}/school-devices`,
+  BORROW_RETURN: `${LAB_MANAGER_BASE_PATH}/borrow-return`,
   REPAIRS: `${LAB_MANAGER_BASE_PATH}/repairs`,
   REPAIR_DETAIL: (id) => `${LAB_MANAGER_BASE_PATH}/repairs/${id}`,
+  STUDENTS: `${LAB_MANAGER_BASE_PATH}/students`,
+  CERTIFICATES: `${LAB_MANAGER_BASE_PATH}/certificates`,
+  REPORTS: "/reports",
+  NOTIFICATIONS: "/notifications",
+  CHAT: "/chat",
 };

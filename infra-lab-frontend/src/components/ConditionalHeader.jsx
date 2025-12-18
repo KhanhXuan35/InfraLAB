@@ -19,6 +19,13 @@ const ConditionalHeader = () => {
       '/school-dashboard',
       '/school/dashboard',
       '/requests',
+      '/school/borrow-requests',
+    ];
+    
+    // Danh sách các route của lab_manager (không hiển thị Header)
+    const labManagerRoutes = [
+      '/lab-manager',
+      '/teacher-dashboard',
     ];
     
     const pathname = location.pathname;
@@ -31,6 +38,12 @@ const ConditionalHeader = () => {
     // Kiểm tra school_admin routes
     const isSchoolAdminRoute = schoolAdminRoutes.some(route => pathname.startsWith(route));
     if (isSchoolAdminRoute) {
+      return false;
+    }
+
+    // Kiểm tra lab_manager routes
+    const isLabManagerRoute = labManagerRoutes.some(route => pathname.startsWith(route));
+    if (isLabManagerRoute) {
       return false;
     }
 

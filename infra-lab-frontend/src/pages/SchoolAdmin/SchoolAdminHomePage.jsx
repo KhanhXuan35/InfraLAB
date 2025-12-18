@@ -19,7 +19,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
-import SchoolAdminSidebar from '../../components/SchoolAdmin/SchoolAdminSidebar';
+import SchoolAdminSidebar from '../../components/Sidebar/SchoolAdminSidebar';
 import * as S from './SchoolAdminHomePage.styles';
 
 const { Header: LayoutHeader, Content } = Layout;
@@ -170,7 +170,6 @@ const SchoolAdminHomePage = () => {
                   {quickActions.map((action, index) => (
                     <Col xs={12} sm={6} key={index}>
                       <Card
-                        hoverable
                         onClick={action.onClick}
                         style={{
                           textAlign: 'center',

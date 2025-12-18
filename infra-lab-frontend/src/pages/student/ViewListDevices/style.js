@@ -50,13 +50,13 @@ export const DeviceCard = styled(Card)`
       height: 100%;
       object-fit: cover;
       object-position: center;
-      transition: transform 0.3s ease;
+      /* transition: transform 0.3s ease; */
       display: block;
     }
     
-    &:hover img {
+    /* &:hover img {
       transform: scale(1.05);
-    }
+    } */
   }
 `;
 
@@ -89,8 +89,8 @@ export const BorrowButton = styled(Button)`
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
   
-  &:hover {
+  /* &:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(24, 144, 255, 0.5);
-  }
+  } */
 `;

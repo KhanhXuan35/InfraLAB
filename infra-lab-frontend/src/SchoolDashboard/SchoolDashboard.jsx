@@ -17,12 +17,11 @@ import {
   SearchOutlined,
   PlusOutlined,
   EyeOutlined,
-  EditOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../services/api';
-import SchoolAdminSidebar from '../components/SchoolAdmin/SchoolAdminSidebar';
+import SchoolAdminSidebar from '../components/Sidebar/SchoolAdminSidebar';
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -55,7 +54,13 @@ function SchoolDashboard() {
       ]);
 
       setCategories(catRes?.data || []);
-      setDevices(devRes?.data || []);
+      // Sắp xếp theo bảng chữ cái khi tải dữ liệu ban đầu
+      const sortedDevices = (devRes?.data || []).sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB, 'vi');
+      });
+      setDevices(sortedDevices);
       setInventories(invRes?.data || []);
     } catch (err) {
       console.error('Load data error:', err);
@@ -97,13 +102,23 @@ function SchoolDashboard() {
       return nameMatches && categoryMatches;
     });
 
-    // Sort
-    list = list.sort((a, b) => {
-      if (sort === 'newest') {
-        return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
-      }
-      return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
-    });
+    // Sắp xếp theo bảng chữ cái khi không có filter nào được chọn
+    const hasNoFilters = !search.trim() && selectedCategory === 'all';
+    if (hasNoFilters) {
+      list = list.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB, 'vi');
+      });
+    } else {
+      // Sort theo sort option khi có filter
+      list = list.sort((a, b) => {
+        if (sort === 'newest') {
+          return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
+        }
+        return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
+      });
+    }
 
     return list;
   }, [devices, search, selectedCategory, sort]);
@@ -150,6 +165,42 @@ function SchoolDashboard() {
       key: 'index',
       width: 60,
       render: (_, __, index) => index + 1,
+    },
+    {
+      title: 'Ảnh',
+      key: 'image',
+      width: 80,
+      render: (_, record) => (
+        record.image ? (
+          <img
+            src={record.image}
+            alt={record.name}
+            style={{
+              width: 50,
+              height: 50,
+              objectFit: 'cover',
+              borderRadius: 4,
+            }}
+            onError={(e) => {
+              e.currentTarget.src = 'https://via.placeholder.com/50?text=No+Image';
+            }}
+          />
+        ) : (
+          <div style={{
+            width: 50,
+            height: 50,
+            backgroundColor: '#f0f0f0',
+            borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 10,
+            color: '#999',
+          }}>
+            No Image
+          </div>
+        )
+      ),
     },
     {
       title: 'Tên Thiết Bị',
@@ -286,14 +337,6 @@ function SchoolDashboard() {
               onClick={() => navigate(`/school/device/${devId}`)}
             >
               Xem
-            </Button>
-            <Button
-              type="default"
-              icon={<EditOutlined />}
-              size="small"
-              onClick={() => navigate(`/school/device/${devId}`)}
-            >
-              Sửa
             </Button>
             <Popconfirm
               title="Xóa thiết bị"

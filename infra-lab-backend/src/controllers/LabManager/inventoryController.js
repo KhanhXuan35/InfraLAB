@@ -1,6 +1,8 @@
 import Inventory from "../../models/Inventory.js";
 import Device from "../../models/Device.js";
 import Category from "../../models/Category.js";
+import DeviceInstance from "../../models/DeviceInstance.js";
+
 export const getLabDevices = async (req, res) => {
   try {
     const inventories = await Inventory.find({ location: "lab" })
@@ -14,23 +16,36 @@ export const getLabDevices = async (req, res) => {
     // Lọc bỏ các inventory không có device_id hợp lệ
     const validInventories = inventories.filter((i) => i.device_id && i.device_id._id);
 
-    const data = validInventories.map((i) => {
-      const borrowed = (i.total || 0) - (i.available || 0) - (i.broken || 0);
+    // Tính toán số liệu từ device instances thực tế ở lab
+    const data = await Promise.all(
+      validInventories.map(async (i) => {
+        // Đếm device instances thực tế ở lab cho device này
+        // CHỈ đếm các instances có location = "lab"
+        const instances = await DeviceInstance.find({
+          device_model_id: i.device_id._id.toString(),
+          location: "lab"
+        }).lean();
 
-      return {
-        _id: i._id,
-        total: i.total || 0,
-        available: i.available || 0,
-        broken: i.broken || 0,
-        borrowed: borrowed < 0 ? 0 : borrowed,
-        device: {
-          _id: i.device_id?._id || null,
-          name: i.device_id?.name || "N/A",
-          image: i.device_id?.image || "",
-          category: i.device_id?.category_id?.name || "Không rõ"
-        }
-      };
-    });
+        const total = instances.length;
+        const available = instances.filter(inst => inst.status === 'available').length;
+        const broken = instances.filter(inst => inst.status === 'broken').length;
+        const borrowed = instances.filter(inst => inst.status === 'borrowed').length;
+
+        return {
+          _id: i._id,
+          total: total,
+          available: available,
+          broken: broken,
+          borrowed: borrowed,
+          device: {
+            _id: i.device_id?._id || null,
+            name: i.device_id?.name || "N/A",
+            image: i.device_id?.image || "",
+            category: i.device_id?.category_id?.name || "Không rõ"
+          }
+        };
+      })
+    );
 
     res.json({ data });
   } catch (err) {

@@ -4,7 +4,7 @@ import { Layout, Card, Form, Input, InputNumber, DatePicker, Select, Button, mes
 import { UploadOutlined, PlusOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import api from "../../services/api";
-import SchoolAdminSidebar from "../../components/SchoolAdmin/SchoolAdminSidebar";
+import SchoolAdminSidebar from "../../components/Sidebar/SchoolAdminSidebar";
 
 const { Content } = Layout;
 const { Title, Paragraph, Text } = Typography;

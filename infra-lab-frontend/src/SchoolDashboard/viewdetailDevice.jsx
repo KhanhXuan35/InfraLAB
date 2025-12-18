@@ -31,7 +31,7 @@ import {
 import dayjs from 'dayjs';
 import { DatePicker, Select } from 'antd';
 import api from '../services/api';
-import SchoolAdminSidebar from '../components/SchoolAdmin/SchoolAdminSidebar';
+import SchoolAdminSidebar from '../components/Sidebar/SchoolAdminSidebar';
 
 const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;

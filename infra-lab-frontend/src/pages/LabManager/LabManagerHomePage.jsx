@@ -14,30 +14,24 @@ import {
   List,
   Tag,
   Divider,
-  Menu
 } from 'antd';
 import {
-  DashboardOutlined,
-  ToolOutlined,
-  ShoppingOutlined,
-  FileTextOutlined,
-  BellOutlined,
-  AppstoreOutlined,
   PlusOutlined,
   SwapOutlined,
   SearchOutlined,
   ExportOutlined,
-  LogoutOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   WarningOutlined,
-  MessageOutlined,
-  TeamOutlined
+  AppstoreOutlined,
+  ToolOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
+import LabManagerSidebar from '../../components/Sidebar/LabManagerSidebar';
 import * as S from './LabManagerHomePage.styles';
 
-const { Header: LayoutHeader, Sider, Content } = Layout;
+const { Header: LayoutHeader, Content } = Layout;
 const { Title, Paragraph, Text } = Typography;
 
 const LabManagerHomePage = () => {
@@ -51,7 +45,6 @@ const LabManagerHomePage = () => {
   });
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMenu, setSelectedMenu] = useState('dashboard');
 
   useEffect(() => {
     const userString = localStorage.getItem('user');
@@ -81,6 +74,7 @@ const LabManagerHomePage = () => {
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        // Vẫn set loading = false để hiển thị trang ngay cả khi API lỗi
       } finally {
         setLoading(false);
       }
@@ -89,45 +83,15 @@ const LabManagerHomePage = () => {
     fetchDashboardData();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
 
-  const handleMenuClick = ({ key }) => {
-    setSelectedMenu(key);
-    switch (key) {
-      case 'devices':
-        navigate('/lab-manager/devices');
-        break;
-      case 'repairs':
-        navigate('/lab-manager/repairs');
-        break;
-      case 'chat':
-        navigate('/chat');
-        break;
-      case 'school-inventory':
-        navigate('/lab-manager/school-devices');
-        break;
-      case 'borrow':
-        navigate('/lab-manager/borrow-return');
-        break;
-      case 'reports':
-        break;
-      case 'notifications':
-        break;
-      case 'students':
-        navigate('/lab-manager/students');
-        break;
-      default:
-        break;
-    }
-  };
 
   const handleQuickAction = (key) => {
     switch (key) {
       case 'add-device':
+        // TODO: Navigate to add device page
+        break;
+      case 'school-inventory':
+        navigate('/lab-manager/school-devices');
         break;
       case 'record':
         navigate('/lab-manager/borrow-return');
@@ -136,50 +100,13 @@ const LabManagerHomePage = () => {
         navigate('/lab-manager/devices');
         break;
       case 'export':
+        // TODO: Export report
         break;
       default:
         break;
     }
   };
 
-  const menuItems = [
-    {
-      key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: 'Thống kê',
-    },
-    {
-      key: 'devices',
-      icon: <ToolOutlined />,
-      label: 'Quản lý thiết bị',
-    },
-    { key: 'repairs', icon: <ToolOutlined />, label: 'Danh sách sửa chữa' },
-    {
-      key: 'chat',
-      icon: <MessageOutlined />,
-      label: 'Tin nhắn',
-    },
-    {
-      key: 'borrow',
-      icon: <ShoppingOutlined />,
-      label: 'Danh sách thiết bị mượn',
-    },
-    {
-      key: 'reports',
-      icon: <FileTextOutlined />,
-      label: 'Báo cáo',
-    },
-    {
-      key: 'students',
-      icon: <TeamOutlined />,
-      label: 'Quản lý sinh viên',
-    },
-    {
-      key: 'notifications',
-      icon: <BellOutlined />,
-      label: 'Thông báo',
-    },
-  ];
 
   const quickActions = [
     {
@@ -188,9 +115,12 @@ const LabManagerHomePage = () => {
       color: '#1890ff',
       key: 'add-device',
     },
-    { key: 'school-inventory', 
+    {
+      title: 'Kho School',
       icon: <AppstoreOutlined />, 
-      label: 'Kho School' },
+      color: '#13c2c2',
+      key: 'school-inventory',
+    },
     {
       title: 'Ghi nhận mượn/trả',
       icon: <SwapOutlined />,
@@ -211,62 +141,11 @@ const LabManagerHomePage = () => {
     },
   ];
 
-  if (loading) {
-    return <S.LoadingContainer>Dang tai...</S.LoadingContainer>;
-  }
-
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        width={250}
-        style={{
-          background: '#001529',
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          overflow: 'auto',
-        }}
-      >
-        <div style={{ padding: 24, textAlign: 'center', borderBottom: '1px solid #303030' }}>
-          <Title level={4} style={{ color: '#fff', margin: 0 }}>
-            InFra<span style={{ color: '#1890ff' }}>Lab</span>
-          </Title>
-          <Text type="secondary" style={{ color: '#8c8c8c', fontSize: 12 }}>
-            QUAN LY PHONG LAB
-          </Text>
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedMenu]}
-          items={menuItems}
-          style={{ borderRight: 0, marginTop: 16 }}
-          onClick={handleMenuClick}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: 16,
-            borderTop: '1px solid #303030',
-            cursor: 'pointer',
-          }}
-          onClick={handleLogout}
-        >
-          <Button
-            type="text"
-            icon={<LogoutOutlined />}
-            style={{ width: '100%', color: '#fff' }}
-          >
-            Dang xuat
-          </Button>
-        </div>
-      </Sider>
+      <LabManagerSidebar />
 
-      <Layout style={{ marginLeft: 250 }}>
+      <Layout style={{ marginLeft: 240 }}>
         <LayoutHeader
           style={{
             background: '#fff',
@@ -278,10 +157,10 @@ const LabManagerHomePage = () => {
           }}
         >
           <Title level={4} style={{ margin: 0 }}>
-            Dashboard Quan ly Lab
+            Dashboard Quản lý Lab
           </Title>
           <Space>
-            <Text>Xin chao, {user?.name || 'Giao vien'}!</Text>
+            <Text>Xin chào, {user?.name || 'Giáo viên'}!</Text>
             <Avatar style={{ backgroundColor: '#1890ff' }}>
               {user?.name?.charAt(0) || 'G'}
             </Avatar>
@@ -384,7 +263,6 @@ const LabManagerHomePage = () => {
                   {quickActions.map((action, index) => (
                     <Col xs={12} key={index}>
                       <Card
-                        hoverable
                         onClick={() => handleQuickAction(action.key)}
                         style={{
                           textAlign: 'center',

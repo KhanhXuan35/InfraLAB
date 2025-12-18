@@ -832,7 +832,7 @@ color: #0f172a;
 
 .device-table tbody tr:nth-child(odd) { background: #0e1728; }
 .device-table tbody tr:nth-child(even) { background: #101b30; }
-.device-table tbody tr:hover { background: #1a2640; }
+/* .device-table tbody tr:hover { background: #1a2640; } */
 
 .cell-name {
   font-weight: 700;
@@ -2042,7 +2042,7 @@ color: #0f172a;
 
 .device-table tbody tr:nth-child(odd) { background: #0e1728; }
 .device-table tbody tr:nth-child(even) { background: #101b30; }
-.device-table tbody tr:hover { background: #1a2640; }
+/* .device-table tbody tr:hover { background: #1a2640; } */
 
 .cell-name {
   font-weight: 700;

@@ -7,7 +7,7 @@ const requestLabSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["WAITING", "APPROVED", "REJECTED"],
+      enum: ["WAITING", "APPROVED", "REJECTED", "DELIVERED"],
       default: "WAITING",
     },
 
@@ -18,6 +18,12 @@ const requestLabSchema = new mongoose.Schema(
     // school admin
     approved_by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     approved_at: { type: Date },
+    
+    // Danh sách device instances đã được cấp phát (với serial numbers)
+    device_instance_ids: [{ 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "DeviceInstance" 
+    }],
   },
   {
     timestamps: true,

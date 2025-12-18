@@ -56,48 +56,51 @@
 
 /* =============== MAIN CONTENT =============== */
 .detail-content {
-  padding: 24px 28px 24px;
+  padding: 20px 24px 20px;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 0.6fr) minmax(0, 1.4fr);
+  gap: 16px;
+  align-items: start;
 }
 
 /* LEFT COLUMN */
 .detail-left {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .image-container {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  max-height: 310px;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
 }
 
 .device-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  border-radius: 8px;
 }
 
 .device-info {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
-  padding: 18px 20px;
+  padding: 12px 16px;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
 }
 
 .device-name {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: #111827;
   margin-bottom: 4px;
@@ -113,25 +116,26 @@
 }
 
 .device-description {
-  font-size: 14px;
+  font-size: 13px;
   color: #4b5563;
-  line-height: 1.6;
+  line-height: 1.5;
+  margin-top: 8px;
 }
 
 /* RIGHT COLUMN */
 .detail-right {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* CARD COMMON */
 .inventory-section,
 .progress-section {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid #e5e7eb;
-  padding: 18px 20px;
+  padding: 14px 16px;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
 }
 
@@ -344,6 +348,53 @@
   border-radius: 8px;
   margin-bottom: 10px;
   font-size: 13px;
+}
+
+/* =============== INSTANCES SECTION =============== */
+.instances-section {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 400px;
+}
+
+.instances-section .section-title {
+  margin-bottom: 16px;
+}
+
+.instances-section .ant-table-wrapper {
+  flex: 1;
+  min-height: 200px;
+}
+
+.instances-section .ant-table {
+  font-size: 13px;
+}
+
+.instances-section .ant-table-thead > tr > th {
+  padding: 10px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.instances-section .ant-table-tbody > tr > td {
+  padding: 10px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.instances-section .ant-table-tbody > tr {
+  height: 48px;
+}
+
+.instances-section .ant-table-tbody > tr:hover {
+  background: #f5f5f5;
 }
 
 /* RESPONSIVE */

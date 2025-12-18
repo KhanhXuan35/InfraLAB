@@ -4,7 +4,7 @@ import { Form, Input, Button, Typography, notification, Divider } from "antd";
 import { GoogleLogin } from "@react-oauth/google";
 import { EyeInvisibleOutlined, EyeTwoTone, UserOutlined, LockOutlined } from "@ant-design/icons";
 import { login, googleLogin } from "../services/authService";
-import { ROUTES } from "../constants/routes";
+import { ROUTES, LAB_MANAGER_ROUTES } from "../constants/routes";
 import "../App.css"; // Đảm bảo bạn đã có file CSS này
 
 const { Title, Text } = Typography;
@@ -37,13 +37,13 @@ const LoginPage = () => {
           navigate("/user-dashboard"); // Trang dành cho Sinh viên
           break;
         case "lab_manager":
-          navigate("/teacher-dashboard"); // Trang dành cho Quản lý Lab/Giáo viên
+          navigate(LAB_MANAGER_ROUTES.DASHBOARD); // Trang dành cho Quản lý Lab/Giáo viên
           break;
         case "school_admin":
           navigate("/school-dashboard"); // Trang dành cho Admin trường
           break;
         default:
-          navigate("/"); // Mặc định nếu không xác định được role
+          navigate(ROUTES.LOGIN); // Mặc định quay về login nếu không xác định được role
       }
     }, 1000); // Đợi 1s để người dùng kịp đọc thông báo
   };
