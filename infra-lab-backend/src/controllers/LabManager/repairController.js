@@ -2,6 +2,7 @@
 import Repair from "../../models/Repair.js";
 import Device from "../../models/Device.js";
 import Inventory from "../../models/Inventory.js";
+import DeviceInstance from "../../models/DeviceInstance.js";
 import uploadBufferToCloud from "../../utils/uploadToCloud.js";
 
 /**
@@ -11,7 +12,7 @@ import uploadBufferToCloud from "../../utils/uploadToCloud.js";
  */
 export const createRepairRequest = async (req, res) => {
   try {
-    const { device_id, quantity, reason, inventory_id } = req.body;
+    const { device_id, quantity, reason, inventory_id, device_instance_id, serial_number, symptom } = req.body;
 
     if (!device_id || !reason || !inventory_id) {
       return res.status(400).json({
@@ -29,10 +30,17 @@ export const createRepairRequest = async (req, res) => {
     }
 
     // 2. Chặn tạo trùng khi đang có yêu cầu chưa hoàn thành
-    const existingRepair = await Repair.findOne({
+    //    - Nếu gửi kèm device_instance_id: chỉ chặn trùng trên cùng instance (serial)
+    //    - Nếu không: chặn theo cả thiết bị (giữ tương thích dữ liệu cũ)
+    const existingFilter = {
       device_id,
       status: { $in: ["pending", "approved", "in_progress"] },
-    });
+    };
+    if (device_instance_id) {
+      existingFilter.device_instance_id = device_instance_id;
+    }
+
+    const existingRepair = await Repair.findOne(existingFilter);
 
     if (existingRepair) {
       return res.status(400).json({
@@ -72,12 +80,16 @@ export const createRepairRequest = async (req, res) => {
       device_id,
       quantity: requestQuantity,
       reason,
+      // Lưu thêm symptom nếu frontend gửi lên
+      broken_parts: symptom ? [symptom] : [],
       image: imageUrl,
       status: "pending",
       inventory_id: inventory_id,
+      device_instance_id: device_instance_id || null,
+      serial_number: serial_number || null,
     });
 
-    // 6. Cập nhật tồn kho
+    // 6. Cập nhật tồn kho & trạng thái instance
     await Inventory.findByIdAndUpdate(
       repair.inventory_id,
       {
@@ -87,6 +99,18 @@ export const createRepairRequest = async (req, res) => {
         },
       }
     );
+
+    // Nếu có truyền device_instance_id thì set trạng thái instance sang "broken"
+    if (device_instance_id) {
+      await DeviceInstance.findByIdAndUpdate(device_instance_id, {
+        $set: {
+          status: "broken",
+        },
+        $inc: {
+          "usage_stats.total_repair_times": 1,
+        },
+      });
+    }
 
     res.status(201).json({ success: true, data: repair });
   } catch (err) {
@@ -138,7 +162,11 @@ export const getRepairById = async (req, res) => {
         path: "device_id",
         select: "name image description",
       })
-      .select("device_id quantity reason image status reason_rejected createdAt reviewed_at completed_at")
+      .populate({
+        path: "device_instance_id",
+        select: "serial_number status location condition",
+      })
+      .select("device_id device_instance_id serial_number quantity reason image status reason_rejected createdAt reviewed_at completed_at")
       .lean();
 
     if (!repair) {
@@ -209,6 +237,9 @@ export const updateRepairStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy inventory." });
     }
 
+    // Lấy instance nếu có để cập nhật trạng thái
+    const instanceId = repair.device_instance_id;
+
     // ✅ Nếu sửa xong → hoàn lại available, giảm broken
     if (status === "done") {
       repair.completed_at = new Date();
@@ -220,6 +251,15 @@ export const updateRepairStatus = async (req, res) => {
       );
 
       await inventory.save();
+
+      // Trả thiết bị về trạng thái available
+      if (instanceId) {
+        await DeviceInstance.findByIdAndUpdate(instanceId, {
+          $set: {
+            status: "available",
+          },
+        });
+      }
     }
 
     // ✅ Nếu reject → hoàn lại available, giảm broken (vì thiết bị không thực sự hỏng)
@@ -231,6 +271,15 @@ export const updateRepairStatus = async (req, res) => {
       );
 
       await inventory.save();
+
+      // Khôi phục trạng thái instance về available
+      if (instanceId) {
+        await DeviceInstance.findByIdAndUpdate(instanceId, {
+          $set: {
+            status: "available",
+          },
+        });
+      }
 
       repair.reason_rejected = reason_rejected || "Không có lý do";
 

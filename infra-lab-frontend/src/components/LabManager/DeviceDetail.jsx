@@ -4,14 +4,10 @@ import "./DeviceDetail.css";
 import api from "../../services/api";
 import {
     Button,
-    Card,
     Tag,
-    Space,
-    Statistic,
     Modal,
     Form,
     Input,
-    InputNumber,
     Upload,
     message,
     Table
@@ -26,21 +22,19 @@ export default function DeviceDetail() {
     const [device, setDevice] = useState(null);
     const [inventory, setInventory] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [openReport, setOpenReport] = useState(false);
+    // Ảnh minh chứng cho yêu cầu sửa chữa
     const [image, setImage] = useState(null);
-    const [loadingSubmit, setLoadingSubmit] = useState(false);
-    // Form sửa chữa
-    const [form] = Form.useForm();
+    // Form sửa chữa cho từng serial number
+    const [instanceRepairForm] = Form.useForm();
     // Device instances (serial numbers)
     const [deviceInstances, setDeviceInstances] = useState([]);
     const [loadingInstances, setLoadingInstances] = useState(false);
 
     // repair states
     const [showRepairModal, setShowRepairModal] = useState(false);
-    const [repairReason, setRepairReason] = useState("");
     const [repairLoading, setRepairLoading] = useState(false);
-    const [repairMessage, setRepairMessage] = useState("");
     const [existingRepair, setExistingRepair] = useState(null);
+    const [selectedInstance, setSelectedInstance] = useState(null);
 
 
 
@@ -88,16 +82,6 @@ export default function DeviceDetail() {
         fetchDeviceInstances();
     }, [device]);
 
-    useEffect(() => {
-        if (openReport) {
-            // Reset form và set giá trị mặc định
-            form.resetFields();
-            form.setFieldsValue({ quantity: 1, reason: "" });
-            setImage(null);
-        }
-    }, [openReport]); // Bỏ 'form' khỏi dependency vì form instance không thay đổi
-
-
     // =================== LOAD REPAIR STATUS ===================
     useEffect(() => {
         if (!device?._id) return;
@@ -125,14 +109,15 @@ export default function DeviceDetail() {
     const totalLab = labInstances.length;
     const availableLab = labInstances.filter(inst => inst.status === 'available').length;
     const borrowedLab = labInstances.filter(inst => inst.status === 'borrowed').length;
-    const brokenLab = labInstances.filter(inst => inst.status === 'broken').length;
+    // Xem cả 'repairing' như thiết bị hỏng để dễ quan sát
+    const brokenLab = labInstances.filter(inst => inst.status === 'broken' || inst.status === 'repairing').length;
 
-    // Sử dụng số liệu từ device instances nếu đã load, nếu chưa thì dùng inventory
+    // Chỉ sử dụng số liệu từ device instances (không dùng inventory để tránh nhảy state)
     const stats = {
-        total: loadingInstances ? inventory.total : totalLab,
-        available: loadingInstances ? inventory.available : availableLab,
-        borrowed: loadingInstances ? (inventory.total - inventory.available - (inventory.broken || 0)) : borrowedLab,
-        broken: loadingInstances ? (inventory.broken || 0) : brokenLab,
+        total: totalLab,
+        available: availableLab,
+        borrowed: borrowedLab,
+        broken: brokenLab,
     };
 
     const getStatusColor = (type) => {
@@ -146,14 +131,21 @@ export default function DeviceDetail() {
     };
 
 
-    const handleReport = async (values) => {
-        setLoadingSubmit(true);
+    const handleInstanceRepairSubmit = async (values) => {
+        if (!selectedInstance) {
+            message.error("Không xác định được thiết bị cần sửa.");
+            return;
+        }
+
+        setRepairLoading(true);
 
         const formData = new FormData();
         formData.append("device_id", device._id);
         formData.append("inventory_id", inventory._id);
-        formData.append("quantity", values.quantity);
         formData.append("reason", values.reason);
+        formData.append("symptom", values.symptom || "");
+        formData.append("device_instance_id", selectedInstance._id);
+        formData.append("serial_number", selectedInstance.serial_number || "");
 
         if (image) {
             formData.append("image", image);
@@ -171,9 +163,19 @@ export default function DeviceDetail() {
             );
 
             if (response.success) {
-                message.success("Đã tạo yêu cầu sửa chữa.");
-                setOpenReport(false);
-                form.resetFields();
+                // Cập nhật ngay trạng thái instance trên UI để không cần refresh
+                setDeviceInstances((prev) =>
+                    prev.map((inst) =>
+                        inst._id === selectedInstance._id
+                            ? { ...inst, status: "broken" }
+                            : inst
+                    )
+                );
+
+                message.success("Đã tạo yêu cầu sửa chữa cho thiết bị này.");
+                setShowRepairModal(false);
+                setSelectedInstance(null);
+                instanceRepairForm.resetFields();
                 setImage(null);
             } else {
                 message.error(response.message);
@@ -181,9 +183,12 @@ export default function DeviceDetail() {
 
         } catch (err) {
             console.error("Report error:", err);
-            message.error("Thiết bị này đã có yêu cầu sửa chữa");
+            message.error(
+                err?.response?.data?.message ||
+                "Thiết bị này đã có yêu cầu sửa chữa hoặc đã xảy ra lỗi."
+            );
         } finally {
-            setLoadingSubmit(false);
+            setRepairLoading(false);
         }
     };
 
@@ -358,7 +363,19 @@ export default function DeviceDetail() {
                                         const serialB = (b.serial_number || '').toLowerCase();
                                         return serialA.localeCompare(serialB);
                                     },
-                                    render: (text) => <span style={{ color: '#1890ff', cursor: 'pointer' }}>{text}</span>,
+                                    render: (_, record) => (
+                                        <span
+                                            style={{ color: '#1890ff', cursor: 'pointer' }}
+                                            onClick={() => {
+                                                setSelectedInstance(record);
+                                                setImage(null);
+                                                instanceRepairForm.resetFields();
+                                                setShowRepairModal(true);
+                                            }}
+                                        >
+                                            {record.serial_number}
+                                        </span>
+                                    ),
                                 },
                                 {
                                     title: 'Tình trạng',
@@ -454,77 +471,50 @@ export default function DeviceDetail() {
 
             {/* FOOTER */}
             <div className="detail-actions">
-
-                <Button
-                    type="primary"
-                    style={{ width: "100%", marginTop: 16 }}
-                    onClick={() => setOpenReport(true)}
-                >
-                    Tạo yêu cầu sửa chữa
-                </Button>
-
                 <button className="btn btn-secondary" onClick={() => navigate(-1)}>
                     QUAY LẠI
                 </button>
-
-
             </div>
+
+            {/* Modal tạo yêu cầu sửa chữa cho từng mã serial */}
             <Modal
-                title="Tạo yêu cầu sửa chữa"
-                open={openReport}
+                title={
+                    selectedInstance
+                        ? `Tạo yêu cầu sửa chữa - ${selectedInstance.serial_number}`
+                        : "Tạo yêu cầu sửa chữa"
+                }
+                open={showRepairModal}
                 onCancel={() => {
-                    setOpenReport(false);
-                    form.resetFields();
+                    setShowRepairModal(false);
+                    setSelectedInstance(null);
+                    instanceRepairForm.resetFields();
                     setImage(null);
                 }}
                 footer={null}
                 afterClose={() => {
-                    form.resetFields();
+                    setSelectedInstance(null);
+                    instanceRepairForm.resetFields();
                     setImage(null);
                 }}
             >
-                <Form form={form} layout="vertical" onFinish={handleReport}>
+                <Form form={instanceRepairForm} layout="vertical" onFinish={handleInstanceRepairSubmit}>
                     <Form.Item
-                        label="Số lượng hỏng"
-                        name="quantity"
-                        initialValue={1}
-                        rules={[
-                            { required: true, message: "Vui lòng nhập số lượng" },
-                            {
-                                type: 'number',
-                                min: 1,
-                                message: "Số lượng phải ≥ 1"
-                            },
-                            {
-                                validator(_, value) {
-                                    if (value > inventory.available) {
-                                        return Promise.reject(
-                                            `Không được vượt quá ${inventory.available} thiết bị có sẵn`
-                                        );
-                                    }
-                                    return Promise.resolve();
-                                }
-                            }
-                        ]}
-                    >
-                        <InputNumber 
-                            min={1} 
-                            max={inventory.available} 
-                            style={{ width: "100%" }}
-                            placeholder="Nhập số lượng"
-                        />
-                    </Form.Item>
-
-
-                    <Form.Item
-                        label="Lý do"
+                        label="Lý do hỏng"
                         name="reason"
-                        rules={[{ required: true, message: "Vui lòng nhập lý do" }]}
+                        rules={[{ required: true, message: "Vui lòng nhập lý do hỏng" }]}
                     >
-                        <Input.TextArea rows={3} placeholder="Mô tả lỗi..." />
+                        <Input.TextArea rows={3} placeholder="Ví dụ: Thiết bị bị rơi, không lên nguồn..." />
                     </Form.Item>
 
-                    <Form.Item label="Ảnh minh chứng">
+                    <Form.Item
+                        label="Triệu chứng hỏng"
+                        name="symptom"
+                        rules={[{ required: true, message: "Vui lòng nhập triệu chứng hỏng" }]}
+                    >
+                        <Input.TextArea rows={3} placeholder="Mô tả chi tiết triệu chứng khi sử dụng" />
+                    </Form.Item>
+
+                    <Form.Item label="Ảnh sản phẩm (tuỳ chọn)">
                         <Upload
                             beforeUpload={(file) => {
                                 setImage(file);
@@ -536,12 +526,11 @@ export default function DeviceDetail() {
                         </Upload>
                     </Form.Item>
 
-                    <Button type="primary" htmlType="submit" block loading={loadingSubmit}>
-                        Gửi yêu cầu
+                    <Button type="primary" htmlType="submit" block loading={repairLoading}>
+                        Gửi yêu cầu sửa chữa
                     </Button>
                 </Form>
             </Modal>
-
 
         </div>
     );
