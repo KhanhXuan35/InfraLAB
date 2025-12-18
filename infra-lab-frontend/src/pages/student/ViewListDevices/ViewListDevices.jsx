@@ -277,7 +277,6 @@ const ViewListDevices = () => {
               return (
                 <Col xs={24} sm={12} md={8} lg={6} key={device._id}>
                   <DeviceCard
-                    hoverable
                     onMouseEnter={() => setHoveredDevice(device._id)}
                     onMouseLeave={() => setHoveredDevice(null)}
                     style={{ position: 'relative' }}

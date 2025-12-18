@@ -4,16 +4,13 @@ import "./DeviceDetail.css";
 import api from "../../services/api";
 import {
     Button,
-    Card,
     Tag,
-    Space,
-    Statistic,
     Modal,
     Form,
     Input,
-    InputNumber,
     Upload,
-    message
+    message,
+    Table
 } from "antd";
 
 import { UploadOutlined } from "@ant-design/icons";
@@ -25,18 +22,19 @@ export default function DeviceDetail() {
     const [device, setDevice] = useState(null);
     const [inventory, setInventory] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [openReport, setOpenReport] = useState(false);
+    // Ảnh minh chứng cho yêu cầu sửa chữa
     const [image, setImage] = useState(null);
-    const [loadingSubmit, setLoadingSubmit] = useState(false);
-    // Form sửa chữa
-    const [form] = Form.useForm();
+    // Form sửa chữa cho từng serial number
+    const [instanceRepairForm] = Form.useForm();
+    // Device instances (serial numbers)
+    const [deviceInstances, setDeviceInstances] = useState([]);
+    const [loadingInstances, setLoadingInstances] = useState(false);
 
     // repair states
     const [showRepairModal, setShowRepairModal] = useState(false);
-    const [repairReason, setRepairReason] = useState("");
     const [repairLoading, setRepairLoading] = useState(false);
-    const [repairMessage, setRepairMessage] = useState("");
     const [existingRepair, setExistingRepair] = useState(null);
+    const [selectedInstance, setSelectedInstance] = useState(null);
 
 
 
@@ -62,15 +60,27 @@ export default function DeviceDetail() {
         fetchDeviceDetail();
     }, [id]);
 
+    // =================== LOAD DEVICE INSTANCES ===================
     useEffect(() => {
-        if (openReport) {
-            // Reset form và set giá trị mặc định
-            form.resetFields();
-            form.setFieldsValue({ quantity: 1, reason: "" });
-            setImage(null);
-        }
-    }, [openReport]); // Bỏ 'form' khỏi dependency vì form instance không thay đổi
+        if (!device?._id) return;
 
+        const fetchDeviceInstances = async () => {
+            try {
+                setLoadingInstances(true);
+                // Chỉ lấy các thiết bị đang ở phòng lab
+                const response = await api.get(`/school-admin/devices/${device._id}/instances?location=lab&limit=1000`);
+                if (response.success) {
+                    setDeviceInstances(response.data || []);
+                }
+            } catch (err) {
+                console.error("Fetch device instances error:", err);
+            } finally {
+                setLoadingInstances(false);
+            }
+        };
+
+        fetchDeviceInstances();
+    }, [device]);
 
     // =================== LOAD REPAIR STATUS ===================
     useEffect(() => {
@@ -94,8 +104,21 @@ export default function DeviceDetail() {
     if (!device || !inventory)
         return <p className="error">Không tìm thấy thiết bị.</p>;
 
-    const borrowed =
-        inventory.total - inventory.available - (inventory.broken || 0);
+    // Tính toán thống kê từ device instances thực tế ở lab
+    const labInstances = deviceInstances.filter(inst => inst.location === 'lab');
+    const totalLab = labInstances.length;
+    const availableLab = labInstances.filter(inst => inst.status === 'available').length;
+    const borrowedLab = labInstances.filter(inst => inst.status === 'borrowed').length;
+    // Xem cả 'repairing' như thiết bị hỏng để dễ quan sát
+    const brokenLab = labInstances.filter(inst => inst.status === 'broken' || inst.status === 'repairing').length;
+
+    // Chỉ sử dụng số liệu từ device instances (không dùng inventory để tránh nhảy state)
+    const stats = {
+        total: totalLab,
+        available: availableLab,
+        borrowed: borrowedLab,
+        broken: brokenLab,
+    };
 
     const getStatusColor = (type) => {
         const colors = {
@@ -108,14 +131,21 @@ export default function DeviceDetail() {
     };
 
 
-    const handleReport = async (values) => {
-        setLoadingSubmit(true);
+    const handleInstanceRepairSubmit = async (values) => {
+        if (!selectedInstance) {
+            message.error("Không xác định được thiết bị cần sửa.");
+            return;
+        }
+
+        setRepairLoading(true);
 
         const formData = new FormData();
         formData.append("device_id", device._id);
         formData.append("inventory_id", inventory._id);
-        formData.append("quantity", values.quantity);
         formData.append("reason", values.reason);
+        formData.append("symptom", values.symptom || "");
+        formData.append("device_instance_id", selectedInstance._id);
+        formData.append("serial_number", selectedInstance.serial_number || "");
 
         if (image) {
             formData.append("image", image);
@@ -133,9 +163,19 @@ export default function DeviceDetail() {
             );
 
             if (response.success) {
-                message.success("Đã tạo yêu cầu sửa chữa.");
-                setOpenReport(false);
-                form.resetFields();
+                // Cập nhật ngay trạng thái instance trên UI để không cần refresh
+                setDeviceInstances((prev) =>
+                    prev.map((inst) =>
+                        inst._id === selectedInstance._id
+                            ? { ...inst, status: "broken" }
+                            : inst
+                    )
+                );
+
+                message.success("Đã tạo yêu cầu sửa chữa cho thiết bị này.");
+                setShowRepairModal(false);
+                setSelectedInstance(null);
+                instanceRepairForm.resetFields();
                 setImage(null);
             } else {
                 message.error(response.message);
@@ -143,9 +183,12 @@ export default function DeviceDetail() {
 
         } catch (err) {
             console.error("Report error:", err);
-            message.error("Thiết bị này đã có yêu cầu sửa chữa");
+            message.error(
+                err?.response?.data?.message ||
+                "Thiết bị này đã có yêu cầu sửa chữa hoặc đã xảy ra lỗi."
+            );
         } finally {
-            setLoadingSubmit(false);
+            setRepairLoading(false);
         }
     };
 
@@ -204,7 +247,7 @@ export default function DeviceDetail() {
                                 </div>
                                 <div className="inventory-info">
                                     <span className="inventory-label">TỔNG</span>
-                                    <span className="inventory-value">{inventory.total}</span>
+                                    <span className="inventory-value">{stats.total}</span>
                                 </div>
                             </div>
 
@@ -216,7 +259,7 @@ export default function DeviceDetail() {
                                 </div>
                                 <div className="inventory-info">
                                     <span className="inventory-label">CÓ SẴN</span>
-                                    <span className="inventory-value">{inventory.available}</span>
+                                    <span className="inventory-value">{stats.available}</span>
                                 </div>
                             </div>
 
@@ -229,7 +272,7 @@ export default function DeviceDetail() {
                                 </div>
                                 <div className="inventory-info">
                                     <span className="inventory-label">ĐANG MƯỢN</span>
-                                    <span className="inventory-value">{borrowed}</span>
+                                    <span className="inventory-value">{stats.borrowed}</span>
                                 </div>
                             </div>
 
@@ -242,7 +285,7 @@ export default function DeviceDetail() {
                                 </div>
                                 <div className="inventory-info">
                                     <span className="inventory-label">HỎNG</span>
-                                    <span className="inventory-value">{inventory.broken ?? 0}</span>
+                                    <span className="inventory-value">{stats.broken}</span>
                                 </div>
                             </div>
 
@@ -259,11 +302,11 @@ export default function DeviceDetail() {
                                 <div className="progress-label">
                                     <span>Có sẵn</span>
                                     <span className="progress-percent">
-                                        {Math.round((inventory.available / inventory.total) * 100)}%
+                                        {stats.total > 0 ? Math.round((stats.available / stats.total) * 100) : 0}%
                                     </span>
                                 </div>
                                 <div className="progress-bar">
-                                    <div className="progress-fill available" style={{ width: `${(inventory.available / inventory.total) * 100}%` }}></div>
+                                    <div className="progress-fill available" style={{ width: `${stats.total > 0 ? (stats.available / stats.total) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
 
@@ -271,11 +314,11 @@ export default function DeviceDetail() {
                                 <div className="progress-label">
                                     <span>Đang mượn</span>
                                     <span className="progress-percent">
-                                        {Math.round((borrowed / inventory.total) * 100)}%
+                                        {stats.total > 0 ? Math.round((stats.borrowed / stats.total) * 100) : 0}%
                                     </span>
                                 </div>
                                 <div className="progress-bar">
-                                    <div className="progress-fill borrowed" style={{ width: `${(borrowed / inventory.total) * 100}%` }}></div>
+                                    <div className="progress-fill borrowed" style={{ width: `${stats.total > 0 ? (stats.borrowed / stats.total) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
 
@@ -283,15 +326,143 @@ export default function DeviceDetail() {
                                 <div className="progress-label">
                                     <span>Hỏng</span>
                                     <span className="progress-percent">
-                                        {Math.round((inventory.broken / inventory.total) * 100)}%
+                                        {stats.total > 0 ? Math.round((stats.broken / stats.total) * 100) : 0}%
                                     </span>
                                 </div>
                                 <div className="progress-bar">
-                                    <div className="progress-fill broken" style={{ width: `${(inventory.broken / inventory.total) * 100}%` }}></div>
+                                    <div className="progress-fill broken" style={{ width: `${stats.total > 0 ? (stats.broken / stats.total) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
 
                         </div>
+                    </div>
+
+                    {/* DEVICE INSTANCES TABLE */}
+                    <div className="instances-section" style={{ marginTop: 24 }}>
+                        <h3 className="section-title">Danh sách mã thiết bị</h3>
+                        <Table
+                            dataSource={deviceInstances}
+                            loading={loadingInstances}
+                            rowKey="_id"
+                            pagination={{ pageSize: 10 }}
+                            columns={[
+                                {
+                                    title: 'STT',
+                                    key: 'index',
+                                    width: 50,
+                                    align: 'center',
+                                    render: (_, __, index) => index + 1,
+                                },
+                                {
+                                    title: 'Mã Serial Number',
+                                    dataIndex: 'serial_number',
+                                    key: 'serial_number',
+                                    width: 180,
+                                    sorter: (a, b) => {
+                                        const serialA = (a.serial_number || '').toLowerCase();
+                                        const serialB = (b.serial_number || '').toLowerCase();
+                                        return serialA.localeCompare(serialB);
+                                    },
+                                    render: (_, record) => (
+                                        <span
+                                            style={{ color: '#1890ff', cursor: 'pointer' }}
+                                            onClick={() => {
+                                                setSelectedInstance(record);
+                                                setImage(null);
+                                                instanceRepairForm.resetFields();
+                                                setShowRepairModal(true);
+                                            }}
+                                        >
+                                            {record.serial_number}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    title: 'Tình trạng',
+                                    dataIndex: 'condition',
+                                    key: 'condition',
+                                    width: 100,
+                                    align: 'center',
+                                    render: (condition) => {
+                                        const conditionMap = {
+                                            'new': { label: 'Mới', color: 'green' },
+                                            'good': { label: 'Tốt', color: 'blue' },
+                                            'fair': { label: 'Khá', color: 'orange' },
+                                            'poor': { label: 'Kém', color: 'red' },
+                                        };
+                                        const config = conditionMap[condition] || { label: condition, color: 'default' };
+                                        return <Tag color={config.color}>{config.label}</Tag>;
+                                    },
+                                },
+                                {
+                                    title: 'Trạng thái',
+                                    dataIndex: 'status',
+                                    key: 'status',
+                                    width: 110,
+                                    align: 'center',
+                                    render: (status) => {
+                                        const statusMap = {
+                                            'available': { label: 'Có sẵn', color: 'green' },
+                                            'borrowed': { label: 'Đang mượn', color: 'orange' },
+                                            'repairing': { label: 'Đang sửa', color: 'blue' },
+                                            'broken': { label: 'Hỏng', color: 'red' },
+                                            'retired': { label: 'Ngừng sử dụng', color: 'default' },
+                                            'maintenance': { label: 'Bảo trì', color: 'purple' },
+                                        };
+                                        const config = statusMap[status] || { label: status, color: 'default' };
+                                        return <Tag color={config.color}>{config.label}</Tag>;
+                                    },
+                                },
+                                {
+                                    title: 'Vị trí',
+                                    dataIndex: 'location',
+                                    key: 'location',
+                                    width: 100,
+                                    align: 'center',
+                                    render: (location) => {
+                                        const locationMap = {
+                                            'warehouse': 'Kho tổng',
+                                            'lab': 'Lab',
+                                            'borrowed': 'Đang mượn',
+                                            'repair_shop': 'Cửa hàng sửa chữa',
+                                        };
+                                        return locationMap[location] || location;
+                                    },
+                                },
+                                {
+                                    title: 'Vị trí lưu trữ',
+                                    dataIndex: 'storage_position',
+                                    key: 'storage_position',
+                                    width: 130,
+                                    render: (text) => text || '-',
+                                },
+                                {
+                                    title: 'Ngày mua',
+                                    dataIndex: 'purchase_date',
+                                    key: 'purchase_date',
+                                    width: 110,
+                                    align: 'center',
+                                    render: (date) => date ? new Date(date).toLocaleDateString('vi-VN') : '-',
+                                },
+                                {
+                                    title: 'Bảo hành đến',
+                                    dataIndex: 'warranty_until',
+                                    key: 'warranty_until',
+                                    width: 120,
+                                    align: 'center',
+                                    render: (date) => {
+                                        if (!date) return '-';
+                                        const warrantyDate = new Date(date);
+                                        const now = new Date();
+                                        const isExpired = warrantyDate < now;
+                                        const style = isExpired ? { color: '#ff4d4f' } : { color: '#52c41a' };
+                                        return <span style={style}>{warrantyDate.toLocaleDateString('vi-VN')}</span>;
+                                    },
+                                },
+                            ]}
+                            scroll={{ x: 'max-content' }}
+                            size="small"
+                        />
                     </div>
 
                 </div>
@@ -300,77 +471,50 @@ export default function DeviceDetail() {
 
             {/* FOOTER */}
             <div className="detail-actions">
-
-                <Button
-                    type="primary"
-                    style={{ width: "100%", marginTop: 16 }}
-                    onClick={() => setOpenReport(true)}
-                >
-                    Tạo yêu cầu sửa chữa
-                </Button>
-
                 <button className="btn btn-secondary" onClick={() => navigate(-1)}>
                     QUAY LẠI
                 </button>
-
-
             </div>
+
+            {/* Modal tạo yêu cầu sửa chữa cho từng mã serial */}
             <Modal
-                title="Tạo yêu cầu sửa chữa"
-                open={openReport}
+                title={
+                    selectedInstance
+                        ? `Tạo yêu cầu sửa chữa - ${selectedInstance.serial_number}`
+                        : "Tạo yêu cầu sửa chữa"
+                }
+                open={showRepairModal}
                 onCancel={() => {
-                    setOpenReport(false);
-                    form.resetFields();
+                    setShowRepairModal(false);
+                    setSelectedInstance(null);
+                    instanceRepairForm.resetFields();
                     setImage(null);
                 }}
                 footer={null}
                 afterClose={() => {
-                    form.resetFields();
+                    setSelectedInstance(null);
+                    instanceRepairForm.resetFields();
                     setImage(null);
                 }}
             >
-                <Form form={form} layout="vertical" onFinish={handleReport}>
+                <Form form={instanceRepairForm} layout="vertical" onFinish={handleInstanceRepairSubmit}>
                     <Form.Item
-                        label="Số lượng hỏng"
-                        name="quantity"
-                        initialValue={1}
-                        rules={[
-                            { required: true, message: "Vui lòng nhập số lượng" },
-                            {
-                                type: 'number',
-                                min: 1,
-                                message: "Số lượng phải ≥ 1"
-                            },
-                            {
-                                validator(_, value) {
-                                    if (value > inventory.available) {
-                                        return Promise.reject(
-                                            `Không được vượt quá ${inventory.available} thiết bị có sẵn`
-                                        );
-                                    }
-                                    return Promise.resolve();
-                                }
-                            }
-                        ]}
-                    >
-                        <InputNumber 
-                            min={1} 
-                            max={inventory.available} 
-                            style={{ width: "100%" }}
-                            placeholder="Nhập số lượng"
-                        />
-                    </Form.Item>
-
-
-                    <Form.Item
-                        label="Lý do"
+                        label="Lý do hỏng"
                         name="reason"
-                        rules={[{ required: true, message: "Vui lòng nhập lý do" }]}
+                        rules={[{ required: true, message: "Vui lòng nhập lý do hỏng" }]}
                     >
-                        <Input.TextArea rows={3} placeholder="Mô tả lỗi..." />
+                        <Input.TextArea rows={3} placeholder="Ví dụ: Thiết bị bị rơi, không lên nguồn..." />
                     </Form.Item>
 
-                    <Form.Item label="Ảnh minh chứng">
+                    <Form.Item
+                        label="Triệu chứng hỏng"
+                        name="symptom"
+                        rules={[{ required: true, message: "Vui lòng nhập triệu chứng hỏng" }]}
+                    >
+                        <Input.TextArea rows={3} placeholder="Mô tả chi tiết triệu chứng khi sử dụng" />
+                    </Form.Item>
+
+                    <Form.Item label="Ảnh sản phẩm (tuỳ chọn)">
                         <Upload
                             beforeUpload={(file) => {
                                 setImage(file);
@@ -382,12 +526,11 @@ export default function DeviceDetail() {
                         </Upload>
                     </Form.Item>
 
-                    <Button type="primary" htmlType="submit" block loading={loadingSubmit}>
-                        Gửi yêu cầu
+                    <Button type="primary" htmlType="submit" block loading={repairLoading}>
+                        Gửi yêu cầu sửa chữa
                     </Button>
                 </Form>
             </Modal>
-
 
         </div>
     );

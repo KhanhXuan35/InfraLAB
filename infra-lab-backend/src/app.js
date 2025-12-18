@@ -7,6 +7,8 @@ import inventoryRoutes from "./routes/LabManager/inventoryRoutes.js";
 import categoryRoutes from "./routes/LabManager/categoryRoutes.js";
 import detailDevice from "./routes/LabManager/detailDevice.js";
 import dashboardRoutes from "./routes/LabManager/dashboardRoutes.js";
+import requestLabRoutes from "./routes/LabManager/requestLabRoutes.js";
+import certificateRoutes from "./routes/LabManager/certificateRoutes.js";
 import schoolDashboardRoutes from "./routes/School/schoolDashboardRoutes.js";
 import userDashboardRoutes from "./routes/User/userDashboardRoutes.js";
 import schoolInventoryRoutes from "./routes/device_school/inventories.routes.js";
@@ -16,8 +18,10 @@ import repairRoutes from "./routes/LabManager/repairRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import borrowRoutes from "./routes/borrowRoutes.js";
 import borrowReturnRoutes from "./routes/LabManager/borrowReturnRoutes.js";
+import deviceInstanceRoutes from "./routes/deviceInstanceRoutes.js";
 import { uploadImage, uploadSingle } from "./controllers/common/uploadController.js";
-import { checkAuthMiddleware } from "./middlewares/authMiddleware.js";
+import { checkAuthMiddleware, authorize } from "./middlewares/authMiddleware.js";
+import { deliverRequest } from "./controllers/LabManager/requestlab.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import userRoutes from "./routes/LabManager/userRoutes.js";
@@ -74,7 +78,9 @@ const __dirname = path.dirname(__filename);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // 3. Routes
-
+app.use("/api/inventories", schoolInventoryRoutes);
+app.use("/api/device-categories", deviceCategoryRoutes);
+app.use("/api/devices", deviceRoutes);
 
 // Lab Manager routes
 app.use("/api/inventory", inventoryRoutes);
@@ -82,6 +88,8 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/device-detail", detailDevice);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/request-lab", requestLabRoutes);
+app.use("/api/certificates", certificateRoutes);
 
 // School Dashboard routes
 app.use("/api/school-dashboard", schoolDashboardRoutes);
@@ -99,10 +107,21 @@ app.use("/api/borrow", borrowRoutes);
 // Repair routes
 app.use("/api/repairs", repairRoutes);
 
+// Device Instance routes (NEW)
+app.use("/api", deviceInstanceRoutes);
+
 app.use("/api", routes);
 
 // Lab Manager Borrow/Return routes
 app.use("/api/lab-manager/borrow-return", borrowReturnRoutes);
+
+// Explicit route for delivering lab requests (avoid any router conflicts)
+app.patch(
+  "/api/request-lab/:id/deliver",
+  checkAuthMiddleware,
+  authorize("school_admin"),
+  deliverRequest
+);
 
 // 4. Xử lý lỗi 404 (Không tìm thấy route)
 app.use((req, res, next) => {

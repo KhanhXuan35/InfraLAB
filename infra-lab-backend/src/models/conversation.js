@@ -10,6 +10,15 @@ const conversationSchema = new mongoose.Schema(
       },
     },
     lastMessage: { type: mongoose.Schema.Types.ObjectId, ref: "Message" },
+    nicknames: {
+      type: Map,
+      of: String,
+      default: new Map(),
+    },
+    pinnedMessages: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }],
+      default: [],
+    },
   },
   {
     timestamps: true,

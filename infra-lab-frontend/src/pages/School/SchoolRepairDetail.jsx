@@ -138,6 +138,18 @@ export default function SchoolRepairDetail() {
         >
           <Title level={4}>{repair.device_id?.name}</Title>
 
+          {/* Serial number của thiết bị gửi sửa (nếu có) */}
+          {(repair.device_instance_id?.serial_number || repair.serial_number) && (
+            <>
+              <Text strong>Mã Serial Number: </Text>
+              <Text>
+                {repair.device_instance_id?.serial_number || repair.serial_number}
+              </Text>
+              <br />
+              <Divider />
+            </>
+          )}
+
           {repair.device_id?.image && (
             <img
               src={repair.device_id.image}
@@ -154,9 +166,13 @@ export default function SchoolRepairDetail() {
 
           <Divider />
 
-          <Text strong>Số lượng hỏng: </Text>
-          <Text>{repair.quantity}</Text>
-          <br />
+          {typeof repair.quantity !== "undefined" && (
+            <>
+              <Text strong>Số lượng hỏng: </Text>
+              <Text>{repair.quantity}</Text>
+              <br />
+            </>
+          )}
 
           <Text strong>Lý do: </Text>
           <Text>{repair.reason}</Text>

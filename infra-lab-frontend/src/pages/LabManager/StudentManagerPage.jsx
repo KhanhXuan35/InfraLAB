@@ -5,7 +5,7 @@ import {
     Descriptions, Avatar, Typography, Divider // <--- Đã thêm đủ import
 } from "antd";
 import {
-    EyeOutlined, EditOutlined, DeleteOutlined,
+    EyeOutlined, DeleteOutlined,
     CheckCircleOutlined, UserOutlined, ReloadOutlined, SearchOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -161,7 +161,6 @@ const StudentManagerPage = () => {
             render: (_, record) => (
                 <Space size="middle">
                     <Tooltip title="Xem chi tiết"><Button icon={<EyeOutlined />} onClick={() => handleViewClick(record)} /></Tooltip>
-                    <Tooltip title="Cập nhật"><Button type="primary" icon={<EditOutlined />} onClick={() => handleEditClick(record)} /></Tooltip>
                     <Tooltip title="Hủy kích hoạt">
                         <Popconfirm title="Bạn có chắc chắn muốn hủy kích hoạt?" onConfirm={() => handleDeleteClick(record._id)} okText="Đồng ý" cancelText="Hủy">
                             <Button type="primary" danger icon={<DeleteOutlined />} />

@@ -44,6 +44,42 @@ export default function LabManagerRepairList() {
 
     const columns = [
         {
+            title: "Ảnh",
+            dataIndex: "device_id",
+            key: "image",
+            width: 80,
+            render: (device) =>
+                device?.image ? (
+                    <img
+                        src={device.image}
+                        alt={device.name}
+                        style={{
+                            width: 50,
+                            height: 50,
+                            objectFit: 'cover',
+                            borderRadius: 4,
+                        }}
+                        onError={(e) => {
+                            e.currentTarget.src = 'https://via.placeholder.com/50?text=No+Image';
+                        }}
+                    />
+                ) : (
+                    <div style={{
+                        width: 50,
+                        height: 50,
+                        backgroundColor: '#f0f0f0',
+                        borderRadius: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 10,
+                        color: '#999',
+                    }}>
+                        No Image
+                    </div>
+                ),
+        },
+        {
             title: "Thiết bị",
             dataIndex: "device_id",
             key: "device",

@@ -26,18 +26,20 @@ import {
   UserOutlined,
   ShoppingOutlined,
   CalendarOutlined,
-  FileTextOutlined,
+  ShoppingCartOutlined,
   ExclamationCircleOutlined,
   WarningOutlined,
   CloseCircleOutlined,
-  EyeOutlined
+  EyeOutlined,
+  CheckCircleOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
+import LabManagerSidebar from '../../components/Sidebar/LabManagerSidebar';
 import dayjs from 'dayjs';
 
-const { Text } = Typography;
-const { Option } = Select;
-const { RangePicker } = DatePicker;
+const { Header: LayoutHeader, Content } = Layout;
+const { Title, Text } = Typography;
 
 const BorrowReturnPage = () => {
   // --- STATE DỮ LIỆU & LOGIC CŨ ---
@@ -58,15 +60,16 @@ const BorrowReturnPage = () => {
   const [returnQuantity, setReturnQuantity] = useState(1);
   const [brokenQuantity, setBrokenQuantity] = useState(0);
   const [brokenReason, setBrokenReason] = useState('');
-  const [isRepairedItem, setIsRepairedItem] = useState(false);
-
-  // State Table Filter (Giữ nguyên logic cũ của bạn)
+  const [isRepairedItem, setIsRepairedItem] = useState(false); // Flag để phân biệt thiết bị đã sửa
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedBorrowRequest, setSelectedBorrowRequest] = useState(null);
   const [filteredInfo, setFilteredInfo] = useState({});
   const [sortedInfo, setSortedInfo] = useState({});
 
   useEffect(() => {
     fetchBorrowingStudents();
   }, []);
+
 
   const fetchBorrowingStudents = async () => {
     try {
@@ -326,32 +329,51 @@ const BorrowReturnPage = () => {
 
   // --- RENDER GIAO DIỆN (Đã bỏ Layout, Sider, Header cũ) ---
   return (
-    <div className="borrow-return-content">
-      {/* Tiêu đề trang (Thêm vào vì đã bỏ Header layout) */}
-      <h2 style={{ marginBottom: 20, color: '#001529' }}>Quản lý Mượn Trả</h2>
+    <Layout style={{ minHeight: '100vh' }}>
+      <LabManagerSidebar />
 
-      <Card>
-        <Spin spinning={loading}>
-          {borrowRequests.length === 0 ? (
-            <Empty description="Chưa có yêu cầu mượn nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          ) : (
-            <>
-              {Object.keys(filteredInfo).length > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <Button onClick={clearFilters} size="small">Xóa bộ lọc</Button>
-                </div>
+      <Layout style={{ marginLeft: 240 }}>
+        <Content style={{ margin: '24px', minHeight: 280 }}>
+          <div style={{ marginBottom: 24 }}>
+            <Title level={2} style={{ margin: 0, marginBottom: 8 }}>
+              Danh sách thiết bị mượn
+            </Title>
+            <Text type="secondary">
+              Quản lý và ghi nhận mượn/trả thiết bị
+            </Text>
+          </div>
+          <Card>
+            <Spin spinning={loading}>
+              {borrowRequests.length === 0 ? (
+                <Empty
+                  description="Chưa có yêu cầu mượn nào"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              ) : (
+                <>
+                  {Object.keys(filteredInfo).length > 0 && (
+                    <div style={{ marginBottom: 16 }}>
+                      <Button onClick={clearFilters} size="small">
+                        Xóa bộ lọc
+                      </Button>
+                    </div>
+                  )}
+                  <Table
+                    columns={columns}
+                    dataSource={borrowRequests}
+                    rowKey={(record) => record.borrowIdString}
+                    pagination={{
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      showTotal: (total) => `Tổng ${total} yêu cầu`,
+                    }}
+                    size="middle"
+                    onChange={handleTableChange}
+                  />
+                </>
               )}
-              <Table
-                columns={columns}
-                dataSource={borrowRequests}
-                rowKey="borrowIdString"
-                pagination={{ pageSize: 10 }}
-                onChange={handleTableChange}
-              />
-            </>
-          )}
-        </Spin>
-      </Card>
+            </Spin>
+          </Card>
 
       {/* --- CÁC MODAL (GIỮ NGUYÊN) --- */}
 
@@ -473,7 +495,8 @@ const BorrowReturnPage = () => {
           </div>
         )}
       </Modal>
-    </div>
+
+    </Layout>
   );
 };
 

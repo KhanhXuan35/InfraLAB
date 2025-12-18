@@ -49,3 +49,47 @@ export const getCategoryById = async (req, res) => {
   }
 };
 
+// Create new category
+export const createCategory = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Tên danh mục không được để trống"
+      });
+    }
+    
+    const categoryName = name.trim();
+    
+    // Kiểm tra xem đã tồn tại chưa
+    const existing = await Category.findOne({ name: categoryName });
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        message: "Danh mục đã tồn tại",
+        data: existing
+      });
+    }
+    
+    // Tạo mới
+    const category = await Category.create({
+      name: categoryName,
+      description: description || ""
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: "Đã tạo danh mục mới",
+      data: category
+    });
+  } catch (error) {
+    console.error("Create category error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+

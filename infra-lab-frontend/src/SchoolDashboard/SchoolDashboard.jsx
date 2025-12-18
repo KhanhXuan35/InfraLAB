@@ -1,450 +1,459 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Table, Card, Button, Input, Select, Modal,
-  Form, InputNumber, Space, Tag, Popconfirm,
-  message, Typography, Row, Col, Tooltip
+  Layout,
+  Card,
+  Table,
+  Input,
+  Select,
+  Button,
+  Space,
+  Tag,
+  Typography,
+  message,
+  Popconfirm,
 } from 'antd';
 import {
-  PlusOutlined,
   SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
+  PlusOutlined,
   EyeOutlined,
-  ReloadOutlined
+  DeleteOutlined,
 } from '@ant-design/icons';
-import '../dashboard.css'; // Giữ lại nếu có style global, nhưng ant design đã lo phần lớn style
+import dayjs from 'dayjs';
+import api from '../services/api';
+import SchoolAdminSidebar from '../components/Sidebar/SchoolAdminSidebar';
 
-const { Title, Text } = Typography;
+const { Content } = Layout;
+const { Title } = Typography;
 const { Option } = Select;
-const { TextArea } = Input;
 
 function SchoolDashboard() {
-  // --- STATE ---
-  const [activeSection, setActiveSection] = useState('inventory');
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('newest');
-  const [categories, setCategories] = useState([]);
+  const navigate = useNavigate();
   const [devices, setDevices] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [inventories, setInventories] = useState([]);
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sort, setSort] = useState('newest');
+  const [sortState, setSortState] = useState({}); // Track sort state for each column
 
-  // State Modal & Form
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-
-  // Sử dụng Form Hook của Antd để quản lý form dễ hơn
-  const [form] = Form.useForm();
-
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  useEffect(() => {
+    loadData();
+  }, []);
 
   // --- LOAD DATA ---
   const loadData = async () => {
     setLoading(true);
     try {
-      const locationFilter = 'warehouse';
       const [catRes, devRes, invRes] = await Promise.all([
-        fetch(`${API_BASE}/device-categories`),
-        fetch(`${API_BASE}/devices?location=${locationFilter}`),
-        fetch(`${API_BASE}/inventories`)
+        api.get('/device-categories'),
+        api.get('/devices?location=warehouse'),
+        api.get('/inventories'),
       ]);
 
-      if (!catRes.ok || !devRes.ok) throw new Error('Lỗi khi tải dữ liệu');
-
-      const catData = await catRes.json();
-      const devData = await devRes.json();
-
-      const categoriesList = Array.isArray(catData) ? catData : (catData?.data || []);
-      const devicesList = Array.isArray(devData) ? devData : (devData?.data || []);
-
-      setCategories(categoriesList);
-      setDevices(devicesList);
-
-      if (invRes.ok) {
-        const invData = await invRes.json();
-        const inventoriesList = Array.isArray(invData) ? invData : (invData?.data || []);
-        setInventories(inventoriesList);
-      }
+      setCategories(catRes?.data || []);
+      // Sắp xếp theo bảng chữ cái khi tải dữ liệu ban đầu
+      const sortedDevices = (devRes?.data || []).sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB, 'vi');
+      });
+      setDevices(sortedDevices);
+      setInventories(invRes?.data || []);
     } catch (err) {
-      message.error(err.message || 'Đã có lỗi xảy ra khi tải dữ liệu');
+      console.error('Load data error:', err);
+      setError(err.message || 'Không thể tải dữ liệu');
+      message.error('Không thể tải dữ liệu');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const filteredDevices = useMemo(() => {
+    if (!Array.isArray(devices)) return [];
 
-  // --- FILTER & SORT LOGIC ---
-  const filteredData = useMemo(() => {
-    if (!devices || !Array.isArray(devices)) return [];
+    let list = devices.filter((item) => {
+      if (!item) return false;
 
-    const list = devices.map(device => {
-      // Merge inventory data directly into device object for Table rendering
-      const devId = device._id || device.id || '';
-      const inv = inventories.find((i) => {
-        const iDev = i.device_id?._id || i.device_id || '';
-        return String(iDev) === String(devId);
-      });
+      const nameMatches = (item.name || '')
+        .toLowerCase()
+        .includes((search || '').toLowerCase().trim());
 
-      return {
-        ...device,
-        total: inv?.total ?? 0,
-        available: inv?.available ?? 0,
-        broken: inv?.broken ?? 0,
-        location: inv?.location || 'warehouse',
-        inventory_id: inv?._id // keep track if needed
-      };
-    }).filter((item) => {
-      // Filter Logic
-      const nameMatches = (item.name || '').toLowerCase().includes((search || '').toLowerCase().trim());
+      const catField = item.category_id ?? item.category;
+      const deviceCategoryId =
+        catField && typeof catField === 'object'
+          ? catField._id ?? catField
+          : catField;
 
-      let deviceCategoryId = '';
-      if (item.category) {
-        if (typeof item.category === 'object' && item.category !== null) {
-          deviceCategoryId = item.category._id || item.category.toString();
-        } else {
-          deviceCategoryId = String(item.category);
-        }
-      }
+      const normalizedDeviceCategoryId = deviceCategoryId
+        ? String(deviceCategoryId).trim().toLowerCase()
+        : '';
+      const normalizedSelectedCategory = selectedCategory
+        ? String(selectedCategory).trim().toLowerCase()
+        : '';
 
-      // Chuẩn hóa ID để so sánh
-      const normDevCatId = deviceCategoryId ? String(deviceCategoryId) : '';
-      const normSelCatKey = selectedCategoryKey ? String(selectedCategoryKey) : '';
-
-      const categoryMatches = selectedCategoryKey === 'all' || normDevCatId === normSelCatKey;
+      const categoryMatches =
+        selectedCategory === 'all' ||
+        (normalizedDeviceCategoryId &&
+          normalizedDeviceCategoryId === normalizedSelectedCategory);
 
       return nameMatches && categoryMatches;
     });
 
-    // Sort Logic
-    return list.sort((a, b) => {
-      if (sort === 'newest') return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
-      return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
-    });
-  }, [devices, inventories, search, sort, selectedCategoryKey]);
+    // Sắp xếp theo bảng chữ cái khi không có filter nào được chọn
+    const hasNoFilters = !search.trim() && selectedCategory === 'all';
+    if (hasNoFilters) {
+      list = list.sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB, 'vi');
+      });
+    } else {
+      // Sort theo sort option khi có filter
+      list = list.sort((a, b) => {
+        if (sort === 'newest') {
+          return new Date(b.createdAt || b._id) - new Date(a.createdAt || a._id);
+        }
+        return new Date(a.createdAt || a._id) - new Date(b.createdAt || b._id);
+      });
+    }
 
-  // --- ACTIONS ---
-  const handleEdit = (record) => {
-    setEditingId(record._id);
-    // Fill data vào form Antd
-    form.setFieldsValue({
-      name: record.name,
-      description: record.description,
-      image: record.image,
-      category_id: record.category?._id || record.category,
-      total: record.total,
-      available: record.available,
-      broken: record.broken,
-      location: record.location
-    });
-    setShowAddModal(true);
-  };
+    return list;
+  }, [devices, search, selectedCategory, sort]);
 
-  const handleDelete = async (id) => {
-    setLoading(true); // Show loading trên table
+  const handleDelete = async (device) => {
     try {
-      const res = await fetch(`${API_BASE}/devices/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const msg = (await res.json().catch(() => ({}))).message || 'Không xóa được thiết bị';
-        throw new Error(msg);
-      }
+      const devId = device._id || device.id;
+      await api.delete(`/devices/${devId}`);
       message.success('Đã xóa thiết bị thành công');
       await loadData();
-    } catch (err) {
-      message.error(err.message);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Delete device error:', error);
+      message.error(error.message || 'Không thể xóa thiết bị');
     }
   };
 
-  const handleModalOk = async () => {
-    try {
-      const values = await form.validateFields(); // Validate form
-      setSaving(true);
+  const getInventoryInfo = (device) => {
+    const devId = device._id || device.id || '';
+    const inv = inventories.find((i) => {
+      const iDev = i.device_id?._id || i.device_id || '';
+      return String(iDev) === String(devId);
+    });
+    const total = inv?.total ?? 0;
+    const available = inv?.available ?? 0;
+    const broken = inv?.broken ?? 0;
+    const borrowing = Math.max(total - available - broken, 0);
+    return { total, available, broken, borrowing };
+  };
 
-      const payload = {
-        ...values,
-        total: Number(values.total) || 0,
-        available: values.available === '' ? undefined : Math.max(Number(values.available) || 0, 0),
-        broken: Number(values.broken) || 0
-      };
-
-      const method = editingId ? 'PUT' : 'POST';
-      const url = editingId ? `${API_BASE}/devices/${editingId}` : `${API_BASE}/devices`;
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const msg = (await res.json().catch(() => ({}))).message || 'Thao tác thất bại';
-        throw new Error(msg);
-      }
-
-      message.success(editingId ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
-      setShowAddModal(false);
-      form.resetFields();
-      setEditingId(null);
-      await loadData();
-
-    } catch (err) {
-      if (err.errorFields) {
-        // Lỗi validate form, không làm gì (Form tự hiện đỏ)
-      } else {
-        message.error(err.message || 'Đã có lỗi xảy ra');
-      }
-    } finally {
-      setSaving(false);
+  const getCategoryName = (device) => {
+    const catField = device.category_id ?? device.category;
+    if (catField && typeof catField === 'object' && catField.name) {
+      return catField.name;
     }
+    const catId = catField?._id || catField;
+    const found = categories.find((cat) => String(cat._id) === String(catId));
+    return found?.name || 'N/A';
   };
 
-  const handleModalCancel = () => {
-    setShowAddModal(false);
-    form.resetFields();
-    setEditingId(null);
-  };
-
-  // --- TABLE COLUMNS ---
-  const columns = [
+  // Recreate columns when sortState changes to ensure sorter functions have access to latest state
+  const columns = useMemo(() => [
     {
       title: '#',
       key: 'index',
       width: 60,
-      render: (_, __, index) => index + 1
+      render: (_, __, index) => index + 1,
+    },
+    {
+      title: 'Ảnh',
+      key: 'image',
+      width: 80,
+      render: (_, record) => (
+        record.image ? (
+          <img
+            src={record.image}
+            alt={record.name}
+            style={{
+              width: 50,
+              height: 50,
+              objectFit: 'cover',
+              borderRadius: 4,
+            }}
+            onError={(e) => {
+              e.currentTarget.src = 'https://via.placeholder.com/50?text=No+Image';
+            }}
+          />
+        ) : (
+          <div style={{
+            width: 50,
+            height: 50,
+            backgroundColor: '#f0f0f0',
+            borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 10,
+            color: '#999',
+          }}>
+            No Image
+          </div>
+        )
+      ),
     },
     {
       title: 'Tên Thiết Bị',
       dataIndex: 'name',
       key: 'name',
-      render: (text, record) => (
-        <Space>
-          {record.image && <img src={record.image} alt="dev" style={{ width: 30, height: 30, objectFit: 'cover', borderRadius: 4 }} />}
-          <Text strong>{text}</Text>
-        </Space>
-      )
+      render: (text) => <strong>{text}</strong>,
     },
     {
       title: 'Danh Mục',
-      dataIndex: 'category',
       key: 'category',
-      render: (cat) => {
-        // Xử lý hiển thị tên danh mục
-        if (typeof cat === 'object' && cat?.name) return <Tag color="blue">{cat.name}</Tag>;
-        // Nếu chỉ là ID, tìm trong list categories
-        const found = categories.find(c => String(c._id) === String(cat));
-        return found ? <Tag color="blue">{found.name}</Tag> : <Text type="secondary">N/A</Text>;
-      }
+      render: (_, record) => <Tag color="blue">{getCategoryName(record)}</Tag>,
+    },
+    {
+      title: 'Ngày Nhập',
+      key: 'createdAt',
+      width: 140,
+      render: (_, record) => {
+        const date = record.createdAt || record.created_at;
+        if (!date) return <span>-</span>;
+        return (
+          <span style={{ fontSize: '13px' }}>
+            {dayjs(date).format('DD/MM/YYYY')}
+          </span>
+        );
+      },
+      sorter: (a, b) => {
+        const dateA = new Date(a.createdAt || a.created_at || 0);
+        const dateB = new Date(b.createdAt || b.created_at || 0);
+        // Mũi tên lên (ascend) = cao → thấp (mới → cũ)
+        // Mũi tên xuống (descend) = thấp → cao (cũ → mới)
+        const order = sortState['createdAt'];
+        if (order === 'ascend') return dateB - dateA; // Cao → thấp
+        if (order === 'descend') return dateA - dateB; // Thấp → cao
+        return dateB - dateA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
     },
     {
       title: 'Tổng',
-      dataIndex: 'total',
       key: 'total',
-      sorter: (a, b) => a.total - b.total,
+      align: 'center',
+      width: 100,
+      render: (_, record) => {
+        const { total } = getInventoryInfo(record);
+        return <span>{total}</span>;
+      },
+      sorter: (a, b) => {
+        const { total: totalA } = getInventoryInfo(a);
+        const { total: totalB } = getInventoryInfo(b);
+        // Mũi tên lên (ascend) = cao → thấp
+        // Mũi tên xuống (descend) = thấp → cao
+        const order = sortState['total'];
+        if (order === 'ascend') return totalB - totalA; // Cao → thấp
+        if (order === 'descend') return totalA - totalB; // Thấp → cao
+        return totalB - totalA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
     },
     {
       title: 'Đang Rảnh',
-      dataIndex: 'available',
       key: 'available',
-      render: (val) => <Text type="success" strong>{val}</Text>
+      align: 'center',
+      width: 120,
+      render: (_, record) => {
+        const { available } = getInventoryInfo(record);
+        return <Tag color="success">{available}</Tag>;
+      },
+      sorter: (a, b) => {
+        const { available: availableA } = getInventoryInfo(a);
+        const { available: availableB } = getInventoryInfo(b);
+        // Mũi tên lên (ascend) = cao → thấp
+        // Mũi tên xuống (descend) = thấp → cao
+        const order = sortState['available'];
+        if (order === 'ascend') return availableB - availableA; // Cao → thấp
+        if (order === 'descend') return availableA - availableB; // Thấp → cao
+        return availableB - availableA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
     },
     {
       title: 'Đang Mượn',
       key: 'borrowing',
+      align: 'center',
+      width: 120,
       render: (_, record) => {
-        const borrowing = Math.max(record.total - record.available - record.broken, 0);
-        return <Text type="warning" strong>{borrowing}</Text>;
-      }
+        const { borrowing } = getInventoryInfo(record);
+        return <Tag color="warning">{borrowing}</Tag>;
+      },
+      sorter: (a, b) => {
+        const { borrowing: borrowingA } = getInventoryInfo(a);
+        const { borrowing: borrowingB } = getInventoryInfo(b);
+        // Mũi tên lên (ascend) = cao → thấp
+        // Mũi tên xuống (descend) = thấp → cao
+        const order = sortState['borrowing'];
+        if (order === 'ascend') return borrowingB - borrowingA; // Cao → thấp
+        if (order === 'descend') return borrowingA - borrowingB; // Thấp → cao
+        return borrowingB - borrowingA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
     },
     {
       title: 'Hỏng',
-      dataIndex: 'broken',
       key: 'broken',
-      render: (val) => val > 0 ? <Text type="danger" strong>{val}</Text> : val
+      align: 'center',
+      width: 100,
+      render: (_, record) => {
+        const { broken } = getInventoryInfo(record);
+        return <Tag color="error">{broken}</Tag>;
+      },
+      sorter: (a, b) => {
+        const { broken: brokenA } = getInventoryInfo(a);
+        const { broken: brokenB } = getInventoryInfo(b);
+        // Mũi tên lên (ascend) = cao → thấp
+        // Mũi tên xuống (descend) = thấp → cao
+        const order = sortState['broken'];
+        if (order === 'ascend') return brokenB - brokenA; // Cao → thấp
+        if (order === 'descend') return brokenA - brokenB; // Thấp → cao
+        return brokenB - brokenA; // Default: cao → thấp
+      },
+      sortDirections: ['ascend', 'descend'],
     },
     {
       title: 'Hành động',
-      key: 'action',
-      width: 150,
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Sửa">
+      key: 'actions',
+      width: 200,
+      render: (_, record) => {
+        const devId = record._id || record.id;
+        return (
+          <Space>
             <Button
               type="primary"
-              ghost
-              icon={<EditOutlined />}
+              icon={<EyeOutlined />}
               size="small"
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="Xóa thiết bị?"
-            description="Hành động này không thể hoàn tác"
-            onConfirm={() => handleDelete(record._id)}
-            okText="Xóa"
-            cancelText="Hủy"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Xóa">
-              <Button danger icon={<DeleteOutlined />} size="small" />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      )
-    }
-  ];
+              onClick={() => navigate(`/school/device/${devId}`)}
+            >
+              Xem
+            </Button>
+            <Popconfirm
+              title="Xóa thiết bị"
+              description={`Bạn có chắc chắn muốn xóa thiết bị "${record.name}"?`}
+              onConfirm={() => handleDelete(record)}
+              okText="Xóa"
+              cancelText="Hủy"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                size="small"
+              >
+                Xóa
+              </Button>
+            </Popconfirm>
+          </Space>
+        );
+      },
+    },
+  ], [sortState, categories, inventories, navigate]);
 
   return (
-    <div style={{ padding: 0 }}>
-      {/* HEADER PAGE */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <Title level={3} style={{ margin: 0, color: '#001529' }}>📦 Kho Thiết Bị</Title>
-        <Button icon={<ReloadOutlined />} onClick={loadData}>Làm mới</Button>
-      </div>
-
-      <Card bordered={false} className="shadow-sm">
-        {/* TOOLBAR */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 20 }} align="middle">
-          <Col xs={24} md={6}>
-            <Input
-              placeholder="Tìm kiếm thiết bị..."
-              prefix={<SearchOutlined />}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} md={5}>
-            <Select
-              style={{ width: '100%' }}
-              placeholder="Chọn loại linh kiện"
-              value={selectedCategoryKey}
-              onChange={setSelectedCategoryKey}
-            >
-              <Option value="all">Tất cả loại</Option>
-              {categories.map(cat => (
-                <Option key={cat._id} value={cat._id}>{cat.name}</Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} md={5}>
-            <Select
-              style={{ width: '100%' }}
-              value={sort}
-              onChange={setSort}
-            >
-              <Option value="newest">Mới nhất</Option>
-              <Option value="oldest">Cũ nhất</Option>
-            </Select>
-          </Col>
-          <Col xs={24} md={8} style={{ textAlign: 'right' }}>
+    <Layout style={{ minHeight: '100vh', background: '#f5f5f5' }}>
+      <SchoolAdminSidebar />
+      <Layout style={{ marginLeft: 260 }}>
+        <Content style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
+        {/* Header */}
+        <Card style={{ marginBottom: 24, background: '#fff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Title level={3} style={{ margin: 0 }}>
+              Danh sách thiết bị
+            </Title>
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => setShowAddModal(true)}
+              size="large"
+              onClick={() => navigate('/school/devices/create-with-instances')}
             >
               Thêm Thiết Bị
             </Button>
-          </Col>
-        </Row>
+          </div>
+        </Card>
 
-        {/* TABLE */}
-        <Table
-          columns={columns}
-          dataSource={filteredData}
-          rowKey="_id"
-          loading={loading}
-          pagination={{ pageSize: 10, showSizeChanger: true }}
-          scroll={{ x: 800 }}
-        />
-      </Card>
-
-      {/* MODAL FORM */}
-      <Modal
-        title={editingId ? "Cập nhật thiết bị" : "Thêm thiết bị mới"}
-        open={showAddModal}
-        onOk={handleModalOk}
-        onCancel={handleModalCancel}
-        confirmLoading={saving}
-        okText={editingId ? "Cập nhật" : "Thêm mới"}
-        cancelText="Hủy"
-        width={700}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{
-            location: 'warehouse',
-            total: 0,
-            available: 0,
-            broken: 0
-          }}
-        >
-          <Row gutter={16}>
-            <Col span={16}>
-              <Form.Item
-                name="name"
-                label="Tên thiết bị"
-                rules={[{ required: true, message: 'Vui lòng nhập tên thiết bị' }]}
-              >
-                <Input placeholder="Ví dụ: Arduino Uno R3" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="category_id"
-                label="Loại linh kiện"
-                rules={[{ required: true, message: 'Chọn loại linh kiện' }]}
-              >
-                <Select placeholder="Chọn loại">
-                  {categories.map(cat => (
-                    <Option key={cat._id} value={cat._id}>{cat.name}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item name="image" label="Link hình ảnh">
-            <Input placeholder="https://example.com/image.png" prefix={<EyeOutlined />} />
-          </Form.Item>
-
-          <Form.Item name="description" label="Mô tả">
-            <TextArea rows={3} placeholder="Mô tả chi tiết về thiết bị..." />
-          </Form.Item>
-
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item name="total" label="Tổng số lượng">
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="available" label="Đang rảnh">
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="broken" label="Hỏng">
-                <InputNumber style={{ width: '100%' }} min={0} />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item name="location" label="Vị trí kho">
-            <Select>
-              <Option value="warehouse">Kho tổng (Warehouse)</Option>
-              <Option value="lab">Phòng Lab</Option>
+        {/* Filters */}
+        <Card style={{ marginBottom: 24, background: '#fff' }}>
+          <Space wrap style={{ width: '100%' }}>
+            <Select
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              style={{ width: 200 }}
+              placeholder="Loại linh kiện"
+            >
+              <Option value="all">Tất Cả</Option>
+              {categories.map((cat) => (
+                <Option key={cat._id || cat.name} value={cat._id || ''}>
+                  {cat.name}
+                </Option>
+              ))}
             </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+
+            <Input
+              placeholder="Tìm kiếm thiết bị theo tên..."
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 300 }}
+              allowClear
+            />
+
+            <Select
+              value={sort}
+              onChange={setSort}
+              style={{ width: 180 }}
+              placeholder="Sắp xếp"
+            >
+              <Option value="newest">Mới Nhất</Option>
+              <Option value="oldest">Cũ Nhất</Option>
+            </Select>
+          </Space>
+        </Card>
+
+        {/* Table */}
+        <Card style={{ background: '#fff' }}>
+          {error && (
+            <div style={{ padding: '16px', color: '#ff4d4f', marginBottom: 16 }}>
+              {error}
+            </div>
+          )}
+
+          <Table
+            columns={columns}
+            dataSource={filteredDevices}
+            rowKey={(record) => record._id || record.id}
+            loading={loading}
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `Tổng ${total} thiết bị`,
+            }}
+            locale={{
+              emptyText: 'Không có thiết bị nào',
+            }}
+            onChange={(pagination, filters, sorter) => {
+              if (sorter && sorter.columnKey) {
+                setSortState({
+                  [sorter.columnKey]: sorter.order || null,
+                });
+              }
+            }}
+          />
+        </Card>
+        </Content>
+      </Layout>
+    </Layout>
   );
 }
 

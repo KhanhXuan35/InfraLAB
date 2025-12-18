@@ -1,66 +1,56 @@
-import React, { useEffect, useState } from "react";
-import {
-  Table,
-  Card,
-  Typography,
-  Button,
-  Input,
-  Select,
-  Tag,
-  Image,
-  Row,
-  Col,
-  Tooltip,
-  Space
-} from "antd";
-import {
-  SearchOutlined,
-  ReloadOutlined,
-  EyeOutlined
-} from "@ant-design/icons";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Button,
+  Card,
+  Input,
+  Layout,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
+import { ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import api from "../../services/api";
+import LabManagerSidebar from "../Sidebar/LabManagerSidebar";
 import "./deviceList.css";
 
-// Lưu ý: Đảm bảo file css không set style global đè lên layout chính
-
-const { Title } = Typography;
-const { Option } = Select;
+const { Content } = Layout;
+const { Title, Text } = Typography;
 
 function DeviceList() {
   const navigate = useNavigate();
 
-  // --- STATE DỮ LIỆU ---
-  const [allDevices, setAllDevices] = useState([]); // Dữ liệu gốc
-  const [filteredDevices, setFilteredDevices] = useState([]); // Dữ liệu sau khi lọc (hiển thị lên bảng)
-  const [categories, setCategories] = useState([]);
+  const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // --- STATE BỘ LỌC ---
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
-  const [status, setStatus] = useState("all");
+  const [category, setCategory] = useState(undefined);
+  const [status, setStatus] = useState(undefined);
+  const [categories, setCategories] = useState([]);
 
-  // --- HÀM LẤY DỮ LIỆU ---
   const fetchData = async () => {
-    setLoading(true);
     try {
-      // Gọi song song 2 API để tối ưu tốc độ
-      const [devicesRes, categoriesRes] = await Promise.all([
-        api.get('/inventory/lab'),
-        api.get('/categories')
-      ]);
+      setLoading(true);
 
-      if (devicesRes.data) {
-        setAllDevices(devicesRes.data || []);
-        setFilteredDevices(devicesRes.data || []); // Ban đầu hiển thị hết
-      }
+      // Chỉ lấy thiết bị đang ở Lab (đã được duyệt/nhập về Lab)
+      const devicesRes = await api.get("/inventory/lab");
+      const labInventories = Array.isArray(devicesRes) ? devicesRes : (devicesRes.data || []);
 
-      if (categoriesRes.data) {
-        setCategories(categoriesRes.data || []);
-      }
+      const sorted = [...labInventories].sort((a, b) => {
+        const nameA = (a.device?.name || "").toLowerCase();
+        const nameB = (b.device?.name || "").toLowerCase();
+        return nameA.localeCompare(nameB, "vi");
+      });
+
+      setAllRows(sorted);
+
+      const categoriesRes = await api.get("/categories");
+      const cats = Array.isArray(categoriesRes) ? categoriesRes : (categoriesRes.data || []);
+      setCategories(cats);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching lab devices:", error);
     } finally {
       setLoading(false);
     }
@@ -68,196 +58,219 @@ function DeviceList() {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- LOGIC LỌC DỮ LIỆU (Chạy mỗi khi search/category/status thay đổi) ---
-  useEffect(() => {
-    let result = [...allDevices];
-
-    // 1. Lọc theo tên
-    if (search.trim()) {
-      result = result.filter(item =>
-        item.device?.name?.toLowerCase().includes(search.toLowerCase())
-      );
+  const getCategoryName = (row) => {
+    const dev = row?.device || {};
+    if (dev.category_id && typeof dev.category_id === "object" && dev.category_id.name) {
+      return dev.category_id.name;
     }
-
-    // 2. Lọc theo danh mục
-    if (category !== "all") {
-      result = result.filter(item => item.device?.category === category);
-    }
-
-    // 3. Lọc theo trạng thái
-    if (status !== "all") {
-      if (status === "available") result = result.filter((d) => d.available > 0);
-      if (status === "borrowed") result = result.filter((d) => d.borrowed > 0);
-      if (status === "broken") result = result.filter((d) => d.broken > 0);
-    }
-
-    setFilteredDevices(result);
-  }, [search, category, status, allDevices]);
-
-  // Reset bộ lọc
-  const handleReset = () => {
-    setSearch("");
-    setCategory("all");
-    setStatus("all");
+    if (typeof dev.category === "string") return dev.category;
+    if (dev.category && typeof dev.category === "object" && dev.category.name) return dev.category.name;
+    return "N/A";
   };
 
-  // --- CẤU HÌNH CỘT BẢNG ---
-  const columns = [
+  const getBorrowed = (row) => {
+    const total = row?.total ?? 0;
+    const available = row?.available ?? 0;
+    const broken = row?.broken ?? 0;
+    if (typeof row?.borrowed === "number") return row.borrowed;
+    return Math.max(total - available - broken, 0);
+  };
+
+  const filteredRows = useMemo(() => {
+    let rows = [...allRows];
+
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter((r) => (r.device?.name || "").toLowerCase().includes(q));
+    }
+
+    if (category) {
+      rows = rows.filter((r) => getCategoryName(r) === category);
+    }
+
+    if (status) {
+      if (status === "available") rows = rows.filter((r) => (r.available ?? 0) > 0);
+      if (status === "borrowed") rows = rows.filter((r) => getBorrowed(r) > 0);
+      if (status === "broken") rows = rows.filter((r) => (r.broken ?? 0) > 0);
+    }
+
+    const hasNoFilters = !search.trim() && !category && !status;
+    if (hasNoFilters) {
+      rows.sort((a, b) => {
+        const nameA = (a.device?.name || "").toLowerCase();
+        const nameB = (b.device?.name || "").toLowerCase();
+        return nameA.localeCompare(nameB, "vi");
+      });
+    }
+
+    return rows;
+  }, [allRows, search, category, status]);
+
+  const columns = useMemo(() => [
     {
-      title: '#',
-      key: 'index',
+      title: "#",
+      key: "index",
       width: 60,
-      align: 'center',
       render: (_, __, index) => index + 1,
     },
     {
-      title: 'Ảnh',
-      dataIndex: ['device', 'image'],
-      key: 'image',
-      width: 100,
-      align: 'center',
-      render: (img) => (
-        <Image
-          width={50}
-          height={50}
-          src={img}
-          fallback="https://via.placeholder.com/50x50?text=No+Image"
-          style={{ objectFit: 'cover', borderRadius: '4px', border: '1px solid #f0f0f0' }}
-        />
-      ),
-    },
-    {
-      title: 'Tên thiết bị',
-      dataIndex: ['device', 'name'],
-      key: 'name',
-      render: (text) => <b>{text}</b>,
-    },
-    {
-      title: 'Danh mục',
-      dataIndex: ['device', 'category'],
-      key: 'category',
-      render: (cat) => <Tag color="blue">{cat}</Tag>,
-    },
-    {
-      title: 'Tổng',
-      dataIndex: 'total',
-      key: 'total',
-      width: 80,
-      align: 'center',
-      sorter: (a, b) => a.total - b.total,
-    },
-    {
-      title: 'Rảnh',
-      dataIndex: 'available',
-      key: 'available',
-      width: 80,
-      align: 'center',
-      render: (val) => <span style={{ color: '#52c41a', fontWeight: 'bold' }}>{val}</span>,
-    },
-    {
-      title: 'Mượn',
-      dataIndex: 'borrowed',
-      key: 'borrowed',
-      width: 80,
-      align: 'center',
-      render: (val) => <span style={{ color: '#faad14', fontWeight: 'bold' }}>{val}</span>,
-    },
-    {
-      title: 'Hỏng',
-      dataIndex: 'broken',
-      key: 'broken',
-      width: 80,
-      align: 'center',
-      render: (val) => <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{val}</span>,
-    },
-    {
-      title: 'Hành động',
-      key: 'action',
-      align: 'center',
-      width: 120,
-      render: (_, record) => (
-        <Tooltip title="Xem chi tiết">
-          <Button
-            type="primary"
-            icon={<EyeOutlined />}
-            size="small"
-            onClick={() => navigate(`/lab-manager/device/${record._id}`)}
+      title: "Ảnh",
+      key: "image",
+      width: 90,
+      render: (_, record) => {
+        const src = record.device?.image;
+        return src ? (
+          <img
+            src={src}
+            alt={record.device?.name || "device"}
+            style={{ width: 54, height: 54, objectFit: "cover", borderRadius: 8, border: "1px solid #e5e7eb" }}
+            onError={(e) => {
+              e.currentTarget.src = "https://via.placeholder.com/60x60?text=No+Image";
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 8,
+              border: "1px dashed #d1d5db",
+              background: "#f9fafb",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 10,
+              color: "#9ca3af",
+              textAlign: "center",
+              padding: 6,
+            }}
           >
-            Chi tiết
-          </Button>
-        </Tooltip>
+            No Image
+          </div>
+        );
+      },
+    },
+    {
+      title: "Tên thiết bị",
+      key: "name",
+      render: (_, record) => <strong>{record.device?.name || "N/A"}</strong>,
+    },
+    {
+      title: "Danh mục",
+      key: "category",
+      render: (_, record) => <Tag color="blue">{getCategoryName(record)}</Tag>,
+    },
+    {
+      title: "Tổng",
+      key: "total",
+      align: "center",
+      width: 90,
+      render: (_, record) => record.total ?? 0,
+    },
+    {
+      title: "Đang rảnh",
+      key: "available",
+      align: "center",
+      width: 110,
+      render: (_, record) => <span style={{ color: "#16a34a", fontWeight: 600 }}>{record.available ?? 0}</span>,
+    },
+    {
+      title: "Đang mượn",
+      key: "borrowed",
+      align: "center",
+      width: 110,
+      render: (_, record) => <span style={{ color: "#ca8a04", fontWeight: 600 }}>{getBorrowed(record)}</span>,
+    },
+    {
+      title: "Hỏng",
+      key: "broken",
+      align: "center",
+      width: 90,
+      render: (_, record) => <span style={{ color: "#dc2626", fontWeight: 600 }}>{record.broken ?? 0}</span>,
+    },
+    {
+      title: "Hành động",
+      key: "action",
+      align: "center",
+      width: 140,
+      render: (_, record) => (
+        <Button type="primary" onClick={() => navigate(`/lab-manager/device/${record._id}`)}>
+          Chi tiết
+        </Button>
       ),
     },
-  ];
+  ], [navigate]);
 
   return (
-    <div className="device-list-content">
-      {/* HEADER PAGE */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <Title level={3} style={{ margin: 0, color: '#001529' }}>📦 Quản Lý Thiết Bị</Title>
-        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
-      </div>
+    <Layout className="lab-manager-devices-page" style={{ minHeight: "100vh", background: "#f5f5f5" }}>
+      <LabManagerSidebar />
+      <Layout style={{ marginLeft: 240, background: "#f5f5f5" }}>
+        <Content style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>
+          <Card style={{ marginBottom: 16 }}>
+            <Space direction="vertical" style={{ width: "100%" }} size={4}>
+              <Title level={3} style={{ margin: 0 }}>Quản lý thiết bị (Phòng Lab)</Title>
+              <Text type="secondary">
+                Chỉ hiển thị thiết bị đã được duyệt và đang có trong phòng Lab.
+              </Text>
+            </Space>
+          </Card>
 
-      <Card bordered={false} className="shadow-sm">
-        {/* FILTER TOOLBAR */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-          <Col xs={24} md={8}>
-            <Input
-              placeholder="Tìm theo tên thiết bị..."
-              prefix={<SearchOutlined />}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              allowClear
+          <Card style={{ marginBottom: 16 }}>
+            <Space wrap style={{ width: "100%" }}>
+              <Input
+                style={{ flex: "1 1 280px", minWidth: 260 }}
+                placeholder="Tìm theo tên thiết bị..."
+                prefix={<SearchOutlined />}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                allowClear
+              />
+
+              <Select
+                style={{ width: 220 }}
+                placeholder="Tất cả danh mục"
+                value={category}
+                onChange={setCategory}
+                allowClear
+                options={(categories || []).map((c) => ({ label: c.name, value: c.name }))}
+              />
+
+              <Select
+                style={{ width: 220 }}
+                placeholder="Tất cả trạng thái"
+                value={status}
+                onChange={setStatus}
+                allowClear
+                options={[
+                  { label: "Đang rảnh > 0", value: "available" },
+                  { label: "Đang mượn > 0", value: "borrowed" },
+                  { label: "Hỏng > 0", value: "broken" },
+                ]}
+              />
+
+              <Button icon={<ReloadOutlined />} onClick={() => { setSearch(""); setCategory(undefined); setStatus(undefined); }}>
+                Reset
+              </Button>
+              <Button onClick={fetchData}>Tải lại</Button>
+            </Space>
+          </Card>
+
+          <Card>
+            <Table
+              rowKey={(r) => r._id}
+              loading={loading}
+              dataSource={filteredRows}
+              columns={columns}
+              pagination={{ pageSize: 10, showSizeChanger: true }}
+              scroll={{ x: 900 }}
             />
-          </Col>
-          <Col xs={24} md={5}>
-            <Select
-              style={{ width: '100%' }}
-              value={category}
-              onChange={setCategory}
-              placeholder="Chọn danh mục"
-            >
-              <Option value="all">Tất cả danh mục</Option>
-              {categories.map((c) => (
-                <Option key={c._id} value={c.name}>{c.name}</Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} md={5}>
-            <Select
-              style={{ width: '100%' }}
-              value={status}
-              onChange={setStatus}
-            >
-              <Option value="all">Tất cả trạng thái</Option>
-              <Option value="available">Còn hàng (Available)</Option>
-              <Option value="borrowed">Đang mượn (Borrowed)</Option>
-              <Option value="broken">Hỏng (Broken)</Option>
-            </Select>
-          </Col>
-          <Col xs={24} md={6} style={{ textAlign: 'right' }}>
-            <Button onClick={handleReset}>Reset bộ lọc</Button>
-          </Col>
-        </Row>
-
-        {/* DATA TABLE */}
-        <Table
-          columns={columns}
-          dataSource={filteredDevices}
-          rowKey="_id"
-          loading={loading}
-          pagination={{
-            defaultPageSize: 10,
-            showSizeChanger: true,
-            pageSizeOptions: ['5', '10', '20', '50'],
-            showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} thiết bị`
-          }}
-          scroll={{ x: 1000 }} // Hỗ trợ cuộn ngang trên mobile
-        />
-      </Card>
-    </div>
+          </Card>
+        </Content>
+      </Layout>
+    </Layout>
   );
 }
 

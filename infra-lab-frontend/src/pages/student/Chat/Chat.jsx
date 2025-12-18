@@ -327,6 +327,40 @@ const Chat = () => {
     setSelectedConversation(conversation);
   };
 
+  // Refresh conversation để cập nhật thông tin mới nhất (nicknames, pinned messages, etc.)
+  const handleRefreshConversation = useCallback(async () => {
+    if (!selectedConversation?._id) return;
+    
+    try {
+      // Reload conversations để lấy thông tin mới nhất
+      const response = await conversationService.getAllConversations();
+      const data = response?.data || response || [];
+      
+      // Transform conversations để có otherUser
+      const currentUserId = currentUser?._id || currentUser?.id;
+      const transformedConversations = data.map((conv) => {
+        const otherUser = conv.participants?.find(
+          (p) => (p._id || p.id) !== currentUserId
+        );
+        return {
+          ...conv,
+          otherUser,
+        };
+      });
+      
+      // Cập nhật conversations
+      setConversations(transformedConversations);
+      
+      // Cập nhật selectedConversation với dữ liệu mới nhất
+      const updated = transformedConversations.find((c) => c._id === selectedConversation._id);
+      if (updated) {
+        setSelectedConversation(updated);
+      }
+    } catch (error) {
+      console.error("Error refreshing conversation:", error);
+    }
+  }, [selectedConversation?._id, currentUser]);
+
   // Handle send message
   const handleSendMessage = async (content) => {
     if (!selectedConversation?._id || !content.trim()) return;
@@ -437,6 +471,98 @@ const Chat = () => {
     loadConversations(false); // Không hiển thị loading khi refresh sau khi tạo mới
   };
 
+  // Handle edit message
+  const handleEditMessage = async (messageId, newContent) => {
+    try {
+      const response = await conversationService.editMessage(messageId, newContent);
+      const updatedMessage = response?.data || response;
+      
+      // Cập nhật message trong messages list
+      setMessages((prev) => {
+        return prev.map((msg) => {
+          if (msg._id === messageId) {
+            return { ...msg, ...updatedMessage };
+          }
+          return msg;
+        });
+      });
+      
+      // Cập nhật lastMessage nếu là tin nhắn cuối cùng
+      if (selectedConversation?.lastMessage?._id === messageId) {
+        setConversations((prev) => {
+          return prev.map((conv) => {
+            if (conv._id === selectedConversation._id) {
+              return {
+                ...conv,
+                lastMessage: updatedMessage,
+              };
+            }
+            return conv;
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Error editing message:", error);
+      throw error; // Re-throw để component xử lý
+    }
+  };
+
+  // Handle delete message
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const response = await conversationService.deleteMessage(messageId);
+      const deletedMessage = response?.data || response;
+      
+      // Cập nhật message trong messages list
+      setMessages((prev) => {
+        return prev.map((msg) => {
+          if (msg._id === messageId) {
+            return { ...msg, ...deletedMessage };
+          }
+          return msg;
+        });
+      });
+      
+      // Cập nhật lastMessage nếu là tin nhắn cuối cùng
+      if (selectedConversation?.lastMessage?._id === messageId) {
+        setConversations((prev) => {
+          return prev.map((conv) => {
+            if (conv._id === selectedConversation._id) {
+              return {
+                ...conv,
+                lastMessage: deletedMessage,
+              };
+            }
+            return conv;
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      throw error; // Re-throw để component xử lý
+    }
+  };
+
+  // Handle delete conversation
+  const handleDeleteConversation = async (conversationId) => {
+    try {
+      await conversationService.deleteConversation(conversationId);
+      
+      // Xóa conversation khỏi danh sách
+      setConversations((prev) => prev.filter((conv) => conv._id !== conversationId));
+      
+      // Nếu đang xem conversation này, chuyển về trang trống
+      if (selectedConversation?._id === conversationId) {
+        setSelectedConversation(null);
+        setMessages([]);
+        navigate("/student/conversation");
+      }
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      throw error; // Re-throw để component xử lý
+    }
+  };
+
   // Memoize sidebar props để tránh re-render không cần thiết
   const sidebarProps = useMemo(() => ({
     conversations,
@@ -462,6 +588,10 @@ const Chat = () => {
             messages={messages}
             onSend={handleSendMessage}
             onSendImage={handleSendImage}
+            onEdit={handleEditMessage}
+            onDelete={handleDeleteMessage}
+            onDeleteConversation={handleDeleteConversation}
+            onRefresh={handleRefreshConversation}
           />
         )}
       </ChatWindowContainer>

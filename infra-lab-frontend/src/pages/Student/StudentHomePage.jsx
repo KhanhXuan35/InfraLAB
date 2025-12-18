@@ -219,7 +219,6 @@ const StudentHomePage = () => {
             {quickActions.map((action, index) => (
               <Col xs={24} sm={12} md={6} key={index}>
                 <Card
-                  hoverable
                   onClick={action.onClick}
                   style={{ textAlign: 'center', cursor: 'pointer' }}
                   bodyStyle={{ padding: '32px 24px' }}

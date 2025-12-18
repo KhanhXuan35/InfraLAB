@@ -66,37 +66,41 @@ export const createBorrowRequest = async (req, res) => {
       }
     }
 
-    // Trừ tồn kho lab ngay khi mượn (chỉ thay đổi available, không thay đổi total)
-    for (const item of items) {
-      const inv = inventories.find((i) => i.device_id.toString() === item.device_id);
-      const newAvailable = (inv.available || 0) - item.quantity;
-      if (newAvailable < 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Tồn kho không đủ",
-        });
-      }
-      await Inventory.findByIdAndUpdate(inv._id, {
-        $set: { available: newAvailable },
-      });
-    }
-
+    // ===== KHÔNG TRỪ TỒN KHO NGAY =====
+    // Chỉ tạo yêu cầu với status "pending"
+    // Lab Manager sẽ phê duyệt và assign thiết bị cụ thể sau
+    
     const borrow = await BorrowLab.create({
       student_id: studentId,
       items: items.map((i) => ({
         device_id: i.device_id,
         quantity: i.quantity,
+        device_instances: []  // Chưa assign thiết bị cụ thể
       })),
       return_due_date: returnDate,
       purpose: purpose.trim(),
       notes: notes?.trim(),
-      status: "borrowed",
+      status: "pending",  // Chờ phê duyệt
       returned: false,
     });
+    
+    // Gửi thông báo cho Lab Manager
+    const labManagers = await require("../../models/User.js").default.find({ role: "lab_manager" });
+    const Notifications = require("../../models/Notifications.js").default;
+    
+    for (const lm of labManagers) {
+      await Notifications.create({
+        user_id: lm._id,
+        type: "new_borrow_request",
+        message: `Sinh viên ${req.user.name || 'N/A'} yêu cầu mượn ${items.length} loại thiết bị`,
+        related_id: borrow._id,
+        related_type: "BorrowLab"
+      });
+    }
 
     res.status(201).json({
       success: true,
-      message: "Gửi yêu cầu mượn thành công",
+      message: "Đã gửi yêu cầu mượn. Vui lòng chờ Lab Manager phê duyệt.",
       data: borrow,
     });
   } catch (error) {

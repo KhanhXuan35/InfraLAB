@@ -9,7 +9,12 @@ const borrowLabSchema = new mongoose.Schema({
             ref: "Device",                     
             required: true
         },
-        quantity: { type: Number, required: true, min: 1 }
+        quantity: { type: Number, required: true, min: 1 },
+        // ===== THÊM: Array chứa các device instance cụ thể đã được assign =====
+        device_instances: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "DeviceInstance"
+        }]
     }],
 
     // Thiết bị hỏng đang được sinh viên sửa chữa
@@ -29,9 +34,12 @@ const borrowLabSchema = new mongoose.Schema({
     notes: { type: String, maxlength: 1000 },
     status: { 
       type: String, 
-      enum: ["borrowed", "return_pending", "returned", "return_requested"], 
-      default: "borrowed" 
+      enum: ["pending", "approved", "rejected", "borrowed", "return_pending", "returned", "return_requested", "pending_compensation"], 
+      default: "pending" 
     },
+    approved_by: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    approved_at: { type: Date, default: null },
+    rejected_reason: { type: String, default: null },
     returned: { type: Boolean, default: false },
     return_requested: { type: Boolean, default: false },
     return_requested_at: { type: Date, default: null }

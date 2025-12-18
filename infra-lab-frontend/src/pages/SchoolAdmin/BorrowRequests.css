@@ -1,0 +1,64 @@
+.br-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.br-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.br-thumb {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.br-thumb-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f6f8;
+  color: #999;
+}
+
+.br-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Modal đơn mượn */
+.borrow-detail-modal .ant-modal-body {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Print styles cho đơn mượn */
+@media print {
+  .ant-modal-header,
+  .ant-modal-footer,
+  .ant-modal-close {
+    display: none !important;
+  }
+  
+  .ant-modal {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .ant-modal-body {
+    padding: 20px !important;
+  }
+  
+  #borrow-detail-content {
+    page-break-inside: avoid;
+  }
+}

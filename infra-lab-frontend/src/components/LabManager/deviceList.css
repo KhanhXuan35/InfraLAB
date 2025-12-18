@@ -45,7 +45,7 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  /* transition: background 0.15s, box-shadow 0.15s, transform 0.1s; */
 }
 
 .btn-filter {
@@ -53,20 +53,20 @@
   color: #ffffff;
 }
 
-.btn-filter:hover {
+/* .btn-filter:hover {
   background: #1d4ed8;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
   transform: translateY(-1px);
-}
+} */
 
 .btn-reset {
   background: #e5e7eb;
   color: #111827;
 }
 
-.btn-reset:hover {
+/* .btn-reset:hover {
   background: #d1d5db;
-}
+} */
 
 /* =============== TABLE =============== */
 .device-table {
@@ -104,9 +104,9 @@
   border-bottom: none;
 }
 
-.device-table tbody tr:hover {
+/* .device-table tbody tr:hover {
   background: #f3f4f6;
-}
+} */
 
 /* STATUS COLORS */
 .ok {
@@ -168,14 +168,14 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  /* transition: background 0.15s, box-shadow 0.15s, transform 0.1s; */
 }
 
-.btn-view:hover {
+/* .btn-view:hover {
   background: #1d4ed8;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
   transform: translateY(-1px);
-}
+} */
 
 /* =============== PAGINATION =============== */
 .pagination-container {
@@ -209,7 +209,7 @@
   font-size: 13px;
   background: #ffffff;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  /* transition: background 0.15s, transform 0.1s; */
 }
 
 .page-btn:disabled {
@@ -223,11 +223,11 @@
   color: #ffffff;
 }
 
-.page-number:hover:not(.active),
+/* .page-number:hover:not(.active),
 .page-btn:not(:disabled):hover {
   background: #f3f4f6;
   transform: translateY(-1px);
-}
+} */
 
 /* RESPONSIVE */
 @media (max-width: 900px) {
@@ -242,4 +242,34 @@
   .content-wrapper {
     padding-inline: 8px;
   }
+}
+
+
+/* Borrow action (kho School) */
+.borrow-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.borrow-qty {
+  width: 56px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #1f2937;
+  background: #0f172a;
+  color: #e5e7eb;
+  text-align: center;
+}
+
+.borrow-qty:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.borrow-btn {
+  border-radius: 999px !important;
+  padding: 0 14px !important;
 }

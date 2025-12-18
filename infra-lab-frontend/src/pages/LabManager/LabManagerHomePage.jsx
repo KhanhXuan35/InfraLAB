@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Row,
@@ -10,24 +10,28 @@ import {
   List,
   Avatar,
   Empty,
-  Tag
+  List,
+  Tag,
+  Divider,
 } from 'antd';
 import {
-  ToolOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  WarningOutlined,
-  BellOutlined,
   PlusOutlined,
   SwapOutlined,
   SearchOutlined,
-  ExportOutlined
+  ExportOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  WarningOutlined,
+  AppstoreOutlined,
+  ToolOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
+import LabManagerSidebar from '../../components/Sidebar/LabManagerSidebar';
 import * as S from './LabManagerHomePage.styles';
 
-// Chỉ giữ lại Typography, không lấy Layout/Sider nữa
-const { Title, Text } = Typography;
+const { Header: LayoutHeader, Content } = Layout;
+const { Title, Paragraph, Text } = Typography;
 
 const LabManagerHomePage = () => {
   const navigate = useNavigate();
@@ -58,13 +62,13 @@ const LabManagerHomePage = () => {
           });
         }
 
-        // Lấy hoạt động gần đây
         const activitiesResponse = await api.get('/dashboard/activities?limit=10');
         if (activitiesResponse.success) {
           setActivities(activitiesResponse.data || []);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        // Vẫn set loading = false để hiển thị trang ngay cả khi API lỗi
       } finally {
         setLoading(false);
       }
@@ -73,11 +77,15 @@ const LabManagerHomePage = () => {
     fetchDashboardData();
   }, []);
 
-  // --- 2. HÀNH ĐỘNG NHANH (Giữ nguyên) ---
+
+
   const handleQuickAction = (key) => {
     switch (key) {
       case 'add-device':
-        // Logic thêm thiết bị (có thể mở modal hoặc navigate)
+        // TODO: Navigate to add device page
+        break;
+      case 'school-inventory':
+        navigate('/lab-manager/school-devices');
         break;
       case 'record':
         navigate('/lab-manager/borrow-return');
@@ -86,12 +94,13 @@ const LabManagerHomePage = () => {
         navigate('/lab-manager/devices');
         break;
       case 'export':
-        // Handle export logic
+        // TODO: Export report
         break;
       default:
         break;
     }
   };
+
 
   const quickActions = [
     {
@@ -101,7 +110,13 @@ const LabManagerHomePage = () => {
       key: 'add-device',
     },
     {
-      title: 'DS thiết bị mượn',
+      title: 'Kho School',
+      icon: <AppstoreOutlined />, 
+      color: '#13c2c2',
+      key: 'school-inventory',
+    },
+    {
+      title: 'Ghi nhận mượn/trả',
       icon: <SwapOutlined />,
       color: '#722ed1',
       key: 'record',
@@ -120,148 +135,152 @@ const LabManagerHomePage = () => {
     },
   ];
 
-  if (loading) {
-    return <S.LoadingContainer>Đang tải...</S.LoadingContainer>;
-  }
-
-  // --- 3. GIAO DIỆN (Đã bỏ Layout bao ngoài) ---
   return (
-    <div className="lab-manager-dashboard">
-      {/* Tiêu đề trang */}
-      <div style={{ marginBottom: 24 }}>
-        <Title level={4} style={{ margin: 0 }}>
-          Dashboard Quản lý Lab
-        </Title>
-        <Text type="secondary">Tổng quan tình trạng phòng Lab và thiết bị</Text>
-      </div>
+    <Layout style={{ minHeight: '100vh' }}>
+      <LabManagerSidebar />
 
-      {/* Stats Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading} hoverable>
-            <Statistic
-              title="Tổng tài sản"
-              value={stats.totalAssets}
-              prefix={<ToolOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading} hoverable>
-            <Statistic
-              title="Đang hoạt động"
-              value={stats.active}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading} hoverable>
-            <Statistic
-              title="Đang sửa chữa"
-              value={stats.underRepair}
-              prefix={<WarningOutlined />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loading} hoverable>
-            <Statistic
-              title="Hỏng/Thay thế"
-              value={stats.broken}
-              prefix={<CloseCircleOutlined />}
-              valueStyle={{ color: '#f5222d' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <Layout style={{ marginLeft: 240 }}>
+        <LayoutHeader
+          style={{
+            background: '#fff',
+            padding: '0 24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Title level={4} style={{ margin: 0 }}>
+            Dashboard Quản lý Lab
+          </Title>
+          <Space>
+            <Text>Xin chào, {user?.name || 'Giáo viên'}!</Text>
+            <Avatar style={{ backgroundColor: '#1890ff' }}>
+              {user?.name?.charAt(0) || 'G'}
+            </Avatar>
+          </Space>
+        </LayoutHeader>
 
-      <Row gutter={[16, 16]}>
-        {/* Recent Activities */}
-        <Col xs={24} lg={12}>
-          <Card title="Hoạt động gần đây" extra={<Button type="link">Xem tất cả</Button>}>
-            {activities.length > 0 ? (
-              <List
-                dataSource={activities}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      avatar={
-                        <Avatar
-                          style={{
-                            backgroundColor:
-                              item.type === 'ok'
-                                ? '#52c41a'
-                                : item.type === 'error'
-                                  ? '#f5222d'
-                                  : '#1890ff',
-                          }}
-                          icon={
-                            item.type === 'ok' ? (
-                              <CheckCircleOutlined />
-                            ) : item.type === 'error' ? (
-                              <CloseCircleOutlined />
-                            ) : (
-                              <BellOutlined />
-                            )
+        <Content style={{ margin: '24px', minHeight: 280 }}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+            <Col xs={24} sm={12} lg={6}>
+              <Card loading={loading}>
+                <Statistic
+                  title="Tong tai san"
+                  value={stats.totalAssets}
+                  prefix={<ToolOutlined />}
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card loading={loading}>
+                <Statistic
+                  title="Dang hoat dong"
+                  value={stats.active}
+                  prefix={<CheckCircleOutlined />}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card loading={loading}>
+                <Statistic
+                  title="Dang sua chua"
+                  value={stats.underRepair}
+                  prefix={<WarningOutlined />}
+                  valueStyle={{ color: '#faad14' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card loading={loading}>
+                <Statistic
+                  title="Hong/Thay the"
+                  value={stats.broken}
+                  prefix={<CloseCircleOutlined />}
+                  valueStyle={{ color: '#f5222d' }}
+                />
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} lg={12}>
+              <Card title="Hoat dong gan day" extra={<Button type="link">Xem tat ca</Button>}>
+                {activities.length > 0 ? (
+                  <List
+                    dataSource={activities}
+                    renderItem={(item) => (
+                      <List.Item>
+                        <List.Item.Meta
+                          avatar={
+                            <Avatar
+                              style={{
+                                backgroundColor:
+                                  item.type === 'ok'
+                                    ? '#52c41a'
+                                    : item.type === 'error'
+                                      ? '#f5222d'
+                                      : '#1890ff',
+                              }}
+                              icon={
+                                item.type === 'ok' ? (
+                                  <CheckCircleOutlined />
+                                ) : item.type === 'error' ? (
+                                  <CloseCircleOutlined />
+                                ) : (
+                                  <BellOutlined />
+                                )
+                              }
+                            />
+                          }
+                          title={<Text style={{ fontSize: 14 }}>{item.message}</Text>}
+                          description={
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {new Date(item.createdAt).toLocaleString('vi-VN')}
+                            </Text>
                           }
                         />
-                      }
-                      title={
-                        <Text style={{ fontSize: 14 }}>{item.message}</Text>
-                      }
-                      description={
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          {new Date(item.createdAt).toLocaleString('vi-VN')}
-                        </Text>
-                      }
-                    />
-                  </List.Item>
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chua co hoat dong nao" />
                 )}
-              />
-            ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Chưa có hoạt động nào"
-              />
-            )}
-          </Card>
-        </Col>
+              </Card>
+            </Col>
 
-        {/* Quick Actions */}
-        <Col xs={24} lg={12}>
-          <Card title="Hành động nhanh">
-            <Row gutter={[12, 12]}>
-              {quickActions.map((action, index) => (
-                <Col xs={12} key={index}>
-                  <Card
-                    hoverable
-                    onClick={() => handleQuickAction(action.key)}
-                    style={{
-                      textAlign: 'center',
-                      background: `linear-gradient(135deg, ${action.color}15 0%, ${action.color}05 100%)`,
-                      cursor: 'pointer',
-                      border: '1px solid #f0f0f0'
-                    }}
-                    bodyStyle={{ padding: '20px 12px' }}
-                  >
-                    <div style={{ fontSize: 32, color: action.color, marginBottom: 8 }}>
-                      {action.icon}
-                    </div>
-                    <Text strong style={{ fontSize: 12 }}>
-                      {action.title}
-                    </Text>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          </Card>
-        </Col>
-      </Row>
-    </div>
+            <Col xs={24} lg={12}>
+              <Card title="Hanh dong nhanh">
+                <Row gutter={[12, 12]}>
+                  {quickActions.map((action, index) => (
+                    <Col xs={12} key={index}>
+                      <Card
+                        onClick={() => handleQuickAction(action.key)}
+                        style={{
+                          textAlign: 'center',
+                          background: `linear-gradient(135deg, ${action.color}15 0%, ${action.color}05 100%)`,
+                          cursor: 'pointer',
+                        }}
+                        bodyStyle={{ padding: '20px 12px' }}
+                      >
+                        <div style={{ fontSize: 32, color: action.color, marginBottom: 8 }}>
+                          {action.icon}
+                        </div>
+                        <Text strong style={{ fontSize: 12 }}>
+                          {action.title}
+                        </Text>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </Card>
+            </Col>
+          </Row>
+        </Content>
+      </Layout>
+    </Layout>
   );
 };
 
