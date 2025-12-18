@@ -9,6 +9,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   MessageOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -30,6 +31,7 @@ const SchoolAdminSidebar = () => {
     if (path === '/school-dashboard') return 'overview';
     if (path === '/school/dashboard') return 'devices';
     if (path === '/school/borrow-requests') return 'borrow-requests';
+    if (path === '/school/borrow-history') return 'borrow-history';
     if (path === '/requests' || path.startsWith('/school/repairs')) return 'requests';
     if (path === '/reports') return 'reports';
     if (path === '/settings') return 'settings';
@@ -53,6 +55,11 @@ const SchoolAdminSidebar = () => {
       key: 'borrow-requests',
       icon: <CheckCircleOutlined />,
       label: 'Yêu cầu mượn',
+    },
+    {
+      key: 'borrow-history',
+      icon: <HistoryOutlined />,
+      label: 'Lịch sử mượn',
     },
     {
       key: 'requests',
@@ -86,6 +93,9 @@ const SchoolAdminSidebar = () => {
         break;
       case 'borrow-requests':
         navigate('/school/borrow-requests');
+        break;
+      case 'borrow-history':
+        navigate('/school/borrow-history');
         break;
       case 'requests':
         navigate('/requests');
