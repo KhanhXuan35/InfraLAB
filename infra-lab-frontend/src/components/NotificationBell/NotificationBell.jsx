@@ -86,6 +86,8 @@ const NotificationBell = () => {
         return <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: 20 }} />;
       case 'borrow_delivered':
         return <CheckSquareOutlined style={{ color: '#1890ff', fontSize: 20 }} />;
+      case 'new_device_request':
+        return <BellOutlined style={{ color: '#faad14', fontSize: 20 }} />;
       default:
         return <BellOutlined style={{ fontSize: 20 }} />;
     }
@@ -99,6 +101,8 @@ const NotificationBell = () => {
         return <Tag color="red">Từ chối</Tag>;
       case 'borrow_delivered':
         return <Tag color="blue">Đã giao</Tag>;
+      case 'new_device_request':
+        return <Tag color="orange">Yêu cầu mới</Tag>;
       default:
         return null;
     }

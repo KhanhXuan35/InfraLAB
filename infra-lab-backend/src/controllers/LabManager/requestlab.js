@@ -42,22 +42,31 @@ export const createRequest = async (req, res) => {
 // School admin xem danh sách yêu cầu
 export const listRequests = async (req, res) => {
   try {
-    const { status, requester_role } = req.query;
+    const { status, requester_role, exclude_new_devices } = req.query;
     const filter = {};
     if (status && status !== "all") {
       filter.status = status.toUpperCase();
     }
 
+    // Nếu có requester_role, cần populate created_by trước để filter
+    // Tìm tất cả user có role tương ứng
+    if (requester_role) {
+      const usersWithRole = await User.find({ role: requester_role }).select("_id");
+      const userIds = usersWithRole.map(u => u._id);
+      filter.created_by = { $in: userIds };
+    }
+
     let requests = await RequestLab.find(filter)
-      .populate({ path: "device_id", select: "name image category_id" })
+      .populate({ path: "device_id", select: "name image category_id verify" })
       .populate({ path: "created_by", select: "name email role" })
       .populate({ path: "approved_by", select: "name email role" })
       .populate({ path: "device_instance_ids", select: "serial_number status condition" })
       .sort({ createdAt: -1 });
 
-    // Filter theo role nếu có query parameter requester_role
-    if (requester_role) {
-      requests = requests.filter(req => req.created_by?.role === requester_role);
+    // Nếu exclude_new_devices = true, chỉ lấy các yêu cầu mượn thiết bị có sẵn (device.verify = true)
+    // Loại bỏ yêu cầu thiết bị ngoài (device.verify = false)
+    if (exclude_new_devices === "true" || exclude_new_devices === true) {
+      requests = requests.filter(req => req.device_id?.verify === true);
     }
 
     return res.json({ success: true, data: requests });

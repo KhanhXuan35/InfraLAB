@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import api from '../../services/api';
 import SchoolAdminSidebar from '../../components/Sidebar/SchoolAdminSidebar';
+import NotificationBell from '../../components/NotificationBell/NotificationBell';
 import './BorrowRequests.css';
 
 const { Text, Title } = Typography;
@@ -51,7 +52,8 @@ const BorrowRequests = () => {
     setLoading(true);
     try {
       // Lấy yêu cầu từ lab managers (role lab_manager) - chỉ lấy WAITING
-      const res = await api.get('/request-lab?status=WAITING&requester_role=lab_manager');
+      // exclude_new_devices=true để loại bỏ yêu cầu thiết bị ngoài (chỉ lấy yêu cầu mượn thiết bị có sẵn)
+      const res = await api.get('/request-lab?status=WAITING&requester_role=lab_manager&exclude_new_devices=true');
       const raw = Array.isArray(res) ? res : res?.data || [];
       setLabManagerRequests(normalizeRequests(raw));
     } catch (err) {
@@ -64,8 +66,9 @@ const BorrowRequests = () => {
   const loadApprovedRequests = async () => {
     setLoading(true);
     try {
-      // Lấy các đơn đã duyệt (APPROVED) - chờ Lab Manager mang đơn đến
-      const res = await api.get('/request-lab?status=APPROVED&requester_role=lab_manager');
+      // Lấy các đơn đã duyệt (APPROVED) - chỉ lấy yêu cầu mượn thiết bị có sẵn
+      // exclude_new_devices=true để loại bỏ yêu cầu thiết bị ngoài
+      const res = await api.get('/request-lab?status=APPROVED&requester_role=lab_manager&exclude_new_devices=true');
       const raw = Array.isArray(res) ? res : res?.data || [];
       setApprovedRequests(normalizeRequests(raw));
     } catch (err) {
@@ -536,6 +539,7 @@ const BorrowRequests = () => {
           <div className="br-header">
             <h2>Quản lý yêu cầu</h2>
             <div className="br-header-actions">
+              <NotificationBell />
               <Button
                 icon={<ReloadOutlined />}
                 onClick={() => {
