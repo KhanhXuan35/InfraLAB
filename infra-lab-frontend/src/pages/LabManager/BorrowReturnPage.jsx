@@ -42,6 +42,39 @@ import dayjs from 'dayjs';
 const { Header: LayoutHeader, Content } = Layout;
 const { Title, Text } = Typography;
 
+// CSS cho scrollbar của container mã serial
+const serialScrollStyle = `
+  .serial-scroll-container {
+    max-height: 120px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 0;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
+  .serial-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+  }
+`;
+
 const BorrowReturnPage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -512,6 +545,7 @@ const BorrowReturnPage = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      <style>{serialScrollStyle}</style>
       <LabManagerSidebar />
 
       <Layout style={{ marginLeft: 240 }}>
@@ -679,15 +713,62 @@ const BorrowReturnPage = () => {
                         ),
                       },
                       {
+                        title: 'Mã serial',
+                        key: 'serial',
+                        width: 250,
+                        render: (_, item) => {
+                          const serialNumbers = item.serialNumbers || [];
+                          if (serialNumbers.length === 0) {
+                            return <Text type="secondary">Chưa có</Text>;
+                          }
+                          return (
+                            <div
+                              className="serial-scroll-container"
+                              style={{
+                                maxHeight: '120px',
+                                overflowY: 'auto',
+                                overflowX: 'hidden',
+                                padding: '4px 0',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  gap: '4px',
+                                }}
+                              >
+                                {serialNumbers.map((serial, idx) => (
+                                  <Text
+                                    code
+                                    key={idx}
+                                    style={{
+                                      fontSize: 11,
+                                      padding: '2px 6px',
+                                      margin: 0,
+                                      display: 'inline-block',
+                                    }}
+                                  >
+                                    {serial}
+                                  </Text>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        },
+                      },
+                      {
                         title: 'Số lượng',
                         key: 'quantity',
                         align: 'center',
+                        width: 100,
                         render: (_, item) => <Text strong>{item.quantity}</Text>,
                       },
                       {
                         title: 'Hành động',
                         key: 'action',
                         align: 'center',
+                        width: 150,
                         render: (_, item) => {
                           // Kiểm tra nếu quá hạn và chưa yêu cầu trả
                           if (selectedBorrowRequest.isOverdue && !selectedBorrowRequest.returnRequested) {
@@ -763,9 +844,55 @@ const BorrowReturnPage = () => {
                         ),
                       },
                       {
+                        title: 'Mã serial',
+                        key: 'serial',
+                        width: 250,
+                        render: (_, item) => {
+                          const serialNumbers = item.serialNumbers || [];
+                          if (serialNumbers.length === 0) {
+                            return <Text type="secondary">Chưa có</Text>;
+                          }
+                          return (
+                            <div
+                              className="serial-scroll-container"
+                              style={{
+                                maxHeight: '120px',
+                                overflowY: 'auto',
+                                overflowX: 'hidden',
+                                padding: '4px 0',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  gap: '4px',
+                                }}
+                              >
+                                {serialNumbers.map((serial, idx) => (
+                                  <Text
+                                    code
+                                    key={idx}
+                                    style={{
+                                      fontSize: 11,
+                                      padding: '2px 6px',
+                                      margin: 0,
+                                      display: 'inline-block',
+                                    }}
+                                  >
+                                    {serial}
+                                  </Text>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        },
+                      },
+                      {
                         title: 'Số lượng',
                         key: 'quantity',
                         align: 'center',
+                        width: 100,
                         render: (_, item) => <Text strong>{item.quantity}</Text>,
                       },
                       {
@@ -779,6 +906,7 @@ const BorrowReturnPage = () => {
                         title: 'Hành động',
                         key: 'action',
                         align: 'center',
+                        width: 180,
                         render: (_, item) => (
                           <Button
                             type="primary"

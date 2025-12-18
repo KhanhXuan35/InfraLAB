@@ -55,6 +55,7 @@ export const LAB_MANAGER_ROUTES = {
   DEVICE_DETAIL: (id) => `${LAB_MANAGER_BASE_PATH}/device/${id}`,
   SCHOOL_DEVICES: `${LAB_MANAGER_BASE_PATH}/school-devices`,
   BORROW_RETURN: `${LAB_MANAGER_BASE_PATH}/borrow-return`,
+  BORROW_APPROVAL: `${LAB_MANAGER_BASE_PATH}/borrow-approval`,
   REPAIRS: `${LAB_MANAGER_BASE_PATH}/repairs`,
   REPAIR_DETAIL: (id) => `${LAB_MANAGER_BASE_PATH}/repairs/${id}`,
   STUDENTS: `${LAB_MANAGER_BASE_PATH}/students`,

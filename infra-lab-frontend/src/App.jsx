@@ -33,6 +33,7 @@ import Chat from "./pages/student/Chat/Chat";
 import DeviceList from "./components/LabManager/DeviceList";
 import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
 import BorrowReturnPage from "./pages/LabManager/BorrowReturnPage";
+import BorrowApprovalPage from "./pages/LabManager/BorrowApprovalPage";
 import LabManagerRepairDetail from "./pages/LabManager/LabManagerRepairDetail";
 import StudentManagerPage from "./pages/LabManager/StudentManagerPage";
 import DeviceListSchool from "./pages/LabManager/DeviceListSchool";
@@ -89,6 +90,7 @@ function App() {
               
               {/* Borrow/Return */}
               <Route path={LAB_MANAGER_ROUTES.BORROW_RETURN} element={<BorrowReturnPage />} />
+              <Route path={LAB_MANAGER_ROUTES.BORROW_APPROVAL} element={<BorrowApprovalPage />} />
               
               {/* Repairs */}
               <Route path={LAB_MANAGER_ROUTES.REPAIRS} element={<LabManagerRepairList />} />

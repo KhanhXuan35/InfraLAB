@@ -26,7 +26,12 @@ const borrowLabSchema = new mongoose.Schema({
         },
         quantity: { type: Number, required: true, min: 1 },
         broken_reason: { type: String, required: true },
-        reported_at: { type: Date, default: Date.now }
+        reported_at: { type: Date, default: Date.now },
+        // ===== THÊM: Array chứa các device instance cụ thể đã được assign =====
+        device_instances: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "DeviceInstance"
+        }]
     }],
 
     return_due_date: { type: Date, required: true },

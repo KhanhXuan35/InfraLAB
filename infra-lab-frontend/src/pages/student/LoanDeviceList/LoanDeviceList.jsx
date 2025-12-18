@@ -32,6 +32,39 @@ import api from '../../../services/api';
 import { STUDENT_ROUTES } from '../../../constants/routes';
 import * as S from './LoanDeviceList.styles';
 
+// CSS cho scrollbar của container mã serial
+const serialScrollStyle = `
+  .serial-scroll-container {
+    max-height: 120px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 0;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
+  .serial-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+  }
+`;
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -171,8 +204,12 @@ const LoanDeviceList = () => {
 
   const getStatusTag = (status) => {
     const statusConfig = {
+      pending: { color: 'gold', text: 'Chờ duyệt' },
       borrowed: { color: 'blue', text: 'Đang mượn' },
       return_pending: { color: 'orange', text: 'Chờ trả' },
+      return_requested: { color: 'orange', text: 'Đã yêu cầu trả' },
+      pending_compensation: { color: 'volcano', text: 'Chờ bồi thường' },
+      rejected: { color: 'red', text: 'Đã bị từ chối' },
       returned: { color: 'green', text: 'Đã trả' },
     };
     const config = statusConfig[status] || { color: 'default', text: status };
@@ -332,6 +369,7 @@ const LoanDeviceList = () => {
 
   return (
     <S.Container>
+      <style>{serialScrollStyle}</style>
       <S.Header>
         <Space>
           <Button
@@ -481,6 +519,11 @@ const LoanDeviceList = () => {
               <Descriptions.Item label="Trạng thái">
                 {getStatusTag(selectedLoan.status)}
               </Descriptions.Item>
+              {selectedLoan.status === 'rejected' && selectedLoan.rejected_reason && (
+                <Descriptions.Item label="Lý do từ chối" span={2}>
+                  {selectedLoan.rejected_reason}
+                </Descriptions.Item>
+              )}
               <Descriptions.Item label="Mục đích sử dụng" span={2}>
                 {selectedLoan.purpose}
               </Descriptions.Item>
@@ -495,33 +538,88 @@ const LoanDeviceList = () => {
               Danh sách thiết bị
             </Title>
             <Row gutter={[16, 16]}>
-              {selectedLoan.items?.map((item, idx) => (
-                <Col xs={24} sm={12} key={idx}>
-                  <Card size="small">
-                    <Space>
-                      {item.device?.image && (
-                        <Image
-                          src={item.device.image}
-                          alt={item.device.name}
-                          width={60}
-                          height={60}
-                          style={{ objectFit: 'cover', borderRadius: 4 }}
-                        />
-                      )}
-                      <div>
-                        <div style={{ fontWeight: 500 }}>{item.device?.name}</div>
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          {item.device?.category?.name}
-                        </Text>
-                        <div>
-                          <Text strong>Số lượng: </Text>
-                          <Text>{item.quantity}</Text>
-                        </div>
-                      </div>
-                    </Space>
-                  </Card>
-                </Col>
-              ))}
+              {selectedLoan.items?.map((item, idx) => {
+                const serialNumbers = item.serialNumbers || [];
+                return (
+                  <Col xs={24} sm={12} key={idx}>
+                    <Card size="small">
+                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                        <Space>
+                          {item.device?.image && (
+                            <Image
+                              src={item.device.image}
+                              alt={item.device.name}
+                              width={60}
+                              height={60}
+                              style={{ objectFit: 'cover', borderRadius: 4 }}
+                            />
+                          )}
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 500 }}>{item.device?.name}</div>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {item.device?.category?.name}
+                            </Text>
+                            <div>
+                              <Text strong>Số lượng: </Text>
+                              <Text>{item.quantity}</Text>
+                            </div>
+                          </div>
+                        </Space>
+                        
+                        {/* Hiển thị mã serial nếu có */}
+                        {serialNumbers.length > 0 && (
+                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #f0f0f0' }}>
+                            <Text strong style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+                              Mã serial:
+                            </Text>
+                            <div
+                              style={{
+                                maxHeight: '120px',
+                                overflowY: 'auto',
+                                overflowX: 'hidden',
+                                padding: '4px 0',
+                              }}
+                              className="serial-scroll-container"
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  gap: '4px',
+                                }}
+                              >
+                                {serialNumbers.map((serial, serialIdx) => (
+                                  <Text
+                                    code
+                                    key={serialIdx}
+                                    style={{
+                                      fontSize: 11,
+                                      padding: '2px 6px',
+                                      margin: 0,
+                                      display: 'inline-block',
+                                    }}
+                                  >
+                                    {serial}
+                                  </Text>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Hiển thị thông báo nếu chưa có serial (chưa được gán) */}
+                        {serialNumbers.length === 0 && selectedLoan.status === 'borrowed' && (
+                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #f0f0f0' }}>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Chưa có mã serial được gán
+                            </Text>
+                          </div>
+                        )}
+                      </Space>
+                    </Card>
+                  </Col>
+                );
+              })}
             </Row>
           </div>
         )}
