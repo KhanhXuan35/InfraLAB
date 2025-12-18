@@ -216,11 +216,11 @@ const DeviceListSchool = () => {
       <Layout style={{ marginLeft: 240, background: '#ffffff' }}>
         <Content style={{ padding: '16px 24px', background: '#ffffff' }}>
           <div className={`content-wrapper ${loading ? 'loading' : ''}`}>
-            <h2 className="page-title" style={{ marginBottom: 16, color: '#0f172a' }}>Danh sach linh kien kho School</h2>
+            <h2 className="page-title" style={{ marginBottom: 16, color: '#0f172a' }}>Quản lý kho Thiết Bị inFraLab</h2>
 
             <div className="filter-bar" style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap' }}>
               <input
-                placeholder="Tim theo ten linh kien..."
+                placeholder="Tìm Theo Thiết Bị..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="filter-input"
@@ -233,7 +233,7 @@ const DeviceListSchool = () => {
                 onChange={(e) => setCategory(e.target.value)}
                 style={{ flex: '0 0 auto', width: '180px', height: '36px' }}
               >
-                <option value="all">Tat ca danh muc</option>
+                <option value="all">Tất Cả Danh Mục</option>
                 {categories.map((c) => (
                   <option key={c._id || c.name} value={c._id || ''}>
                     {c.name}
@@ -247,10 +247,10 @@ const DeviceListSchool = () => {
                 onChange={(e) => setStatus(e.target.value)}
                 style={{ flex: '0 0 auto', width: '180px', height: '36px' }}
               >
-                <option value="all">Tat ca trang thai</option>
-                <option value="available">Dang ranh &gt; 0</option>
-                <option value="borrowed">Dang muon &gt; 0</option>
-                <option value="broken">Hong &gt; 0</option>
+                <option value="all">Trạng Thái</option>
+                <option value="available">Có Thể Mượn &gt; 0</option>
+                <option value="borrowed">Đang Mượn &gt; 0</option>
+                <option value="broken">Hỏng &gt; 0</option>
               </select>
 
               <Button className="btn-reset" onClick={resetFilter} style={{ flex: '0 0 auto', width: '100px', height: '36px' }}>
@@ -276,15 +276,15 @@ const DeviceListSchool = () => {
               <table>
                 <thead>
                   <tr>
-                    <th style={{ width: 40 }}>#</th>
-                    <th style={{ width: 110 }}>Anh</th>
-                    <th style={{ width: 220 }}>Ten linh kien</th>
-                    <th style={{ width: 180 }}>Danh muc</th>
-                    <th style={{ width: 80 }}>Tong</th>
-                    <th style={{ width: 100 }}>Dang ranh</th>
-                    <th style={{ width: 100 }}>Dang muon</th>
-                    <th style={{ width: 80 }}>Hong</th>
-                    <th style={{ width: 160 }}>Hanh dong</th>
+                    <th style={{ width: 40 }}>STT</th>
+                    <th style={{ width: 110 }}>Ảnh</th>
+                    <th style={{ width: 220 }}>Tên Thiết Bị</th>
+                    <th style={{ width: 180 }}>Danh Mục</th>
+                    <th style={{ width: 80 }}>Tổng Thiết Bị</th>
+                    <th style={{ width: 100 }}>Có Thể Mượn</th>
+                    <th style={{ width: 100 }}>Đang Mượn</th>
+                    <th style={{ width: 80 }}>Hỏng</th>
+                    <th style={{ width: 160 }}>Hành Động</th>
                   </tr>
                 </thead>
                 <tbody>

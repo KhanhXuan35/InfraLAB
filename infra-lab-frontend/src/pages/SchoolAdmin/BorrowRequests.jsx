@@ -23,7 +23,7 @@ const BorrowRequests = () => {
   const loadBorrowRequests = async () => {
     setLoading(true);
     try {
-      const list = await listBorrowRequests('WAITING');
+      const list = await listBorrowRequests('WAITING');  // school admin xem danh sách yêu cầu mượn thiết bị chờ duyệt
       setBorrowData(list);
     } catch (err) {
       message.error(err?.message || 'Không lấy được danh sách yêu cầu mượn');

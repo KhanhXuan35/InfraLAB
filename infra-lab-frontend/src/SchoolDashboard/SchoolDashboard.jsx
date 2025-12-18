@@ -337,7 +337,7 @@ const filteredDevices = useMemo(() => {
       {/* Main */}
       <main className="main">
         <header className="main-header">
-          <div className="main-title">Trung Tâm Quản Lý Linh Kiện InFraLab</div>
+          <div className="main-title">Quản lý kho thiết bị InFraLab</div>
           <div className="main-header-right">
             <div className="header-search">
               <input
@@ -366,7 +366,7 @@ const filteredDevices = useMemo(() => {
 
               <div className="inventory-actions">
                 <div className="category-dropdown">
-                  <label htmlFor="categorySelect">Loại linh kiện:</label>
+                  <label htmlFor="categorySelect">Danh Mục</label>
                   <select
                     id="categorySelect"
                     value={selectedCategoryKey}
@@ -414,14 +414,14 @@ const filteredDevices = useMemo(() => {
                 <table className="device-table">
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>Ten Thiet Bi</th>
-                      <th>Danh Muc</th>
-                      <th>Tong</th>
-                      <th>Dang Ranh</th>
-                      <th>Dang Muon</th>
-                      <th>Hong</th>
-                      <th>Hành động</th>
+                      <th>STT</th>
+                      <th>Tên Thiết Bị</th>
+                      <th>Danh Mục</th>
+                      <th>Tổng Thiết Bị</th>
+                      <th>Có thể mượn</th>
+                      <th>Đã mượn</th>
+                      <th>Hỏng</th>
+                      <th>Thao Tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -458,8 +458,8 @@ const filteredDevices = useMemo(() => {
                           <td>
                             <div className="table-actions">
                               <button className="btn-view" onClick={() => openView(device)}>Xem</button>
-                              <button className="btn-edit" onClick={() => openEdit(device)}>Sua</button>
-                              <button className="btn-delete" onClick={() => handleDelete(device)}>Xoa</button>
+                              <button className="btn-edit" onClick={() => openEdit(device)}>Sửa</button>
+                              <button className="btn-delete" onClick={() => handleDelete(device)}>Xoá</button>
                             </div>
                           </td>
                         </tr>
