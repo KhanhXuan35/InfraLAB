@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons';
 import api from '../../services/api';
 import LabManagerSidebar from '../../components/Sidebar/LabManagerSidebar';
+import NotificationBell from '../../components/NotificationBell/NotificationBell';
 
 const { Text, Title } = Typography;
 const { Content } = Layout;
@@ -54,9 +55,9 @@ const CertificatesPage = () => {
   const columns = [
     {
       title: 'Mã chứng nhận',
-      dataIndex: 'certificate_code',
+      dataIndex: '_id',
       width: 200,
-      render: (code) => <Text code>{code}</Text>,
+      render: (id) => <Text code>{id ? id.slice(-8) : '-'}</Text>,
     },
     {
       title: 'Thiết bị',
@@ -75,17 +76,14 @@ const CertificatesPage = () => {
       width: 120,
       render: (status) => {
         const map = {
+          WAITING: { color: 'orange', label: 'Đang chờ duyệt' },
           APPROVED: { color: 'green', label: 'Đã duyệt' },
           REJECTED: { color: 'red', label: 'Từ chối' },
+          DELIVERED: { color: 'blue', label: 'Đã giao' },
         };
         const cfg = map[status] || { color: 'default', label: status || 'N/A' };
         return <Tag color={cfg.color}>{cfg.label}</Tag>;
       },
-    },
-    {
-      title: 'Người duyệt',
-      dataIndex: 'approver_name',
-      render: (name, record) => name || record.approver_id?.name || 'N/A',
     },
     {
       title: 'Thời gian',
@@ -117,6 +115,16 @@ const CertificatesPage = () => {
     <Layout style={{ minHeight: '100vh' }}>
       <LabManagerSidebar />
       <Layout style={{ marginLeft: 240 }}>
+        <Layout.Header style={{ 
+          background: '#fff', 
+          padding: '0 24px', 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          alignItems: 'center',
+          borderBottom: '1px solid #f0f0f0'
+        }}>
+          <NotificationBell />
+        </Layout.Header>
         <Content style={{ padding: '24px', background: '#f0f2f5' }}>
           <Card>
             <Title level={3}>Chứng nhận mượn thiết bị</Title>
@@ -164,7 +172,7 @@ const CertificatesPage = () => {
                     <Text code>{selectedCertificate.request_id?._id || selectedCertificate._id}</Text>
                   </Descriptions.Item>
                   <Descriptions.Item label="Mã chứng nhận">
-                    <Text code>{selectedCertificate.certificate_code}</Text>
+                    <Text code>{selectedCertificate._id ? selectedCertificate._id.slice(-8) : '-'}</Text>
                   </Descriptions.Item>
                   <Descriptions.Item label="Người yêu cầu">
                     {selectedCertificate.requester_name} ({selectedCertificate.requester_email})
@@ -193,8 +201,16 @@ const CertificatesPage = () => {
                     {selectedCertificate.qty}
                   </Descriptions.Item>
                   <Descriptions.Item label="Trạng thái">
-                    <Tag color={selectedCertificate.status === 'APPROVED' ? 'green' : 'red'}>
-                      {selectedCertificate.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
+                    <Tag color={
+                      selectedCertificate.status === 'APPROVED' ? 'green' :
+                      selectedCertificate.status === 'REJECTED' ? 'red' :
+                      selectedCertificate.status === 'WAITING' ? 'orange' :
+                      selectedCertificate.status === 'DELIVERED' ? 'blue' : 'default'
+                    }>
+                      {selectedCertificate.status === 'APPROVED' ? 'Đã duyệt' :
+                       selectedCertificate.status === 'REJECTED' ? 'Từ chối' :
+                       selectedCertificate.status === 'WAITING' ? 'Đang chờ duyệt' :
+                       selectedCertificate.status === 'DELIVERED' ? 'Đã giao' : selectedCertificate.status || 'N/A'}
                     </Tag>
                   </Descriptions.Item>
                   {selectedCertificate.status === 'APPROVED' && (
@@ -230,21 +246,21 @@ const CertificatesPage = () => {
                           ? new Date(selectedCertificate.rejected_at).toLocaleString('vi-VN')
                           : '-'}
                       </Descriptions.Item>
+                      {selectedCertificate.note && (
+                        <Descriptions.Item label="Lý do từ chối" span={2}>
+                          <div style={{ 
+                            padding: '12px', 
+                            background: '#fff1f0', 
+                            borderRadius: 4, 
+                            border: '1px solid #ffccc7' 
+                          }}>
+                            <Text>{selectedCertificate.note}</Text>
+                          </div>
+                        </Descriptions.Item>
+                      )}
                     </>
                   )}
                 </Descriptions>
-
-                {selectedCertificate.note && (
-                  <>
-                    <Divider />
-                    <div style={{ padding: '12px', background: '#fff7e6', borderRadius: 4, marginTop: 16 }}>
-                      <Text strong>Lưu ý:</Text>
-                      <div style={{ marginTop: 8 }}>
-                        <Text>{selectedCertificate.note}</Text>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
             )}
           </Modal>

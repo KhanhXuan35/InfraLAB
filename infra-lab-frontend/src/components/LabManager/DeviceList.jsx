@@ -14,6 +14,7 @@ import {
 import { ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import api from "../../services/api";
 import LabManagerSidebar from "../Sidebar/LabManagerSidebar";
+import NotificationBell from "../NotificationBell/NotificationBell";
 import "./deviceList.css";
 
 const { Content } = Layout;
@@ -210,12 +211,15 @@ function DeviceList() {
       <Layout style={{ marginLeft: 240, background: "#f5f5f5" }}>
         <Content style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>
           <Card style={{ marginBottom: 16 }}>
-            <Space direction="vertical" style={{ width: "100%" }} size={4}>
-              <Title level={3} style={{ margin: 0 }}>Quản lý thiết bị (Phòng Lab)</Title>
-              <Text type="secondary">
-                Chỉ hiển thị thiết bị đã được duyệt và đang có trong phòng Lab.
-              </Text>
-            </Space>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Space direction="vertical" style={{ width: "100%" }} size={4}>
+                <Title level={3} style={{ margin: 0 }}>Quản lý thiết bị (Phòng Lab)</Title>
+                <Text type="secondary">
+                  Chỉ hiển thị thiết bị đã được duyệt và đang có trong phòng Lab.
+                </Text>
+              </Space>
+              <NotificationBell />
+            </div>
           </Card>
 
           <Card style={{ marginBottom: 16 }}>

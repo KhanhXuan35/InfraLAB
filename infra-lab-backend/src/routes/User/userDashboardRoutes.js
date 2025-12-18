@@ -4,6 +4,8 @@ import {
   getUserStats,
   getBorrowedDevices,
   getUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
 } from "../../controllers/User/userDashboardController.js";
 
 const router = express.Router();
@@ -19,6 +21,12 @@ router.get("/borrowed", getBorrowedDevices);
 
 // GET /api/user-dashboard/notifications - Lấy thông báo
 router.get("/notifications", getUserNotifications);
+
+// PATCH /api/user-dashboard/notifications/:id/read - Đánh dấu thông báo đã đọc
+router.patch("/notifications/:id/read", markNotificationAsRead);
+
+// PATCH /api/user-dashboard/notifications/read-all - Đánh dấu tất cả thông báo đã đọc
+router.patch("/notifications/read-all", markAllNotificationsAsRead);
 
 export default router;
 
