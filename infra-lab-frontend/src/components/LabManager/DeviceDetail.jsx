@@ -183,10 +183,7 @@ export default function DeviceDetail() {
 
         } catch (err) {
             console.error("Report error:", err);
-            message.error(
-                err?.response?.data?.message ||
-                "Thiết bị này đã có yêu cầu sửa chữa hoặc đã xảy ra lỗi."
-            );
+
         } finally {
             setRepairLoading(false);
         }
@@ -363,19 +360,36 @@ export default function DeviceDetail() {
                                         const serialB = (b.serial_number || '').toLowerCase();
                                         return serialA.localeCompare(serialB);
                                     },
-                                    render: (_, record) => (
-                                        <span
-                                            style={{ color: '#1890ff', cursor: 'pointer' }}
-                                            onClick={() => {
-                                                setSelectedInstance(record);
-                                                setImage(null);
-                                                instanceRepairForm.resetFields();
-                                                setShowRepairModal(true);
-                                            }}
-                                        >
-                                            {record.serial_number}
-                                        </span>
-                                    ),
+                                    render: (_, record) => {
+                                        const disabled = record.status !== "available";
+
+                                        return (
+                                            <span
+                                                style={{
+                                                    color: disabled ? "#9ca3af" : "#1890ff",
+                                                    cursor: disabled ? "not-allowed" : "pointer",
+                                                    textDecoration: disabled ? "line-through" : "none"
+                                                }}
+                                                onClick={() => {
+                                                    if (disabled) {
+                                                        message.warning(
+                                                            record.status === "borrowed"
+                                                                ? "Thiết bị đang được mượn, không thể tạo yêu cầu sửa chữa."
+                                                                : "Thiết bị đang không ở trạng thái có sẵn."
+                                                        );
+                                                        return;
+                                                    }
+
+                                                    setSelectedInstance(record);
+                                                    setImage(null);
+                                                    instanceRepairForm.resetFields();
+                                                    setShowRepairModal(true);
+                                                }}
+                                            >
+                                                {record.serial_number}
+                                            </span>
+                                        );
+                                    }
                                 },
                                 {
                                     title: 'Tình trạng',

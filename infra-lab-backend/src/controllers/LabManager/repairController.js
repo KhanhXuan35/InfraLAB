@@ -21,32 +21,59 @@ export const createRepairRequest = async (req, res) => {
       });
     }
 
+
+
     // 1. Kiểm tra thiết bị tồn tại
     const device = await Device.findById(device_id);
     if (!device) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Device not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Device not found"
+      });
     }
 
-    // 2. Chặn tạo trùng khi đang có yêu cầu chưa hoàn thành
-    //    - Nếu gửi kèm device_instance_id: chỉ chặn trùng trên cùng instance (serial)
-    //    - Nếu không: chặn theo cả thiết bị (giữ tương thích dữ liệu cũ)
+    // 2. ✅ KIỂM TRA DEVICE INSTANCE TRƯỚC
+    let instance = null;
+    if (device_instance_id) {
+      instance = await DeviceInstance.findById(device_instance_id);
+
+      if (!instance) {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy mã thiết bị (serial)."
+        });
+      }
+
+      if (instance.status === "borrowed") {
+        return res.status(400).json({
+          success: false,
+          message: "Thiết bị đang được mượn, không thể tạo yêu cầu sửa chữa."
+        });
+      }
+
+      if (["broken", "repairing", "maintenance"].includes(instance.status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Thiết bị đang trong trạng thái sửa chữa/bảo trì."
+        });
+      }
+    }
+
+    // 3. ✅ SAU ĐÓ MỚI CHECK TRÙNG REPAIR
     const existingFilter = {
       device_id,
       status: { $in: ["pending", "approved", "in_progress"] },
     };
+
     if (device_instance_id) {
       existingFilter.device_instance_id = device_instance_id;
     }
 
     const existingRepair = await Repair.findOne(existingFilter);
-
     if (existingRepair) {
       return res.status(400).json({
         success: false,
-        message:
-          "Thiết bị này đã có yêu cầu sửa chữa đang được xử lý, không thể tạo thêm!",
+        message: "Thiết bị này đã có yêu cầu sửa chữa đang được xử lý."
       });
     }
 
