@@ -127,7 +127,7 @@ const CertificatesPage = () => {
         </Layout.Header>
         <Content style={{ padding: '24px', background: '#f0f2f5' }}>
           <Card>
-            <Title level={3}>Chứng nhận mượn thiết bị</Title>
+            <Title level={3}>Tình trạng thiết bị</Title>
             <Table
               rowKey="_id"
               loading={loading}
