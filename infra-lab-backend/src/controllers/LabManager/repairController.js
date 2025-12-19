@@ -313,9 +313,11 @@ export const updateRepairStatus = async (req, res) => {
     }
 
     // Khi admin duyệt thì lưu ngày duyệt
-    if (status === "approved") {
+    // Khi admin duyệt HOẶC từ chối thì lưu ngày xử lý
+    if (["approved", "rejected"].includes(status)) {
       repair.reviewed_at = new Date();
     }
+
 
     await repair.save();
 
@@ -357,3 +359,52 @@ export const getRepairByDevice = async (req, res) => {
     });
   }
 };
+
+
+// ================== GET REPAIR HISTORY BY DEVICE INSTANCE ==================
+export const getRepairHistoryByInstance = async (req, res) => {
+  try {
+    const { deviceInstanceId } = req.params;
+
+    const instance = await DeviceInstance.findById(deviceInstanceId)
+      .select("serial_number usage_stats.total_repair_times status condition")
+      .lean();
+
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thiết bị"
+      });
+    }
+
+    const repairs = await Repair.find({
+      device_instance_id: deviceInstanceId
+    })
+      .populate({
+        path: "device_id",
+        select: "name image"
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const totalRepairTimes = instance.usage_stats?.total_repair_times || 0;
+
+    return res.json({
+      success: true,
+      data: {
+        instance,
+        repairs,
+        warning: totalRepairTimes >= 5,
+        totalRepairTimes
+      }
+    });
+
+  } catch (err) {
+    console.error("getRepairHistoryByInstance error:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
