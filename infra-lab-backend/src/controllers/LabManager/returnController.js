@@ -134,6 +134,7 @@ export const receiveReturnDevices = async (req, res) => {
           $set: {
             status: "broken",
             condition: "poor",
+            location: "lab", // Đảm bảo location về lab
             current_holder: null
           }
         });
@@ -155,16 +156,57 @@ export const receiveReturnDevices = async (req, res) => {
         
         brokenDevices.push({ instance, repair });
         
-        // Cập nhật inventory
-        await Inventory.findOneAndUpdate(
-          { device_id: instance.device_model_id, location: "lab" },
-          {
-            $inc: {
-              borrowed: -1,
-              broken: 1
+        // Cập nhật inventory - Tính lại từ DeviceInstance để đảm bảo chính xác
+        const inventory = await Inventory.findOne({
+          device_id: instance.device_model_id,
+          location: "lab"
+        });
+        
+        // Tính lại số lượng thực tế từ DeviceInstance sau khi cập nhật
+        const totalInLab = await DeviceInstance.countDocuments({
+          device_model_id: instance.device_model_id,
+          location: "lab"
+        });
+        
+        const availableInLab = await DeviceInstance.countDocuments({
+          device_model_id: instance.device_model_id,
+          location: "lab",
+          status: "available"
+        });
+        
+        const borrowedInLab = await DeviceInstance.countDocuments({
+          device_model_id: instance.device_model_id,
+          location: "lab",
+          status: "borrowed"
+        });
+        
+        const brokenInLab = await DeviceInstance.countDocuments({
+          device_model_id: instance.device_model_id,
+          location: "lab",
+          status: "broken"
+        });
+        
+        if (inventory) {
+          // Cập nhật bằng cách set trực tiếp từ DeviceInstance
+          await Inventory.findByIdAndUpdate(inventory._id, {
+            $set: {
+              total: totalInLab,
+              available: availableInLab,
+              borrowed: borrowedInLab,
+              broken: brokenInLab
             }
-          }
-        );
+          });
+        } else {
+          // Nếu chưa có inventory record, tạo mới
+          await Inventory.create({
+            device_id: instance.device_model_id,
+            location: "lab",
+            total: totalInLab,
+            available: availableInLab,
+            borrowed: borrowedInLab,
+            broken: brokenInLab
+          });
+        }
         
       } else {
         // ===== THIẾT BỊ TỐT =====
@@ -172,6 +214,7 @@ export const receiveReturnDevices = async (req, res) => {
           $set: {
             status: "available",
             condition: returnInfo.condition,
+            location: "lab", // Đảm bảo location về lab
             storage_position: returnInfo.storage_position || instance.storage_position,
             current_holder: null
           }
@@ -179,16 +222,57 @@ export const receiveReturnDevices = async (req, res) => {
         
         goodDevices.push(instance);
         
-        // Cập nhật inventory
-        await Inventory.findOneAndUpdate(
-          { device_id: instance.device_model_id, location: "lab" },
-          {
-            $inc: {
-              borrowed: -1,
-              available: 1
+        // Cập nhật inventory - Tính lại từ DeviceInstance để đảm bảo chính xác
+        const inventory = await Inventory.findOne({
+          device_id: instance.device_model_id,
+          location: "lab"
+        });
+        
+        // Tính lại số lượng thực tế từ DeviceInstance sau khi cập nhật
+        const totalInLab = await DeviceInstance.countDocuments({
+          device_model_id: instance.device_model_id,
+          location: "lab"
+        });
+        
+        const availableInLab = await DeviceInstance.countDocuments({
+          device_model_id: instance.device_model_id,
+          location: "lab",
+          status: "available"
+        });
+        
+        const borrowedInLab = await DeviceInstance.countDocuments({
+          device_model_id: instance.device_model_id,
+          location: "lab",
+          status: "borrowed"
+        });
+        
+        const brokenInLab = await DeviceInstance.countDocuments({
+          device_model_id: instance.device_model_id,
+          location: "lab",
+          status: "broken"
+        });
+        
+        if (inventory) {
+          // Cập nhật bằng cách set trực tiếp từ DeviceInstance
+          await Inventory.findByIdAndUpdate(inventory._id, {
+            $set: {
+              total: totalInLab,
+              available: availableInLab,
+              borrowed: borrowedInLab,
+              broken: brokenInLab
             }
-          }
-        );
+          });
+        } else {
+          // Nếu chưa có inventory record, tạo mới
+          await Inventory.create({
+            device_id: instance.device_model_id,
+            location: "lab",
+            total: totalInLab,
+            available: availableInLab,
+            borrowed: borrowedInLab,
+            broken: brokenInLab
+          });
+        }
       }
       
       // Log

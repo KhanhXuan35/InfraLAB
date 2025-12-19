@@ -1,6 +1,7 @@
 import BorrowLab from "../../models/BorrowLab.js";
 import User from "../../models/User.js";
 import Device from "../../models/Device.js";
+import DeviceInstance from "../../models/DeviceInstance.js";
 import Notifications from "../../models/Notifications.js";
 import ReturnLab from "../../models/ReturnLab.js";
 import Inventory from "../../models/Inventory.js";
@@ -14,8 +15,26 @@ export const getBorrowingStudents = async (req, res) => {
       status: { $in: ["borrowed", "return_pending", "return_requested", "returned"] },
     })
       .populate("student_id", "name email username student_code phone")
-      .populate("items.device_id", "name image category")
-      .populate("repairing_items.device_id", "name image category") // THÊM: Populate repairing_items
+      .populate({
+        path: "items.device_id",
+        select: "name image category",
+        strictPopulate: false,
+      })
+      .populate({
+        path: "items.device_instances",
+        select: "serial_number status condition",
+        strictPopulate: false,
+      })
+      .populate({
+        path: "repairing_items.device_id",
+        select: "name image category",
+        strictPopulate: false,
+      })
+      .populate({
+        path: "repairing_items.device_instances",
+        select: "serial_number status condition",
+        strictPopulate: false,
+      })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -35,6 +54,12 @@ export const getBorrowingStudents = async (req, res) => {
       // Tính từ items (thiết bị chưa trả)
       const items = (record.items || []).map((item) => {
         totalQuantity += item.quantity || 0;
+        
+        // Lấy danh sách serial numbers từ device_instances
+        const serialNumbers = (item.device_instances || [])
+          .map(inst => inst.serial_number || inst._id?.toString().slice(-8))
+          .filter(Boolean);
+        
         return {
           device: {
             _id: item.device_id?._id || item.device_id,
@@ -43,12 +68,20 @@ export const getBorrowingStudents = async (req, res) => {
             category: item.device_id?.category || "",
           },
           quantity: item.quantity || 0,
+          serialNumbers: serialNumbers, // Thêm serial numbers
+          device_instances: item.device_instances || [], // Giữ nguyên để frontend có thể dùng
         };
       });
 
       // Cộng thêm số lượng thiết bị đang sửa chữa (thiết bị hỏng sinh viên vẫn đang cầm)
       const repairingItems = (record.repairing_items || []).map((item) => {
         totalQuantity += item.quantity || 0;
+        
+        // Lấy danh sách serial numbers từ device_instances
+        const serialNumbers = (item.device_instances || [])
+          .map(inst => inst.serial_number || inst._id?.toString().slice(-8))
+          .filter(Boolean);
+        
         return {
           device: {
             _id: item.device_id?._id || item.device_id,
@@ -59,6 +92,8 @@ export const getBorrowingStudents = async (req, res) => {
           quantity: item.quantity || 0,
           broken_reason: item.broken_reason,
           reported_at: item.reported_at,
+          serialNumbers: serialNumbers, // Thêm serial numbers
+          device_instances: item.device_instances || [], // Giữ nguyên để frontend có thể dùng
         };
       });
       
@@ -276,46 +311,120 @@ export const recordReturn = async (req, res) => {
 
     await returnRecord.save();
 
-    // Cập nhật Inventory - CHỈ nhận thiết bị tốt
+    // Cập nhật DeviceInstance và Inventory
     const goodQuantity = quantity - (brokenQuantity || 0);
     
+    // Lấy các DeviceInstance đã được gán cho đơn mượn này
+    const deviceInstances = item.device_instances || [];
+    const instancesToReturn = deviceInstances.slice(0, quantity); // Lấy số lượng cần trả
+    
     // Debug log
-    console.log(`[recordReturn] Inventory update:`);
+    console.log(`[recordReturn] DeviceInstance and Inventory update:`);
     console.log(`  - deviceId: ${deviceId} (type: ${typeof deviceId})`);
     console.log(`  - quantity = ${quantity}, brokenQuantity = ${brokenQuantity}, goodQuantity = ${goodQuantity}`);
+    console.log(`  - Total device_instances: ${deviceInstances.length}, instancesToReturn: ${instancesToReturn.length}`);
     
-    if (goodQuantity > 0) {
-      // Tìm inventory record
-      const inventory = await Inventory.findOne({
-        device_id: deviceId,
-        location: "lab",
+    // Cập nhật DeviceInstance: thiết bị tốt
+    if (goodQuantity > 0 && instancesToReturn.length >= goodQuantity) {
+      const goodInstances = instancesToReturn.slice(0, goodQuantity);
+      
+      await DeviceInstance.updateMany(
+        { _id: { $in: goodInstances.map(i => i._id || i) } },
+        {
+          $set: {
+            status: "available",
+            location: "lab", // Đảm bảo location về lab
+            current_holder: null
+          }
+        }
+      );
+      
+      console.log(`  - Updated ${goodInstances.length} good instances to available`);
+    }
+    
+    // Cập nhật DeviceInstance: thiết bị hỏng
+    if (brokenQuantity > 0 && instancesToReturn.length >= quantity) {
+      const brokenInstances = instancesToReturn.slice(goodQuantity, quantity);
+      
+      await DeviceInstance.updateMany(
+        { _id: { $in: brokenInstances.map(i => i._id || i) } },
+        {
+          $set: {
+            status: "broken",
+            condition: "poor",
+            location: "lab", // Đảm bảo location về lab
+            current_holder: null
+          }
+        }
+      );
+      
+      console.log(`  - Updated ${brokenInstances.length} broken instances to broken`);
+    }
+    
+    // Cập nhật Inventory - Tính lại từ DeviceInstance để đảm bảo chính xác
+    const inventory = await Inventory.findOne({
+      device_id: deviceId,
+      location: "lab",
+    });
+    
+    // Tính lại số lượng thực tế từ DeviceInstance sau khi cập nhật
+    const totalInLab = await DeviceInstance.countDocuments({
+      device_model_id: deviceId,
+      location: "lab"
+    });
+    
+    const availableInLab = await DeviceInstance.countDocuments({
+      device_model_id: deviceId,
+      location: "lab",
+      status: "available"
+    });
+    
+    const borrowedInLab = await DeviceInstance.countDocuments({
+      device_model_id: deviceId,
+      location: "lab",
+      status: "borrowed"
+    });
+    
+    const brokenInLab = await DeviceInstance.countDocuments({
+      device_model_id: deviceId,
+      location: "lab",
+      status: "broken"
+    });
+    
+    if (inventory) {
+      // Cập nhật bằng cách set trực tiếp từ DeviceInstance (không dùng $inc để tránh sai lệch)
+      await Inventory.findByIdAndUpdate(inventory._id, {
+        $set: {
+          total: totalInLab,
+          available: availableInLab,
+          borrowed: borrowedInLab,
+          broken: brokenInLab
+        }
       });
       
-      if (inventory) {
-        const oldAvailable = inventory.available || 0;
-        const newAvailable = oldAvailable + goodQuantity;
-        
-        // Debug log
-        console.log(`  - inventory found: YES`);
-        console.log(`  - Before: available = ${oldAvailable}, total = ${inventory.total}`);
-        
-        // Cập nhật available (CHỈ tăng số lượng thiết bị tốt)
-        // total KHÔNG thay đổi - đây là tổng số thiết bị phòng lab sở hữu
-        await Inventory.findByIdAndUpdate(inventory._id, {
-          $set: { available: newAvailable },
-        });
-        
-        // Debug log sau khi cập nhật
-        console.log(`  - After: available = ${newAvailable} (${oldAvailable} + ${goodQuantity})`);
-      } else {
-        console.log(`  - ERROR: Inventory not found for deviceId: ${deviceId}, location: lab`);
-        return res.status(404).json({
-          success: false,
-          message: "Không tìm thấy tồn kho lab cho thiết bị này",
-        });
-      }
+      console.log(`  - Inventory updated from DeviceInstance:`);
+      console.log(`    - total: ${totalInLab}, available: ${availableInLab}, borrowed: ${borrowedInLab}, broken: ${brokenInLab}`);
     } else {
-      console.log(`  - WARNING: goodQuantity = ${goodQuantity} <= 0, không cập nhật available`);
+      // Nếu chưa có inventory record, tạo mới
+      await Inventory.create({
+        device_id: deviceId,
+        location: "lab",
+        total: totalInLab,
+        available: availableInLab,
+        borrowed: borrowedInLab,
+        broken: brokenInLab
+      });
+      
+      console.log(`  - Created new inventory record`);
+    }
+    
+    // Xóa các instance đã trả khỏi device_instances
+    if (instancesToReturn.length > 0) {
+      const instanceIdsToRemove = instancesToReturn.map(i => i._id || i);
+      item.device_instances = item.device_instances.filter(
+        inst => !instanceIdsToRemove.some(id => (inst._id || inst).toString() === id.toString())
+      );
+      console.log(`  - Removed ${instancesToReturn.length} instances from device_instances`);
     }
 
     // Nếu có thiết bị hỏng, KHÔNG nhận vào lab, để sinh viên tự sửa
