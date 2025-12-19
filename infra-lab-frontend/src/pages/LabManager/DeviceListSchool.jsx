@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Layout, Typography, Button } from 'antd';
+import { Layout, Typography, Button, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import LabManagerSidebar from '../../components/Sidebar/LabManagerSidebar';
+import NotificationBell from '../../components/NotificationBell/NotificationBell';
 import '../../components/LabManager/deviceList.css';
 import '../../dashboard.css';
 
@@ -167,20 +168,23 @@ const DeviceListSchool = () => {
                   Quản lý và mượn thiết bị từ kho School
           </Text>
         </div>
-              <Button 
-                type="primary" 
-                onClick={fetchData} 
-                loading={loading}
-                size="large"
-          style={{
-                  height: '40px',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  boxShadow: '0 2px 8px rgba(24, 144, 255, 0.2)'
-          }}
-        >
-                Tải lại
-          </Button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <NotificationBell />
+                <Button 
+                  type="primary" 
+                  onClick={fetchData} 
+                  loading={loading}
+                  size="large"
+                  style={{
+                    height: '40px',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    boxShadow: '0 2px 8px rgba(24, 144, 255, 0.2)'
+                  }}
+                >
+                  Tải lại
+                </Button>
+              </div>
         </div>
 
             {/* Filter Bar - Redesigned */}
@@ -330,17 +334,13 @@ const DeviceListSchool = () => {
                     <th style={{ width: 110, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>Ảnh</th>
                     <th style={{ width: 220, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>Tên linh kiện</th>
                     <th style={{ width: 180, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>Danh mục</th>
-                    <th style={{ width: 80, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Tổng</th>
-                    <th style={{ width: 100, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Đang rảnh</th>
-                    <th style={{ width: 100, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Đang mượn</th>
-                    <th style={{ width: 80, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Hỏng</th>
                     <th style={{ width: 180, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visibleItems.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="center" style={{ padding: 16 }}>
+                      <td colSpan="5" className="center" style={{ padding: 16 }}>
                         {loading ? 'Dang tai...' : 'Khong co du lieu'}
                       </td>
                     </tr>
@@ -414,18 +414,6 @@ const DeviceListSchool = () => {
                         <td style={{ padding: '16px 12px' }}>
                           <Text style={{ fontSize: '14px', color: '#4a5568' }}>{categoryName}</Text>
                         </td>
-                        <td style={{ padding: '16px 12px', textAlign: 'center', fontSize: '14px', color: '#1a202c', fontWeight: 500 }}>
-                          {item.inventory?.total ?? 0}
-                        </td>
-                        <td style={{ padding: '16px 12px', textAlign: 'center', fontSize: '14px', color: '#16a34a', fontWeight: 600 }}>
-                          {item.inventory?.available ?? 0}
-                        </td>
-                        <td style={{ padding: '16px 12px', textAlign: 'center', fontSize: '14px', color: '#ca8a04', fontWeight: 600 }}>
-                          {item.inventory?.borrowing ?? 0}
-                        </td>
-                        <td style={{ padding: '16px 12px', textAlign: 'center', fontSize: '14px', color: '#dc2626', fontWeight: 600 }}>
-                          {item.inventory?.broken ?? 0}
-                        </td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                             <input
@@ -483,7 +471,7 @@ const DeviceListSchool = () => {
                                     requester_role: 'lab_manager',
                                     status: 'WAITING'
                                   });
-                                  setNotice('Đã gửi yêu cầu mượn. Vui lòng chờ School Admin duyệt.');
+                                  message.success('Đã gửi yêu cầu mượn. Vui lòng chờ School Admin duyệt.');
                                   await fetchData(); // Reload danh sách
                                 } catch (err) {
                                   const msg = err?.message || err?.response?.data?.message || 'Gửi yêu cầu thất bại';

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Layout, Button, Table, Tag, message, Tabs, Modal, Descriptions, Space, Typography, Divider } from 'antd';
+import { Layout, Button, Table, Tag, message, Tabs, Modal, Descriptions, Space, Typography, Divider, Input } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircleOutlined,
@@ -10,9 +10,11 @@ import {
 } from '@ant-design/icons';
 import api from '../../services/api';
 import SchoolAdminSidebar from '../../components/Sidebar/SchoolAdminSidebar';
+import NotificationBell from '../../components/NotificationBell/NotificationBell';
 import './BorrowRequests.css';
 
 const { Text, Title } = Typography;
+const { TextArea } = Input;
 
 const { Content } = Layout;
 
@@ -26,6 +28,9 @@ const BorrowRequests = () => {
   const [processingId, setProcessingId] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectingId, setRejectingId] = useState(null);
 
   // Chuẩn hóa danh sách: bỏ trùng theo _id và sắp xếp mới nhất lên trên
   const normalizeRequests = (list) => {
@@ -47,7 +52,8 @@ const BorrowRequests = () => {
     setLoading(true);
     try {
       // Lấy yêu cầu từ lab managers (role lab_manager) - chỉ lấy WAITING
-      const res = await api.get('/request-lab?status=WAITING&requester_role=lab_manager');
+      // exclude_new_devices=true để loại bỏ yêu cầu thiết bị ngoài (chỉ lấy yêu cầu mượn thiết bị có sẵn)
+      const res = await api.get('/request-lab?status=WAITING&requester_role=lab_manager&exclude_new_devices=true');
       const raw = Array.isArray(res) ? res : res?.data || [];
       setLabManagerRequests(normalizeRequests(raw));
     } catch (err) {
@@ -60,8 +66,9 @@ const BorrowRequests = () => {
   const loadApprovedRequests = async () => {
     setLoading(true);
     try {
-      // Lấy các đơn đã duyệt (APPROVED) - chờ Lab Manager mang đơn đến
-      const res = await api.get('/request-lab?status=APPROVED&requester_role=lab_manager');
+      // Lấy các đơn đã duyệt (APPROVED) - chỉ lấy yêu cầu mượn thiết bị có sẵn
+      // exclude_new_devices=true để loại bỏ yêu cầu thiết bị ngoài
+      const res = await api.get('/request-lab?status=APPROVED&requester_role=lab_manager&exclude_new_devices=true');
       const raw = Array.isArray(res) ? res : res?.data || [];
       setApprovedRequests(normalizeRequests(raw));
     } catch (err) {
@@ -94,7 +101,47 @@ const BorrowRequests = () => {
     }
   }, [activeTab]);
 
+  const handleRejectClick = (id) => {
+    setRejectingId(id);
+    setRejectReason('');
+    setRejectModalVisible(true);
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!rejectingId) return;
+    
+    if (!rejectReason || rejectReason.trim() === '') {
+      message.warning('Vui lòng nhập lý do từ chối');
+      return;
+    }
+
+    setProcessingId(rejectingId);
+    try {
+      await api.patch(`/request-lab/${rejectingId}/reject`, {
+        reason: rejectReason.trim()
+      });
+      message.success('Đã từ chối yêu cầu mượn');
+      setRejectModalVisible(false);
+      setRejectReason('');
+      setRejectingId(null);
+      if (activeTab === 'lab-manager') {
+        await loadLabManagerRequests();
+      }
+    } catch (err) {
+      console.error('reject error:', err);
+      const msg = err?.message || err?.response?.data?.message || 'Thao tác thất bại';
+      message.error(msg);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleBorrowAction = async (id, action) => {
+    if (action === 'reject') {
+      handleRejectClick(id);
+      return;
+    }
+    
     setProcessingId(id);
     try {
       await api.patch(`/request-lab/${id}/${action}`);
@@ -104,7 +151,6 @@ const BorrowRequests = () => {
       }
     } catch (err) {
       console.error(`${action} error:`, err);
-      // Hiển thị thông báo lỗi chi tiết từ backend
       const msg = err?.message || err?.response?.data?.message || 'Thao tác thất bại';
       message.error(msg);
     } finally {
@@ -493,6 +539,7 @@ const BorrowRequests = () => {
           <div className="br-header">
             <h2>Quản lý yêu cầu</h2>
             <div className="br-header-actions">
+              <NotificationBell />
               <Button
                 icon={<ReloadOutlined />}
                 onClick={() => {
@@ -642,8 +689,8 @@ const BorrowRequests = () => {
                         danger
                         icon={<CloseCircleOutlined />}
                         onClick={() => {
-                          handleBorrowAction(selectedRequest._id, 'reject');
                           setDetailModalVisible(false);
+                          handleRejectClick(selectedRequest._id);
                         }}
                         loading={processingId === selectedRequest._id}
                       >
@@ -654,6 +701,34 @@ const BorrowRequests = () => {
                 </div>
               </div>
             )}
+          </Modal>
+
+          {/* Modal nhập lý do từ chối */}
+          <Modal
+            title="Từ chối yêu cầu mượn thiết bị"
+            open={rejectModalVisible}
+            onOk={handleRejectConfirm}
+            onCancel={() => {
+              setRejectModalVisible(false);
+              setRejectReason('');
+              setRejectingId(null);
+            }}
+            okText="Xác nhận từ chối"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+            confirmLoading={processingId === rejectingId}
+          >
+            <div style={{ marginBottom: 16 }}>
+              <Text>Vui lòng nhập lý do từ chối yêu cầu mượn thiết bị:</Text>
+            </div>
+            <TextArea
+              rows={4}
+              placeholder="Nhập lý do từ chối..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              maxLength={500}
+              showCount
+            />
           </Modal>
         </Content>
       </Layout>

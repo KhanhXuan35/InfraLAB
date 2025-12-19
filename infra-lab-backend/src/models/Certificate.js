@@ -25,7 +25,7 @@ const certificateSchema = new mongoose.Schema(
     // Trạng thái chứng nhận
     status: {
       type: String,
-      enum: ["APPROVED", "REJECTED"],
+      enum: ["APPROVED", "REJECTED", "DELIVERED"],
       required: true,
     },
     

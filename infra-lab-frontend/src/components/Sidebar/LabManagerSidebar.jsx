@@ -84,7 +84,7 @@ const LabManagerSidebar = () => {
     {
       key: 'certificates',
       icon: <SafetyCertificateOutlined />,
-      label: 'Chứng nhận',
+      label: 'Tình trạng thiết bị',
     },
     {
       key: 'reports',

@@ -46,6 +46,7 @@ import RepairRequestList from "./pages/School/RepairRequestList";
 import LabManagerRepairList from "./pages/LabManager/LabManagerRepairList";
 import SchoolRepairDetail from "./pages/School/SchoolRepairDetail";
 import BorrowRequests from "./pages/SchoolAdmin/BorrowRequests";
+import BorrowHistory from "./pages/SchoolAdmin/BorrowHistory";
 import CreateDeviceWithInstances from "./pages/SchoolAdmin/CreateDeviceWithInstances.jsx";
 
 // Profile page
@@ -111,6 +112,7 @@ function App() {
               <Route path={SCHOOL_ROUTES.REPAIRS} element={<RepairRequestList />} />
               <Route path={SCHOOL_ROUTES.REPAIR_DETAIL(":id")} element={<SchoolRepairDetail />} />
               <Route path="/school/borrow-requests" element={<BorrowRequests />} />
+              <Route path="/school/borrow-history" element={<BorrowHistory />} />
               <Route path="/school/device/:id" element={<ViewDetailDevice />} />
             </Route>
 
