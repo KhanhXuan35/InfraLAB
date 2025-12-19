@@ -6,7 +6,7 @@ const instance = axios.create({
         "Content-Type": "application/json",
     },
     withCredentials: true, // Để nhận Cookie từ Backend
-    timeout: 10000, // 10 giây timeout
+    timeout: 30000, // 30 giây timeout (tăng lên để tránh timeout khi query phức tạp)
 });
 
 // Request interceptor để thêm token vào header

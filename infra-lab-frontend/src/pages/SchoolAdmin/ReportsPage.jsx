@@ -262,7 +262,7 @@ const ReportsPage = () => {
                       title="Tổng sinh viên"
                       value={reportsData?.studentStats?.totalActiveStudents || 0}
                       prefix={<TeamOutlined />}
-                      valueStyle={{ color: '#1890ff' }}
+                      styles={{ content: { color: '#1890ff' } }}
                     />
                   </Card>
                 </Col>
@@ -272,7 +272,7 @@ const ReportsPage = () => {
                       title="Sinh viên đang mượn"
                       value={reportsData?.studentStats?.studentsCurrentlyBorrowing || 0}
                       prefix={<UserOutlined />}
-                      valueStyle={{ color: '#52c41a' }}
+                      styles={{ content: { color: '#52c41a' } }}
                     />
                   </Card>
                 </Col>
@@ -282,7 +282,7 @@ const ReportsPage = () => {
                       title="Đơn mượn quá hạn"
                       value={reportsData?.studentStats?.overdueBorrows || 0}
                       prefix={<ExclamationCircleOutlined />}
-                      valueStyle={{ color: '#ff4d4f' }}
+                      styles={{ content: { color: '#ff4d4f' } }}
                     />
                   </Card>
                 </Col>
@@ -292,7 +292,7 @@ const ReportsPage = () => {
                       title="Sinh viên chờ duyệt"
                       value={reportsData?.studentStats?.pendingStudents || 0}
                       prefix={<ClockCircleOutlined />}
-                      valueStyle={{ color: '#faad14' }}
+                      styles={{ content: { color: '#faad14' } }}
                     />
                   </Card>
                 </Col>
@@ -311,7 +311,7 @@ const ReportsPage = () => {
                           reportsData.deviceStatusData.borrowed
                         : 0}
                       prefix={<ToolOutlined />}
-                      valueStyle={{ color: '#1890ff' }}
+                      styles={{ content: { color: '#1890ff' } }}
                     />
                   </Card>
                 </Col>
@@ -321,7 +321,7 @@ const ReportsPage = () => {
                       title="Thiết bị sẵn sàng"
                       value={reportsData?.deviceStatusData?.available || 0}
                       prefix={<CheckCircleOutlined />}
-                      valueStyle={{ color: '#52c41a' }}
+                      styles={{ content: { color: '#52c41a' } }}
                     />
                   </Card>
                 </Col>
@@ -331,7 +331,7 @@ const ReportsPage = () => {
                       title="Đang sửa chữa"
                       value={reportsData?.deviceStatusData?.inRepair || 0}
                       prefix={<WarningOutlined />}
-                      valueStyle={{ color: '#faad14' }}
+                      styles={{ content: { color: '#faad14' } }}
                     />
                   </Card>
                 </Col>
@@ -341,7 +341,7 @@ const ReportsPage = () => {
                       title="Thiết bị hỏng"
                       value={reportsData?.deviceStatusData?.broken || 0}
                       prefix={<WarningOutlined />}
-                      valueStyle={{ color: '#ff4d4f' }}
+                      styles={{ content: { color: '#ff4d4f' } }}
                     />
                   </Card>
                 </Col>
