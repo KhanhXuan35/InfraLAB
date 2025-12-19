@@ -416,23 +416,7 @@ export default function DeviceDetail() {
                                         );
                                     }
                                 },
-                                {
-                                    title: 'Tình trạng',
-                                    dataIndex: 'condition',
-                                    key: 'condition',
-                                    width: 100,
-                                    align: 'center',
-                                    render: (condition) => {
-                                        const conditionMap = {
-                                            'new': { label: 'Mới', color: 'green' },
-                                            'good': { label: 'Tốt', color: 'blue' },
-                                            'fair': { label: 'Khá', color: 'orange' },
-                                            'poor': { label: 'Kém', color: 'red' },
-                                        };
-                                        const config = conditionMap[condition] || { label: condition, color: 'default' };
-                                        return <Tag color={config.color}>{config.label}</Tag>;
-                                    },
-                                },
+                                
                                 {
                                     title: 'Trạng thái',
                                     dataIndex: 'status',
