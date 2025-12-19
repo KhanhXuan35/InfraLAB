@@ -115,7 +115,7 @@ export const softDeleteStudentService = async (userId) => {
     user.isActive = false;
     await user.save(); // Dùng save() thay vì findByIdAndUpdate để trigger middleware nếu có
 
-    return { message: "Đã hủy kích hoạt sinh viên. Tài khoản đã chuyển sang danh sách chờ duyệt." };
+    return { message: "Đã hủy kích hoạt sinh viên. Tài khoản đã chuyển sang danh sách cấp quyền." };
 };
 
 // 6. Duyệt sinh viên (Số lượng lớn) & Gửi mail
@@ -152,4 +152,21 @@ export const approveStudentsService = async (userIds) => {
     return {
         message: `Đã duyệt thành công ${userIds.length} sinh viên.`
     };
+};
+
+// 7. Xóa cứng sinh viên (Xóa hoàn toàn khỏi DB)
+export const hardDeleteStudentService = async (userId) => {
+    const user = await User.findById(userId);
+
+    if (!user) throw new Error("Không tìm thấy sinh viên này.");
+
+    // 🔥 [BẢO MẬT] Check Role
+    if (user.role !== "student") {
+        throw new Error("Bạn chỉ có thể xóa tài khoản Sinh viên!");
+    }
+
+    // Xóa cứng từ database
+    await User.findByIdAndDelete(userId);
+
+    return { message: "Đã xóa cứng sinh viên khỏi hệ thống." };
 };

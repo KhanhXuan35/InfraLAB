@@ -18,6 +18,7 @@ import {
   Divider,
   Select,
   DatePicker,
+  Layout,
   Row,
   Col
 } from 'antd';
@@ -60,9 +61,7 @@ const BorrowReturnPage = () => {
   const [returnQuantity, setReturnQuantity] = useState(1);
   const [brokenQuantity, setBrokenQuantity] = useState(0);
   const [brokenReason, setBrokenReason] = useState('');
-  const [isRepairedItem, setIsRepairedItem] = useState(false); // Flag để phân biệt thiết bị đã sửa
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [selectedBorrowRequest, setSelectedBorrowRequest] = useState(null);
+  const [isRepairedItem, setIsRepairedItem] = useState(false);
   const [filteredInfo, setFilteredInfo] = useState({});
   const [sortedInfo, setSortedInfo] = useState({});
 
@@ -374,7 +373,8 @@ const BorrowReturnPage = () => {
               )}
             </Spin>
           </Card>
-
+        </Content>
+      </Layout>
       {/* --- CÁC MODAL (GIỮ NGUYÊN) --- */}
 
       {/* Modal Chi tiết */}

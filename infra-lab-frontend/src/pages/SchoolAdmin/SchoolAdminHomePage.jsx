@@ -7,6 +7,7 @@ import {
   Statistic,
   Typography,
   Empty,
+  Layout
 } from 'antd';
 import {
   ToolOutlined,

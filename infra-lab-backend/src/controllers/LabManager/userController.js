@@ -70,3 +70,14 @@ export const approveStudents = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// [PATCH] /api/users/:id/hard-delete (Xóa cứng)
+export const hardDeleteStudent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await UserService.hardDeleteStudentService(id);
+        res.status(200).json({ success: true, ...result });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};

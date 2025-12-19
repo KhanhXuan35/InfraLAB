@@ -5,7 +5,7 @@ import {
     Descriptions, Avatar, Typography, Divider // <--- Đã thêm đủ import
 } from "antd";
 import {
-    EyeOutlined, DeleteOutlined,
+    EyeOutlined, EditOutlined, DeleteOutlined,
     CheckCircleOutlined, UserOutlined, ReloadOutlined, SearchOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -14,7 +14,8 @@ import {
     getPendingStudents,
     updateStudent,
     softDeleteStudent,
-    approveStudents
+    approveStudents,
+    hardDeleteStudent
 } from "../../services/userService";
 
 const { Option } = Select;
@@ -139,6 +140,36 @@ const StudentManagerPage = () => {
         }
     };
 
+    const handleRejectSelected = async () => {
+        if (selectedRowKeys.length === 0) return;
+        Modal.confirm({
+            title: "Từ chối phê duyệt",
+            content: `Bạn có chắc chắn muốn xóa ${selectedRowKeys.length} sinh viên này khỏi hệ thống? Hành động này không thể hoàn tác.`,
+            okText: "Xóa",
+            okType: "danger",
+            cancelText: "Hủy",
+            onOk: async () => {
+                try {
+                    setLoading(true);
+                    // Xóa cứng từng sinh viên
+                    for (const id of selectedRowKeys) {
+                        await hardDeleteStudent(id);
+                    }
+                    notification.success({
+                        message: "Từ chối thành công",
+                        description: `Đã xóa ${selectedRowKeys.length} sinh viên.`
+                    });
+                    setSelectedRowKeys([]);
+                    fetchData();
+                } catch (error) {
+                    notification.error({ message: "Lỗi từ chối", description: error.message });
+                } finally {
+                    setLoading(false);
+                }
+            },
+        });
+    };
+
     // --- CONFIG BẢNG ---
     const paginationConfig = {
         defaultPageSize: 10,
@@ -161,6 +192,7 @@ const StudentManagerPage = () => {
             render: (_, record) => (
                 <Space size="middle">
                     <Tooltip title="Xem chi tiết"><Button icon={<EyeOutlined />} onClick={() => handleViewClick(record)} /></Tooltip>
+                    <Tooltip title="Cập nhật"><Button type="primary" icon={<EditOutlined />} onClick={() => handleEditClick(record)} /></Tooltip>
                     <Tooltip title="Hủy kích hoạt">
                         <Popconfirm title="Bạn có chắc chắn muốn hủy kích hoạt?" onConfirm={() => handleDeleteClick(record._id)} okText="Đồng ý" cancelText="Hủy">
                             <Button type="primary" danger icon={<DeleteOutlined />} />
@@ -199,7 +231,7 @@ const StudentManagerPage = () => {
         },
         {
             key: '2',
-            label: <span><CheckCircleOutlined /> Xác thực sinh viên ({pendingStudents?.length || 0})</span>,
+            label: <span><CheckCircleOutlined /> Danh sách cấp quyền ({pendingStudents?.length || 0})</span>,
             children: (
                 <div>
                     <div style={{ marginBottom: 16, display: 'flex', gap: 10 }}>
@@ -211,6 +243,15 @@ const StudentManagerPage = () => {
                             style={{ backgroundColor: selectedRowKeys.length ? '#52c41a' : undefined }}
                         >
                             Phê duyệt đã chọn ({selectedRowKeys.length})
+                        </Button>
+                        <Button
+                            type="primary"
+                            danger
+                            onClick={handleRejectSelected}
+                            disabled={!selectedRowKeys.length}
+                            loading={loading}
+                        >
+                            Từ chối đã chọn ({selectedRowKeys.length})
                         </Button>
                         <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
                     </div>

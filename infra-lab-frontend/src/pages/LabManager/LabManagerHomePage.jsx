@@ -10,8 +10,9 @@ import {
   List,
   Avatar,
   Empty,
-  List,
+  Layout,
   Tag,
+  Space,
   Divider,
 } from 'antd';
 import {
@@ -35,6 +36,7 @@ const { Title, Paragraph, Text } = Typography;
 
 const LabManagerHomePage = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
   // State dữ liệu
   const [stats, setStats] = useState({
     totalAssets: 0,

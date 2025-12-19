@@ -30,7 +30,13 @@ export const softDeleteStudent = async (id) => {
     return response.data;
 };
 
-// 6. Duyệt sinh viên
+// 6. Xóa cứng
+export const hardDeleteStudent = async (id) => {
+    const response = await api.patch(`/users/${id}/hard-delete`);
+    return response.data;
+};
+
+// 7. Duyệt sinh viên
 export const approveStudents = async (userIds) => {
     const response = await api.post("/users/approve", { userIds });
     return response.data;

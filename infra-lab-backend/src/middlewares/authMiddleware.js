@@ -3,6 +3,11 @@ import User from "../models/User.js";
 
 export const checkAuthMiddleware = async (req, res, next) => {
     try {
+        // Skip auth check for OPTIONS (preflight) requests
+        if (req.method === 'OPTIONS') {
+            return next();
+        }
+        
         console.log("🔐 Auth middleware called for:", req.method, req.path);
         const authHeader = req.headers.authorization;
         if (!authHeader?.startsWith("Bearer ")) {
@@ -30,6 +35,15 @@ export const checkAuthMiddleware = async (req, res, next) => {
 
 export const authorize = (...roles) => {
     return (req, res, next) => {
+        // Skip authorization check for OPTIONS (preflight) requests
+        if (req.method === 'OPTIONS') {
+            return next();
+        }
+        
+        if (!req.user) {
+            return res.status(401).json({ success: false, message: "Chưa đăng nhập!" });
+        }
+        
         if (!roles.includes(req.user.role)) {
             return res.status(403).json({ success: false, message: "Không có quyền truy cập!" });
         }
