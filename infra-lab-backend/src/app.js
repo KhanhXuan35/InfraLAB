@@ -33,10 +33,37 @@ app.use((req, res, next) => {
 });
 
 // 1. Cấu hình CORS (Quan trọng để nhận Cookie)
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:5173/",
+    process.env.CLIENT_URL,
+    process.env.CLIENT_URL?.replace(/\/$/, ""), // Loại bỏ dấu / ở cuối nếu có
+].filter(Boolean); // Loại bỏ giá trị undefined/null
+
 app.use(cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173", // URL frontend của bạn
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], // Thêm PATCH để hỗ trợ cập nhật trạng thái
-    credentials: true // <--- Bắt buộc để browser cho phép lưu cookie
+    origin: function (origin, callback) {
+        // Cho phép requests không có origin (như mobile apps hoặc Postman)
+        if (!origin) return callback(null, true);
+        
+        // Kiểm tra origin có trong danh sách được phép không
+        const isAllowed = allowedOrigins.some(allowed => {
+            // So sánh chính xác hoặc loại bỏ dấu / ở cuối để so sánh
+            const normalizedOrigin = origin.replace(/\/$/, "");
+            const normalizedAllowed = allowed.replace(/\/$/, "");
+            return normalizedOrigin === normalizedAllowed;
+        });
+        
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            console.warn(`CORS blocked origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true, // <--- Bắt buộc để browser cho phép lưu cookie
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Type", "Authorization"]
 }));
 
 // Upload routes - đặt TRƯỚC express.json() và express.urlencoded() 

@@ -15,6 +15,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import StudentHomePage from "./pages/student/StudentHomePage";
 import LabManagerHomePage from "./pages/LabManager/LabManagerHomePage";
 import SchoolAdminHomePage from "./pages/SchoolAdmin/SchoolAdminHomePage";
+import ReportsPage from "./pages/SchoolAdmin/ReportsPage";
 
 // Components
 import PrivateRoute from "./components/PrivateRoute";
@@ -139,7 +140,7 @@ function App() {
 
             {/* --- REPORTS & NOTIFICATIONS (Available for lab_manager and school_admin) --- */}
             <Route element={<PrivateRoute allowedRoles={["lab_manager", "school_admin"]} />}>
-              <Route path={LAB_MANAGER_ROUTES.REPORTS} element={<div>Reports Page - Coming Soon</div>} />
+              <Route path={LAB_MANAGER_ROUTES.REPORTS} element={<ReportsPage />} />
               <Route path={LAB_MANAGER_ROUTES.NOTIFICATIONS} element={<div>Notifications Page - Coming Soon</div>} />
             </Route>
 

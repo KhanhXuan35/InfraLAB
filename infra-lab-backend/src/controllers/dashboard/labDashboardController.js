@@ -2,6 +2,7 @@ import DeviceInstance from "../../models/DeviceInstance.js";
 import BorrowLab from "../../models/BorrowLab.js";
 import ReturnLab from "../../models/ReturnLab.js";
 import Repair from "../../models/Repair.js";
+import User from "../../models/User.js";
 import mongoose from "mongoose";
 
 /**
@@ -121,5 +122,260 @@ export const repairStatusStats = async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * 5. Lấy dữ liệu báo cáo tổng hợp cho Lab Manager
+ */
+export const getLabManagerReports = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query;
+    
+    // Tính toán khoảng thời gian
+    const now = new Date();
+    let startDate = new Date();
+    
+    if (period === 'month') {
+      startDate.setMonth(now.getMonth() - 6);
+    } else if (period === 'quarter') {
+      startDate.setMonth(now.getMonth() - 12);
+    } else {
+      startDate.setFullYear(now.getFullYear() - 2);
+    }
+
+    // 1. Thống kê thiết bị trong Lab
+    const deviceStatusLab = await DeviceInstance.aggregate([
+      { $match: { location: "lab" } },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Chuyển đổi sang format dễ sử dụng
+    const deviceStatusData = {
+      available: 0,
+      borrowed: 0,
+      broken: 0,
+      inRepair: 0,
+    };
+    
+    deviceStatusLab.forEach(item => {
+      const status = item._id;
+      if (status === 'available') {
+        deviceStatusData.available = item.count;
+      } else if (status === 'borrowed') {
+        deviceStatusData.borrowed = item.count;
+      } else if (status === 'broken') {
+        deviceStatusData.broken = item.count;
+      } else if (status === 'repairing' || status === 'maintenance') {
+        deviceStatusData.inRepair += item.count; // Cộng dồn nếu có nhiều status
+      }
+    });
+    
+    console.log('Device status lab aggregation result:', deviceStatusLab);
+    console.log('Device status data:', deviceStatusData);
+
+    // 2. Yêu cầu mượn theo tháng (6 tháng gần nhất)
+    const borrowRequestsByMonth = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      
+      const count = await BorrowLab.countDocuments({
+        createdAt: { $gte: monthStart, $lte: monthEnd }
+      });
+      
+      borrowRequestsByMonth.push({
+        month: `${monthStart.getMonth() + 1}/${monthStart.getFullYear()}`,
+        count
+      });
+    }
+
+    // 3. Yêu cầu sửa chữa theo tháng
+    const repairRequestsByMonth = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      
+      const count = await Repair.countDocuments({
+        createdAt: { $gte: monthStart, $lte: monthEnd }
+      });
+      
+      repairRequestsByMonth.push({
+        month: `${monthStart.getMonth() + 1}/${monthStart.getFullYear()}`,
+        count
+      });
+    }
+
+    // 4. Top 10 thiết bị được mượn nhiều nhất
+    let topBorrowedDevices = [];
+    try {
+      topBorrowedDevices = await BorrowLab.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.device_id',
+            totalQuantity: { $sum: '$items.quantity' },
+            borrowCount: { $sum: 1 }
+          }
+        },
+        { $sort: { totalQuantity: -1 } },
+        { $limit: 10 },
+        {
+          $lookup: {
+            from: 'devices',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'device'
+          }
+        },
+        { $unwind: { path: '$device', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            deviceName: { $ifNull: ['$device.name', 'Thiết bị đã xóa'] },
+            totalQuantity: 1,
+            borrowCount: 1
+          }
+        }
+      ]);
+    } catch (err) {
+      console.error("Error getting top borrowed devices:", err);
+    }
+
+    // 5. Thống kê theo trạng thái yêu cầu mượn
+    const borrowStatusStats = {
+      pending: await BorrowLab.countDocuments({ status: 'pending' }),
+      approved: await BorrowLab.countDocuments({ status: 'approved' }),
+      borrowed: await BorrowLab.countDocuments({ status: 'borrowed' }),
+      returned: await BorrowLab.countDocuments({ status: 'returned' }),
+      rejected: await BorrowLab.countDocuments({ status: 'rejected' }),
+    };
+
+    // 6. Thống kê theo trạng thái sửa chữa
+    const repairStatusStats = await Repair.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Chuyển đổi sang format dễ sử dụng
+    const repairStatusData = {
+      pending: 0,
+      approved: 0,
+      inProgress: 0,
+      completed: 0,
+      rejected: 0,
+    };
+    
+    repairStatusStats.forEach(item => {
+      if (item._id === 'pending') repairStatusData.pending = item.count;
+      else if (item._id === 'approved') repairStatusData.approved = item.count;
+      else if (item._id === 'in_progress') repairStatusData.inProgress = item.count;
+      else if (item._id === 'done') repairStatusData.completed = item.count;
+      else if (item._id === 'rejected') repairStatusData.rejected = item.count;
+    });
+
+    // 7. Top thiết bị hỏng nhiều nhất
+    let topBrokenDevices = [];
+    try {
+      topBrokenDevices = await Repair.aggregate([
+        {
+          $group: {
+            _id: "$device_id",
+            totalRepairs: { $sum: 1 }
+          }
+        },
+        { $sort: { totalRepairs: -1 } },
+        { $limit: 10 },
+        {
+          $lookup: {
+            from: "devices",
+            localField: "_id",
+            foreignField: "_id",
+            as: "device"
+          }
+        },
+        { $unwind: { path: "$device", preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            deviceName: { $ifNull: ["$device.name", "Thiết bị đã xóa"] },
+            totalRepairs: 1
+          }
+        }
+      ]);
+    } catch (err) {
+      console.error("Error getting top broken devices:", err);
+    }
+
+    // 8. Thống kê về sinh viên
+    const [
+      totalActiveStudents,
+      studentsCurrentlyBorrowingIds,
+      overdueBorrows,
+      pendingStudents
+    ] = await Promise.all([
+      // Tổng số sinh viên đã active
+      User.countDocuments({ 
+        role: 'student', 
+        isActive: true 
+      }),
+      
+      // Số sinh viên đang mượn (có ít nhất 1 đơn mượn với status = "borrowed" hoặc "return_pending")
+      BorrowLab.distinct('student_id', {
+        status: { $in: ['borrowed', 'return_pending'] }
+      }),
+      
+      // Đơn mượn quá hạn (return_due_date < today và status = "borrowed" hoặc "return_pending")
+      BorrowLab.countDocuments({
+        return_due_date: { $lt: new Date() },
+        status: { $in: ['borrowed', 'return_pending'] }
+      }),
+      
+      // Sinh viên chờ duyệt (isActive = false)
+      User.countDocuments({ 
+        role: 'student', 
+        isActive: false 
+      }),
+    ]);
+
+    const studentStats = {
+      totalActiveStudents,
+      studentsCurrentlyBorrowing: studentsCurrentlyBorrowingIds.length,
+      overdueBorrows,
+      pendingStudents,
+    };
+
+    const responseData = {
+      deviceStatusData,
+      borrowRequestsByMonth,
+      repairRequestsByMonth,
+      topBorrowedDevices: topBorrowedDevices || [],
+      borrowStatusStats,
+      repairStatusStats: repairStatusData,
+      topBrokenDevices: topBrokenDevices || [],
+      studentStats,
+    };
+    
+    console.log('Lab Manager Reports Response:', JSON.stringify(responseData, null, 2));
+    
+    res.json({
+      success: true,
+      data: responseData,
+    });
+  } catch (err) {
+    console.error("getLabManagerReports error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: err.message,
+    });
   }
 };
