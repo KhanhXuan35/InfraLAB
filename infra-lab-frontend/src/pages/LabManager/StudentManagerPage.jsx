@@ -12,10 +12,12 @@ import dayjs from "dayjs";
 import {
     getActiveStudents,
     getPendingStudents,
+    getDeletedStudents,
     updateStudent,
     softDeleteStudent,
     approveStudents,
-    hardDeleteStudent
+    hardDeleteStudent,
+    restoreStudent
 } from "../../services/userService";
 
 const { Option } = Select;
@@ -26,6 +28,7 @@ const StudentManagerPage = () => {
     // --- STATE DỮ LIỆU ---
     const [activeStudents, setActiveStudents] = useState([]);
     const [pendingStudents, setPendingStudents] = useState([]);
+    const [deletedStudents, setDeletedStudents] = useState([]);
     const [loading, setLoading] = useState(false);
 
     // State tìm kiếm
@@ -47,12 +50,15 @@ const StudentManagerPage = () => {
         try {
             const activeRes = await getActiveStudents();
             const pendingRes = await getPendingStudents();
+            const deletedRes = await getDeletedStudents();
 
             const activeList = activeRes.data || activeRes || [];
             const pendingList = pendingRes.data || pendingRes || [];
+            const deletedList = deletedRes.data || deletedRes || [];
 
             setActiveStudents(activeList);
             setPendingStudents(pendingList);
+            setDeletedStudents(deletedList);
         } catch (error) {
             notification.error({ message: "Lỗi tải dữ liệu", description: error.message });
         } finally {
@@ -110,7 +116,18 @@ const StudentManagerPage = () => {
     const handleDeleteClick = async (id) => {
         try {
             await softDeleteStudent(id);
-            notification.success({ message: "Đã hủy kích hoạt sinh viên" });
+            notification.success({ message: "Đã vô hiệu hóa sinh viên" });
+            fetchData();
+        } catch (error) {
+            notification.error({ message: "Lỗi", description: error.message });
+        }
+    };
+
+    const handleRestoreClick = async (id) => {
+        try {
+            // Khôi phục = gọi API restore
+            await restoreStudent(id);
+            notification.success({ message: "Đã khôi phục sinh viên" });
             fetchData();
         } catch (error) {
             notification.error({ message: "Lỗi", description: error.message });
@@ -211,9 +228,26 @@ const StudentManagerPage = () => {
         { title: 'Ngày đăng ký', dataIndex: 'createdAt', key: 'createdAt', render: (date) => new Date(date).toLocaleDateString('vi-VN') }
     ];
 
+    const deletedColumns = [
+        { title: 'STT', key: 'index', width: 60, render: (_, __, index) => index + 1 },
+        { title: 'Họ và tên', dataIndex: 'name', key: 'name', render: (text) => <b>{text}</b> },
+        { title: 'MSSV', dataIndex: 'student_code', key: 'student_code', render: (text) => <Tag color="red">{text}</Tag> },
+        { title: 'Email', dataIndex: 'email', key: 'email' },
+        { title: 'Ngày vô hiệu hóa', dataIndex: 'updatedAt', key: 'updatedAt', render: (date) => new Date(date).toLocaleDateString('vi-VN') },
+        {
+            title: 'Thao tác', key: 'action',
+            render: (_, record) => (
+                <Space size="middle">
+                    <Tooltip title="Xem chi tiết"><Button icon={<EyeOutlined />} onClick={() => handleViewClick(record)} /></Tooltip>
+                </Space>
+            ),
+        },
+    ];
+
     // --- RENDER ---
     const filteredActive = getFilteredData(activeStudents || []);
     const filteredPending = getFilteredData(pendingStudents || []);
+    const filteredDeleted = getFilteredData(deletedStudents || []);
 
     const items = [
         {
@@ -259,6 +293,24 @@ const StudentManagerPage = () => {
                         rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
                         columns={pendingColumns}
                         dataSource={filteredPending}
+                        rowKey="_id"
+                        loading={loading}
+                        pagination={paginationConfig}
+                    />
+                </div>
+            ),
+        },
+        {
+            key: '3',
+            label: <span><DeleteOutlined /> Danh sách bị vô hiệu hóa ({deletedStudents?.length || 0})</span>,
+            children: (
+                <div>
+                    <div style={{ marginBottom: 16, display: 'flex', gap: 10 }}>
+                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+                    </div>
+                    <Table
+                        columns={deletedColumns}
+                        dataSource={filteredDeleted}
                         rowKey="_id"
                         loading={loading}
                         pagination={paginationConfig}

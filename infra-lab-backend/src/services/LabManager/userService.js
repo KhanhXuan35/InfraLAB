@@ -10,10 +10,10 @@ export const getActiveStudentsService = async () => {
     return students;
 };
 
-// 2. Lấy danh sách sinh viên chờ duyệt (Inactive)
+// 2. Lấy danh sách sinh viên chờ duyệt (Inactive - NEW only)
 export const getPendingStudentsService = async () => {
-    // Lấy tất cả user có role student và CHƯA kích hoạt
-    const students = await User.find({ role: "student", isActive: false })
+    // Lấy tất cả user có role student, CHƯA kích hoạt VÀ CHƯA bị xóa mềm
+    const students = await User.find({ role: "student", isActive: false, isDeleted: false })
         .select("-password -refreshToken -emailToken")
         .sort({ createdAt: -1 });
     return students;
@@ -30,7 +30,7 @@ export const getStudentDetailService = async (userId) => {
 
 //4. CẬP NHẬT THÔNG TIN SINH VIÊN
 export const updateStudentService = async (userId, data) => {
-    const { name, username, email, gender, date_of_birth, address, phone, student_code } = data;
+    const { name, username, email, gender, date_of_birth, address, phone, student_code, isDeleted } = data;
 
     // 1. Kiểm tra tồn tại & Role
     const user = await User.findById(userId);
@@ -90,17 +90,22 @@ export const updateStudentService = async (userId, data) => {
         if (new Date(date_of_birth) >= new Date()) throw new Error("Ngày sinh phải nhỏ hơn ngày hiện tại.");
     }
 
-    // 4. Update
+    // 4. Update - Hỗ trợ cập nhật isDeleted cho khôi phục
+    const updateData = { name, username, email, gender, date_of_birth, address, phone, student_code };
+    if (isDeleted !== undefined) {
+        updateData.isDeleted = isDeleted;
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { name, username, email, gender, date_of_birth, address, phone, student_code },
+        updateData,
         { new: true, runValidators: true }
     ).select("-password -refreshToken -emailToken");
 
     return updatedUser;
 };
 
-// 5. Xóa mềm (Sửa thêm Check Role)
+// 5. Xóa mềm (Đánh dấu sinh viên bị vô hiệu hóa)
 export const softDeleteStudentService = async (userId) => {
     const user = await User.findById(userId);
 
@@ -111,11 +116,12 @@ export const softDeleteStudentService = async (userId) => {
         throw new Error("Bạn chỉ có thể xóa tài khoản Sinh viên!");
     }
 
-    // Thực hiện xóa mềm
+    // Thực hiện xóa mềm - set isDeleted = true VÀ isActive = false
+    user.isDeleted = true;
     user.isActive = false;
-    await user.save(); // Dùng save() thay vì findByIdAndUpdate để trigger middleware nếu có
+    await user.save();
 
-    return { message: "Đã hủy kích hoạt sinh viên. Tài khoản đã chuyển sang danh sách cấp quyền." };
+    return { message: "Đã vô hiệu hóa sinh viên. Tài khoản đã chuyển sang danh sách bị vô hiệu hóa." };
 };
 
 // 6. Duyệt sinh viên (Số lượng lớn) & Gửi mail
@@ -169,4 +175,31 @@ export const hardDeleteStudentService = async (userId) => {
     await User.findByIdAndDelete(userId);
 
     return { message: "Đã xóa cứng sinh viên khỏi hệ thống." };
+};
+
+// 8. Lấy danh sách sinh viên bị vô hiệu hóa (Deleted)
+export const getDeletedStudentsService = async () => {
+    // Lấy tất cả user có role student và bị xóa mềm (isDeleted = true)
+    const students = await User.find({ role: "student", isDeleted: true })
+        .select("-password -refreshToken -emailToken")
+        .sort({ createdAt: -1 });
+    return students;
+};
+
+// 9. Khôi phục sinh viên bị vô hiệu hóa (Restore)
+export const restoreStudentService = async (userId) => {
+    const user = await User.findById(userId);
+
+    if (!user) throw new Error("Không tìm thấy sinh viên này.");
+
+    // 🔥 [BẢO MẬT] Check Role
+    if (user.role !== "student") {
+        throw new Error("Bạn chỉ có thể khôi phục tài khoản Sinh viên!");
+    }
+
+    // Khôi phục: set isDeleted = false, giữ nguyên isActive = false (quay lại danh sách chờ duyệt)
+    user.isDeleted = false;
+    await user.save();
+
+    return { message: "Đã khôi phục sinh viên. Tài khoản đã chuyển sang danh sách chờ duyệt." };
 };

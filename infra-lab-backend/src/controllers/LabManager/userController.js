@@ -10,6 +10,16 @@ export const getActiveStudents = async (req, res) => {
     }
 };
 
+// [GET] /api/users/students/deleted (Lấy DS Bị vô hiệu hóa)
+export const getDeletedStudents = async (req, res) => {
+    try {
+        const students = await UserService.getDeletedStudentsService();
+        res.status(200).json({ success: true, data: students });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // [GET] /api/users/students/pending (Lấy DS Chờ duyệt)
 export const getPendingStudents = async (req, res) => {
     try {
@@ -76,6 +86,17 @@ export const hardDeleteStudent = async (req, res) => {
     try {
         const { id } = req.params;
         const result = await UserService.hardDeleteStudentService(id);
+        res.status(200).json({ success: true, ...result });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+// [PATCH] /api/users/:id/restore (Khôi phục)
+export const restoreStudent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await UserService.restoreStudentService(id);
         res.status(200).json({ success: true, ...result });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });

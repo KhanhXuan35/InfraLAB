@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema({
     },
     isActive: { type: Boolean, default: false },
     verified: { type: Boolean, default: false },
+    isDeleted: { type: Boolean, default: false }, // Xóa mềm - sinh viên bị vô hiệu hóa
     student_code: String,
     phone: String,
     emailToken: { type: String, default: null },

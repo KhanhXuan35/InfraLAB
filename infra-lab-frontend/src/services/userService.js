@@ -12,6 +12,12 @@ export const getPendingStudents = async () => {
     return response.data;
 };
 
+// 2.5. Lấy danh sách Deleted (Bị vô hiệu hóa)
+export const getDeletedStudents = async () => {
+    const response = await api.get("/users/students/deleted");
+    return response.data;
+};
+
 // 3. Xem chi tiết
 export const getStudentDetail = async (id) => {
     const response = await api.get(`/users/${id}`);
@@ -33,6 +39,12 @@ export const softDeleteStudent = async (id) => {
 // 6. Xóa cứng
 export const hardDeleteStudent = async (id) => {
     const response = await api.patch(`/users/${id}/hard-delete`);
+    return response.data;
+};
+
+// 6.5. Khôi phục
+export const restoreStudent = async (id) => {
+    const response = await api.patch(`/users/${id}/restore`);
     return response.data;
 };
 
