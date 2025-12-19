@@ -110,12 +110,6 @@ const LabManagerHomePage = () => {
 
   const quickActions = [
     {
-      title: 'Yêu cầu thêm thiết bị',
-      icon: <PlusOutlined />,
-      color: '#1890ff',
-      key: 'add-device',
-    },
-    {
       title: 'Kho School',
       icon: <AppstoreOutlined />, 
       color: '#13c2c2',
