@@ -3,6 +3,8 @@ import Repair from "../../models/Repair.js";
 import Device from "../../models/Device.js";
 import Inventory from "../../models/Inventory.js";
 import DeviceInstance from "../../models/DeviceInstance.js";
+import BorrowLab from "../../models/BorrowLab.js";
+import Notifications from "../../models/Notifications.js";
 import uploadBufferToCloud from "../../utils/uploadToCloud.js";
 
 /**
@@ -127,16 +129,18 @@ export const createRepairRequest = async (req, res) => {
       }
     );
 
-    // Nếu có truyền device_instance_id thì set trạng thái instance sang "broken"
+    // Nếu có truyền device_instance_id thì set trạng thái instance sang "repairing"
+    // Thiết bị đang được gửi về trường để sửa
     if (device_instance_id) {
       await DeviceInstance.findByIdAndUpdate(device_instance_id, {
         $set: {
-          status: "broken",
+          status: "repairing", // Đang sửa chữa tại trường
         },
         $inc: {
           "usage_stats.total_repair_times": 1,
         },
       });
+      console.log(`[createRepairRequest] DeviceInstance ${device_instance_id} set to repairing status`);
     }
 
     res.status(201).json({ success: true, data: repair });
@@ -165,7 +169,17 @@ export const getRepairs = async (req, res) => {
         path: "device_id",
         select: "name image",
       })
-      .select("device_id quantity reason image status reason_rejected createdAt reviewed_at completed_at")
+      .populate({
+        path: "device_instance_id",
+        select: "serial_number status location condition",
+        strictPopulate: false,
+      })
+      .populate({
+        path: "reported_by",
+        select: "name email",
+        strictPopulate: false,
+      })
+      .select("device_id device_instance_id serial_number quantity reason image status reason_rejected createdAt reviewed_at completed_at reported_by repair_type")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -271,21 +285,123 @@ export const updateRepairStatus = async (req, res) => {
     if (status === "done") {
       repair.completed_at = new Date();
 
-      inventory.broken = Math.max(0, inventory.broken - repair.quantity);
-      inventory.available = Math.min(
-        inventory.total - inventory.broken,
-        inventory.available + repair.quantity
-      );
+      // Tính lại inventory từ DeviceInstance để đảm bảo chính xác
+      // Không tính thiết bị retired vào total
+      const totalInLab = await DeviceInstance.countDocuments({
+        device_model_id: repair.device_id,
+        location: "lab",
+        status: { $ne: "retired" } // Không tính thiết bị đã retired
+      });
+      
+      const availableInLab = await DeviceInstance.countDocuments({
+        device_model_id: repair.device_id,
+        location: "lab",
+        status: "available"
+      });
+      
+      const borrowedInLab = await DeviceInstance.countDocuments({
+        device_model_id: repair.device_id,
+        location: "lab",
+        status: "borrowed"
+      });
+      
+      const brokenInLab = await DeviceInstance.countDocuments({
+        device_model_id: repair.device_id,
+        location: "lab",
+        status: "broken"
+      });
+      
+      const repairingInLab = await DeviceInstance.countDocuments({
+        device_model_id: repair.device_id,
+        location: "lab",
+        status: "repairing"
+      });
 
-      await inventory.save();
+      // Cập nhật inventory bằng cách set trực tiếp từ DeviceInstance
+      // Lưu ý: repairing không được tính vào available (đang ở trường sửa)
+      await Inventory.findByIdAndUpdate(inventory._id, {
+        $set: {
+          total: totalInLab,
+          available: availableInLab,
+          borrowed: borrowedInLab,
+          broken: brokenInLab
+          // repairing không được lưu vào inventory (đang ở trường)
+        }
+      });
+      
+      console.log(`[updateRepairStatus] Inventory updated: total=${totalInLab}, available=${availableInLab}, borrowed=${borrowedInLab}, broken=${brokenInLab}, repairing=${repairingInLab}`);
 
-      // Trả thiết bị về trạng thái available
+      // Trả thiết bị về trạng thái available và location = lab
+      // Đây là khi trường sửa XONG → thiết bị về lab và đơn có thể hoàn thành
       if (instanceId) {
         await DeviceInstance.findByIdAndUpdate(instanceId, {
           $set: {
             status: "available",
+            location: "lab", // Đảm bảo về lab
           },
         });
+        console.log(`[updateRepairStatus] DeviceInstance ${instanceId} repaired and returned to lab`);
+
+        // Tìm BorrowLab có repairing_items chứa device_instance_id này
+        const borrowLab = await BorrowLab.findOne({
+          "repairing_items.device_instances": instanceId,
+          status: { $in: ["return_pending", "borrowed"] }
+        });
+
+        if (borrowLab) {
+          // Tìm item trong repairing_items có chứa instance này
+          for (let i = 0; i < borrowLab.repairing_items.length; i++) {
+            const repairingItem = borrowLab.repairing_items[i];
+            const instanceIds = (repairingItem.device_instances || []).map(id => id.toString());
+            
+            if (instanceIds.includes(instanceId.toString())) {
+              // Giảm quantity
+              repairingItem.quantity -= 1;
+              
+              // Xóa instance ID khỏi danh sách
+              repairingItem.device_instances = repairingItem.device_instances.filter(
+                id => id.toString() !== instanceId.toString()
+              );
+              
+              // Nếu quantity = 0, xóa item khỏi danh sách
+              if (repairingItem.quantity === 0) {
+                borrowLab.repairing_items.splice(i, 1);
+              }
+              
+              break;
+            }
+          }
+
+          // Kiểm tra xem còn thiết bị nào chưa trả không
+          const hasRemainingItems = borrowLab.items && borrowLab.items.length > 0;
+          const hasRemainingRepairing = borrowLab.repairing_items && borrowLab.repairing_items.length > 0;
+
+          if (!hasRemainingItems && !hasRemainingRepairing) {
+            // Đã trả hết tất cả → chuyển sang "returned"
+            borrowLab.status = "returned";
+            borrowLab.returned = true;
+            borrowLab.return_requested = false;
+            
+            // Gửi thông báo cho sinh viên
+            try {
+              await Notifications.create({
+                user_id: borrowLab.student_id,
+                type: "success",
+                message: `Đơn mượn của bạn đã hoàn thành. Tất cả thiết bị đã được trả lại phòng Lab.`,
+                related_id: borrowLab._id,
+                related_type: "BorrowLab"
+              });
+            } catch (notifError) {
+              console.error("Error creating notification:", notifError);
+            }
+          } else {
+            // Vẫn còn thiết bị chưa trả
+            borrowLab.status = "return_pending";
+          }
+
+          await borrowLab.save();
+          console.log(`[updateRepairStatus] Updated BorrowLab ${borrowLab._id.toString().slice(-8)} after repair completion`);
+        }
       }
     }
 
@@ -312,9 +428,136 @@ export const updateRepairStatus = async (req, res) => {
 
     }
 
-    // Khi admin duyệt thì lưu ngày duyệt
+    // ✅ Nếu không sửa được → trừ thiết bị khỏi hệ thống (retired)
+    if (status === "cannot_repair") {
+      repair.completed_at = new Date();
+
+      // Cập nhật DeviceInstance: status = "retired" (nghỉ hưu, không còn trong hệ thống)
+      if (instanceId) {
+        await DeviceInstance.findByIdAndUpdate(instanceId, {
+          $set: {
+            status: "retired",
+            location: "lab", // Vẫn ở lab nhưng đã retired
+          },
+        });
+
+        // Tìm BorrowLab có repairing_items chứa device_instance_id này
+        const borrowLab = await BorrowLab.findOne({
+          "repairing_items.device_instances": instanceId,
+          status: { $in: ["return_pending", "borrowed"] }
+        });
+
+        if (borrowLab) {
+          // Tìm item trong repairing_items có chứa instance này
+          for (let i = 0; i < borrowLab.repairing_items.length; i++) {
+            const repairingItem = borrowLab.repairing_items[i];
+            const instanceIds = (repairingItem.device_instances || []).map(id => id.toString());
+            
+            if (instanceIds.includes(instanceId.toString())) {
+              // Giảm quantity
+              repairingItem.quantity -= 1;
+              
+              // Xóa instance ID khỏi danh sách
+              repairingItem.device_instances = repairingItem.device_instances.filter(
+                id => id.toString() !== instanceId.toString()
+              );
+              
+              // Nếu quantity = 0, xóa item khỏi danh sách
+              if (repairingItem.quantity === 0) {
+                borrowLab.repairing_items.splice(i, 1);
+              }
+              
+              break;
+            }
+          }
+
+          // Kiểm tra xem còn thiết bị nào chưa trả không
+          const hasRemainingItems = borrowLab.items && borrowLab.items.length > 0;
+          const hasRemainingRepairing = borrowLab.repairing_items && borrowLab.repairing_items.length > 0;
+
+          if (!hasRemainingItems && !hasRemainingRepairing) {
+            // Đã trả hết tất cả (thiết bị hỏng không sửa được đã được trừ khỏi hệ thống) → "returned"
+            borrowLab.status = "returned";
+            borrowLab.returned = true;
+            borrowLab.return_requested = false;
+            
+            // Gửi thông báo cho sinh viên
+            try {
+              await Notifications.create({
+                user_id: borrowLab.student_id,
+                type: "info",
+                message: `Đơn mượn của bạn đã hoàn thành. Thiết bị hỏng không sửa được đã được trừ khỏi hệ thống.`,
+                related_id: borrowLab._id,
+                related_type: "BorrowLab"
+              });
+            } catch (notifError) {
+              console.error("Error creating notification:", notifError);
+            }
+          } else {
+            // Vẫn còn thiết bị chưa trả
+            borrowLab.status = "return_pending";
+          }
+
+          await borrowLab.save();
+          console.log(`[updateRepairStatus] Updated BorrowLab ${borrowLab._id.toString().slice(-8)} after cannot_repair`);
+        }
+      }
+
+      // Tính lại inventory từ DeviceInstance (thiết bị retired không được tính vào total)
+      const totalInLab = await DeviceInstance.countDocuments({
+        device_model_id: repair.device_id,
+        location: "lab",
+        status: { $ne: "retired" } // Không tính thiết bị retired
+      });
+      
+      const availableInLab = await DeviceInstance.countDocuments({
+        device_model_id: repair.device_id,
+        location: "lab",
+        status: "available"
+      });
+      
+      const borrowedInLab = await DeviceInstance.countDocuments({
+        device_model_id: repair.device_id,
+        location: "lab",
+        status: "borrowed"
+      });
+      
+      const brokenInLab = await DeviceInstance.countDocuments({
+        device_model_id: repair.device_id,
+        location: "lab",
+        status: "broken"
+      });
+
+      // Cập nhật inventory: giảm total và broken
+      await Inventory.findByIdAndUpdate(inventory._id, {
+        $set: {
+          total: totalInLab,
+          available: availableInLab,
+          borrowed: borrowedInLab,
+          broken: brokenInLab
+        }
+      });
+
+      console.log(`[updateRepairStatus] Device ${instanceId} marked as retired (cannot repair)`);
+    }
+
+    // Khi admin duyệt thì lưu ngày duyệt và cập nhật trạng thái thiết bị
     if (status === "approved") {
       repair.reviewed_at = new Date();
+      
+      // Nếu có device_instance_id, đảm bảo thiết bị ở trạng thái "repairing"
+      // (đang được gửi về trường để sửa)
+      if (instanceId) {
+        const instance = await DeviceInstance.findById(instanceId);
+        if (instance && instance.status !== "repairing") {
+          await DeviceInstance.findByIdAndUpdate(instanceId, {
+            $set: {
+              status: "repairing", // Đang sửa chữa tại trường
+            },
+          });
+          console.log(`[updateRepairStatus] DeviceInstance ${instanceId} set to repairing (sent to school for repair)`);
+        }
+      }
     }
 
     await repair.save();
