@@ -577,15 +577,36 @@ export const getPendingBorrowRequests = async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
+    // Chỉ lấy các yêu cầu có status = "pending" (chờ Lab Manager duyệt)
     const requests = await BorrowLab.find({ status: "pending" })
-      .populate('student_id', 'name email student_code phone avatar')
-      .populate('items.device_id', 'name image')
-      .populate('items.device_instances', 'serial_number status condition')
+      .populate({
+        path: 'student_id',
+        select: 'name email student_code phone avatar',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'items.device_id',
+        select: 'name image description category_id',
+        strictPopulate: false,
+        populate: {
+          path: 'category_id',
+          select: 'name',
+          strictPopulate: false,
+        },
+      })
+      .populate({
+        path: 'items.device_instances',
+        select: 'serial_number status condition',
+        strictPopulate: false,
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
     
     const total = await BorrowLab.countDocuments({ status: "pending" });
+    
+    console.log(`[getPendingBorrowRequests] Found ${total} pending borrow requests`);
     
     res.json({
       success: true,
@@ -599,6 +620,7 @@ export const getPendingBorrowRequests = async (req, res) => {
     });
     
   } catch (error) {
+    console.error("[getPendingBorrowRequests] Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -180,15 +180,56 @@ export const createDeviceWithInventory = async (req, res) => {
 
     const parsedTotal = Number(total) || 0;
 
-    const inventory = await Inventory.create({
-      device_id: device._id,
-      location,
-      total: parsedTotal,
-      available: parsedTotal,
-      broken: 0
-    });
+    let inventory = null;
 
-    res.status(201).json({ success: true, data: { device, inventory } });
+    // Nếu là Lab Manager tạo yêu cầu thiết bị ngoài → KHÔNG tạo inventory ở warehouse
+    // Chỉ tạo device với verify = false, inventory sẽ được tạo khi School Admin duyệt
+    if (user.role === "lab_manager" && !verify) {
+      // Tạo RequestLab để lưu số lượng yêu cầu
+      const RequestLab = (await import("../../models/requestlab.js")).default;
+      const request = await RequestLab.create({
+        device_id: device._id,
+        qty: parsedTotal,
+        created_by: userId,
+        status: "WAITING",
+      });
+
+      // Tạo thông báo cho tất cả School Admin
+      try {
+        const Notifications = (await import("../../models/Notifications.js")).default;
+        const schoolAdmins = await User.find({ role: "school_admin" }).select("_id");
+        
+        // Tạo thông báo cho từng School Admin
+        const notificationPromises = schoolAdmins.map(admin => 
+          Notifications.create({
+            user_id: admin._id,
+            type: "new_device_request",
+            message: `Có yêu cầu thiết bị mới "${device.name}" (${parsedTotal} cái) từ Lab Manager ${user.name || user.email}. Vui lòng xem và duyệt yêu cầu.`,
+            related_id: request._id,
+            related_type: "RequestLab",
+            read: false
+          })
+        );
+
+        await Promise.all(notificationPromises);
+      } catch (notifError) {
+        console.error("Error creating notifications for school admins:", notifError);
+        // Không throw error, chỉ log để không ảnh hưởng đến việc tạo device
+      }
+
+      // KHÔNG tạo inventory ở warehouse, chỉ trả về device
+      res.status(201).json({ success: true, data: { device, inventory: null } });
+    } else {
+      // Nếu là School Admin hoặc user khác → tạo inventory như bình thường
+      inventory = await Inventory.create({
+        device_id: device._id,
+        location,
+        total: parsedTotal,
+        available: parsedTotal,
+        broken: 0
+      });
+      res.status(201).json({ success: true, data: { device, inventory } });
+    }
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to create device", error: error.message });
   }
@@ -298,7 +339,8 @@ export const getPendingDevices = async (req, res) => {
   }
 };
 
-// Duyệt device (set verify = true)
+// Duyệt device (set verify = true) và chỉ gửi thông báo cho Lab Manager
+// KHÔNG tạo inventory ở warehouse - thiết bị sẽ được thêm vào kho khi Lab Manager mượn
 export const approveDevice = async (req, res) => {
   try {
     const { id } = req.params;
@@ -312,10 +354,39 @@ export const approveDevice = async (req, res) => {
       return res.status(400).json({ success: false, message: "Device already verified" });
     }
 
+    // Set verify = true
     device.verify = true;
     await device.save();
 
-    res.json({ success: true, message: "Device approved", data: device });
+    // Tìm RequestLab tương ứng để lấy số lượng và Lab Manager
+    const RequestLab = (await import("../../models/requestlab.js")).default;
+
+    const request = await RequestLab.findOne({
+      device_id: device._id,
+      status: "WAITING"
+    });
+
+    if (request) {
+      const qty = request.qty || 0;
+      
+      // CHỈ gửi thông báo cho Lab Manager - KHÔNG tạo inventory ở warehouse
+      try {
+        const Notifications = (await import("../../models/Notifications.js")).default;
+        await Notifications.create({
+          user_id: request.created_by,
+          type: "new_device_approved",
+          message: `Thiết bị mới "${device.name}" (${qty} cái) đã được duyệt. Bạn có thể mượn thiết bị từ kho School.`,
+          related_id: device._id,
+          related_type: "Device",
+          read: false
+        });
+      } catch (notifError) {
+        console.error("Error creating notification:", notifError);
+        // Không throw error, chỉ log để không ảnh hưởng đến việc duyệt device
+      }
+    }
+
+    res.json({ success: true, message: "Device approved. Notification sent to Lab Manager.", data: device });
   } catch (error) {
     console.error('approveDevice error:', error);
     res.status(500).json({ success: false, message: "Failed to approve device", error: error.message });

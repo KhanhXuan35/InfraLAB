@@ -42,22 +42,31 @@ export const createRequest = async (req, res) => {
 // School admin xem danh sách yêu cầu
 export const listRequests = async (req, res) => {
   try {
-    const { status, requester_role } = req.query;
+    const { status, requester_role, exclude_new_devices } = req.query;
     const filter = {};
     if (status && status !== "all") {
       filter.status = status.toUpperCase();
     }
 
+    // Nếu có requester_role, cần populate created_by trước để filter
+    // Tìm tất cả user có role tương ứng
+    if (requester_role) {
+      const usersWithRole = await User.find({ role: requester_role }).select("_id");
+      const userIds = usersWithRole.map(u => u._id);
+      filter.created_by = { $in: userIds };
+    }
+
     let requests = await RequestLab.find(filter)
-      .populate({ path: "device_id", select: "name image category_id" })
+      .populate({ path: "device_id", select: "name image category_id verify" })
       .populate({ path: "created_by", select: "name email role" })
       .populate({ path: "approved_by", select: "name email role" })
       .populate({ path: "device_instance_ids", select: "serial_number status condition" })
       .sort({ createdAt: -1 });
 
-    // Filter theo role nếu có query parameter requester_role
-    if (requester_role) {
-      requests = requests.filter(req => req.created_by?.role === requester_role);
+    // Nếu exclude_new_devices = true, chỉ lấy các yêu cầu mượn thiết bị có sẵn (device.verify = true)
+    // Loại bỏ yêu cầu thiết bị ngoài (device.verify = false)
+    if (exclude_new_devices === "true" || exclude_new_devices === true) {
+      requests = requests.filter(req => req.device_id?.verify === true);
     }
 
     return res.json({ success: true, data: requests });
@@ -150,6 +159,21 @@ export const approveRequest = async (req, res) => {
       note: "Đơn mượn này được tạo bởi Lab Manager. Sau khi duyệt, Lab Manager cần mang đơn này đến nhận thiết bị.",
     });
 
+    // Tạo thông báo cho Lab Manager
+    try {
+      const Notifications = (await import("../../models/Notifications.js")).default;
+      await Notifications.create({
+        user_id: request.created_by,
+        type: "borrow_approved",
+        message: `Yêu cầu mượn thiết bị "${device.name}" (${request.qty} cái) đã được duyệt. Vui lòng mang đơn đến nhận thiết bị.`,
+        related_id: request._id,
+        related_type: "RequestLab",
+      });
+    } catch (notifError) {
+      console.error("Error creating notification:", notifError);
+      // Không throw error, chỉ log
+    }
+
     // Populate lại request với device_instance_ids để trả về đầy đủ thông tin
     const populatedRequest = await RequestLab.findById(request._id)
       .populate({ path: "device_id", select: "name image category_id" })
@@ -211,6 +235,23 @@ export const rejectRequest = async (req, res) => {
       certificate_code: certificateCode,
       note: req.body.reason || "Yêu cầu mượn thiết bị đã bị từ chối.",
     });
+
+    // Tạo thông báo cho Lab Manager
+    try {
+      const Notifications = (await import("../../models/Notifications.js")).default;
+      const device = await Device.findById(request.device_id);
+      const rejectionReason = req.body.reason || "Không có lý do";
+      await Notifications.create({
+        user_id: request.created_by,
+        type: "borrow_rejected",
+        message: `Yêu cầu mượn thiết bị "${device?.name || 'N/A'}" (${request.qty} cái) đã bị từ chối. Lý do: ${rejectionReason}`,
+        related_id: request._id,
+        related_type: "RequestLab",
+      });
+    } catch (notifError) {
+      console.error("Error creating notification:", notifError);
+      // Không throw error, chỉ log
+    }
 
     return res.json({ 
       success: true, 
@@ -303,6 +344,28 @@ export const deliverRequest = async (req, res) => {
     // Cập nhật status sang DELIVERED
     request.status = "DELIVERED";
     await request.save();
+
+    // Cập nhật Certificate status sang DELIVERED
+    const certificate = await Certificate.findOne({ request_id: request._id });
+    if (certificate) {
+      certificate.status = "DELIVERED";
+      await certificate.save();
+    }
+
+    // Tạo thông báo cho Lab Manager
+    try {
+      const Notifications = (await import("../../models/Notifications.js")).default;
+      await Notifications.create({
+        user_id: request.created_by,
+        type: "borrow_delivered",
+        message: `Thiết bị "${request.device_id?.name || 'N/A'}" (${request.qty} cái) đã được giao đến phòng Lab. Bạn có thể sử dụng ngay.`,
+        related_id: request._id,
+        related_type: "RequestLab",
+      });
+    } catch (notifError) {
+      console.error("Error creating notification:", notifError);
+      // Không throw error, chỉ log
+    }
 
     return res.json({ 
       success: true, 

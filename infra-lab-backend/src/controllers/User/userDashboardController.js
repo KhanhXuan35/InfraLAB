@@ -146,3 +146,75 @@ export const getUserNotifications = async (req, res) => {
   }
 };
 
+// Đánh dấu thông báo đã đọc
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - User not found",
+      });
+    }
+
+    const notification = await Notifications.findOne({
+      _id: id,
+      user_id: userId,
+    });
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found",
+      });
+    }
+
+    notification.read = true;
+    await notification.save();
+
+    res.json({
+      success: true,
+      message: "Notification marked as read",
+      data: notification,
+    });
+  } catch (err) {
+    console.error("markNotificationAsRead error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// Đánh dấu tất cả thông báo đã đọc
+export const markAllNotificationsAsRead = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - User not found",
+      });
+    }
+
+    await Notifications.updateMany(
+      { user_id: userId, read: false },
+      { $set: { read: true } }
+    );
+
+    res.json({
+      success: true,
+      message: "All notifications marked as read",
+    });
+  } catch (err) {
+    console.error("markAllNotificationsAsRead error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+

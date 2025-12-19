@@ -162,6 +162,21 @@ export const getLoanDeviceList = async (req, res) => {
         select: "serial_number status condition",
         strictPopulate: false,
       })
+      .populate({
+        path: "repairing_items.device_id",
+        select: "name description image category_id",
+        strictPopulate: false,
+        populate: {
+          path: "category_id",
+          select: "name",
+          strictPopulate: false,
+        },
+      })
+      .populate({
+        path: "repairing_items.device_instances",
+        select: "serial_number status condition",
+        strictPopulate: false,
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum)
@@ -230,6 +245,45 @@ export const getLoanDeviceList = async (req, res) => {
                 }
               })
               .filter((item) => item !== null), // Lọc bỏ các item null
+            // Thêm repairing_items để hiển thị thiết bị đã trả nhưng đang sửa chữa
+            repairingItems: (borrow.repairing_items || [])
+              .filter((item) => {
+                if (!item || !item.device_id || !item.device_id._id) {
+                  return false;
+                }
+                return true;
+              })
+              .map((item) => {
+                try {
+                  const serialNumbers = (item.device_instances || [])
+                    .map(inst => inst.serial_number || inst._id?.toString().slice(-8))
+                    .filter(Boolean);
+                  
+                  return {
+                    device: {
+                      _id: item.device_id?._id || null,
+                      name: item.device_id?.name || "N/A",
+                      description: item.device_id?.description || "",
+                      image: item.device_id?.image || "",
+                      category: item.device_id?.category_id && item.device_id.category_id._id
+                        ? {
+                            _id: item.device_id.category_id._id,
+                            name: item.device_id.category_id?.name || "N/A",
+                          }
+                        : null,
+                    },
+                    quantity: item.quantity || 0,
+                    broken_reason: item.broken_reason || "",
+                    reported_at: item.reported_at || null,
+                    serialNumbers: serialNumbers,
+                    device_instances: item.device_instances || [],
+                  };
+                } catch (itemError) {
+                  console.error(`Error processing repairing_item in borrow ${borrow._id}:`, itemError);
+                  return null;
+                }
+              })
+              .filter((item) => item !== null),
             return_due_date: borrow.return_due_date,
             purpose: borrow.purpose || "",
             notes: borrow.notes || "",
@@ -245,8 +299,22 @@ export const getLoanDeviceList = async (req, res) => {
         }
       })
       .filter((borrow) => {
-        // Lọc bỏ các borrow null và không có items hợp lệ
-        return borrow !== null && borrow.items && borrow.items.length > 0;
+        // Lọc bỏ các borrow null
+        if (borrow === null) {
+          return false;
+        }
+        
+        // Nếu đơn đã trả (returned), vẫn hiển thị để xem lịch sử
+        // Ngay cả khi không còn items (đã trả hết)
+        if (borrow.status === "returned") {
+          return true;
+        }
+        
+        // Với các đơn khác, chỉ hiển thị nếu có items hoặc repairing_items
+        const hasItems = borrow.items && borrow.items.length > 0;
+        const hasRepairingItems = borrow.repairingItems && borrow.repairingItems.length > 0;
+        
+        return hasItems || hasRepairingItems;
       });
 
     res.status(200).json({
