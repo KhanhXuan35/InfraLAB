@@ -20,12 +20,13 @@ const ConditionalHeader = () => {
       '/school/dashboard',
       '/requests',
       '/school/borrow-requests',
+      '/school/borrow-history',
     ];
     
     // Danh sách các route của lab_manager (không hiển thị Header)
     const labManagerRoutes = [
       '/lab-manager',
-      '/teacher-dashboard',
+      '/reports',
     ];
     
     const pathname = location.pathname;

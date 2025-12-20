@@ -207,7 +207,7 @@ export default function RepairRequestList() {
           ]}
           style={{ borderRight: 0, marginTop: 16 }}
           onSelect={({ key }) => {
-            if (key === "overview") navigate("/school-dashboard");
+            if (key === "overview") navigate("/reports");
             else if (key === "devices") navigate("/school/dashboard");
             else if (key === "requests") navigate("/requests");
             else if (key === "reports") navigate("/reports");

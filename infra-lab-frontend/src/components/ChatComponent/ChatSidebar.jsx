@@ -30,9 +30,9 @@ const ChatSidebar = ({
     if (userRole === "student") {
       navigate("/user-dashboard");
     } else if (userRole === "lab_manager") {
-      navigate("/teacher-dashboard");
+      navigate("/reports");
     } else if (userRole === "school_admin") {
-      navigate("/school-dashboard");
+      navigate("/reports");
     } else {
       navigate("/");
     }

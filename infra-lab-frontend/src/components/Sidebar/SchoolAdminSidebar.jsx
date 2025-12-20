@@ -2,11 +2,9 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Button, Typography } from 'antd';
 import {
-  DashboardOutlined,
   ToolOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
-  SettingOutlined,
   LogoutOutlined,
   MessageOutlined,
   HistoryOutlined,
@@ -28,23 +26,21 @@ const SchoolAdminSidebar = () => {
   // Xác định menu item đang active dựa trên pathname
   const getSelectedKey = () => {
     const path = location.pathname;
-    if (path === '/school-dashboard') return 'overview';
+    if (path === '/reports') return 'reports';
     if (path === '/school/dashboard') return 'devices';
     if (path === '/school/borrow-requests') return 'borrow-requests';
     if (path === '/school/borrow-history') return 'borrow-history';
     if (path === '/requests' || path.startsWith('/school/repairs')) return 'requests';
-    if (path === '/reports') return 'reports';
-    if (path === '/settings') return 'settings';
     if (path === '/chat' || path.startsWith('/chat/')) return 'chat';
     if (path.startsWith('/school/device/') || path.startsWith('/school/devices/create')) return 'devices';
-    return 'overview';
+    return 'reports';
   };
 
   const menuItems = [
     {
-      key: 'overview',
-      icon: <DashboardOutlined />,
-      label: 'Tổng quan',
+      key: 'reports',
+      icon: <FileTextOutlined />,
+      label: 'Báo cáo',
     },
     {
       key: 'devices',
@@ -67,16 +63,6 @@ const SchoolAdminSidebar = () => {
       label: 'Danh sách sửa chữa',
     },
     {
-      key: 'reports',
-      icon: <FileTextOutlined />,
-      label: 'Báo cáo',
-    },
-    {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: 'Thông báo',
-    },
-    {
       key: 'chat',
       icon: <MessageOutlined />,
       label: 'Tin nhắn',
@@ -85,8 +71,8 @@ const SchoolAdminSidebar = () => {
 
   const handleMenuSelect = ({ key }) => {
     switch (key) {
-      case 'overview':
-        navigate('/school-dashboard');
+      case 'reports':
+        navigate('/reports');
         break;
       case 'devices':
         navigate('/school/dashboard');
@@ -99,12 +85,6 @@ const SchoolAdminSidebar = () => {
         break;
       case 'requests':
         navigate('/requests');
-        break;
-      case 'reports':
-        navigate('/reports');
-        break;
-      case 'settings':
-        navigate('/settings');
         break;
       case 'chat':
         navigate('/chat');
@@ -134,7 +114,7 @@ const SchoolAdminSidebar = () => {
           borderBottom: '1px solid #303030',
           cursor: 'pointer',
         }}
-        onClick={() => navigate('/school-dashboard')}
+        onClick={() => navigate('/reports')}
       >
         <Typography.Title level={4} style={{ color: '#fff', margin: 0 }}>
           InFra<span style={{ color: '#1890ff' }}>Lab</span>

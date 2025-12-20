@@ -4,6 +4,7 @@ import Device from "../../models/Device.js";
 import DeviceInstance from "../../models/DeviceInstance.js";
 import Certificate from "../../models/Certificate.js";
 import User from "../../models/User.js";
+import mongoose from "mongoose";
 
 // Tạo yêu cầu mượn từ lab manager
 export const createRequest = async (req, res) => {
@@ -107,35 +108,90 @@ export const approveRequest = async (req, res) => {
       return res.status(400).json({ success: false, message: "Kho school không đủ số lượng" });
     }
 
-    // Tìm các device instances có sẵn trong kho warehouse, sắp xếp theo serial_number tăng dần
-    // CHỈ LẤY DANH SÁCH, CHƯA CHUYỂN LOCATION
-    const availableInstances = await DeviceInstance.find({
-      device_model_id: request.device_id,
-      location: "warehouse",
-      status: "available"
-    })
-      .sort({ serial_number: 1 }) // Sắp xếp theo serial_number tăng dần
-      .limit(request.qty);
+    // Sử dụng transaction để đảm bảo tính atomic khi approve
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    
+    try {
+      // Tìm các device instances đã được chọn trong các request khác đang APPROVED nhưng chưa DELIVERED
+      // để tránh chọn trùng (race condition khi approve nhiều request liên tiếp)
+      // Sử dụng session để đảm bảo đọc dữ liệu nhất quán
+      const otherApprovedRequests = await RequestLab.find({
+        device_id: request.device_id,
+        status: "APPROVED",
+        _id: { $ne: request._id } // Loại trừ request hiện tại
+      })
+      .session(session)
+      .select("device_instance_ids");
+      
+      // Lấy tất cả instance IDs đã được chọn trong các request khác
+      const reservedInstanceIds = otherApprovedRequests
+        .flatMap(req => req.device_instance_ids || [])
+        .map(id => {
+          if (id instanceof mongoose.Types.ObjectId) return id.toString();
+          if (typeof id === 'object' && id._id) return id._id.toString();
+          return id.toString ? id.toString() : id;
+        });
+      
+      console.log(`[APPROVE] Request ID: ${id}, Reserved instance IDs from other requests:`, reservedInstanceIds);
+      
+      // Tìm các device instances có sẵn trong kho warehouse, 
+      // LOẠI TRỪ các instance đã được chọn trong request khác,
+      // sắp xếp theo serial_number tăng dần
+      // CHỈ LẤY DANH SÁCH, CHƯA CHUYỂN LOCATION
+      const availableInstances = await DeviceInstance.find({
+        device_model_id: request.device_id,
+        location: "warehouse",
+        status: "available",
+        _id: { $nin: reservedInstanceIds } // Loại trừ các instance đã được chọn
+      })
+        .session(session)
+        .sort({ serial_number: 1 }) // Sắp xếp theo serial_number tăng dần
+        .limit(request.qty);
+      
+      console.log(`[APPROVE] Found ${availableInstances.length} available instances (need ${request.qty})`);
+      console.log(`[APPROVE] Available instance IDs:`, availableInstances.map(i => i._id.toString()));
 
-    if (availableInstances.length < request.qty) {
-      return res.status(400).json({ 
+      if (availableInstances.length < request.qty) {
+        await session.abortTransaction();
+        await session.endSession();
+        return res.status(400).json({ 
+          success: false, 
+          message: `Kho school chỉ còn ${availableInstances.length} thiết bị có sẵn, không đủ ${request.qty} thiết bị` 
+        });
+      }
+
+      // Lưu danh sách device instances đã được chọn (chưa chuyển location)
+      const instanceIds = availableInstances.map(inst => inst._id);
+      
+      console.log(`[APPROVE] Selected ${instanceIds.length} instances for request:`, instanceIds.map(id => id.toString()));
+      
+      // CHỈ DUYỆT, CHƯA CHUYỂN LOCATION - sẽ chuyển khi xác nhận đã giao
+      request.status = "APPROVED";
+      request.approved_by = approverId;
+      request.approved_at = new Date();
+      request.processed_at = new Date();
+      request.device_instance_ids = instanceIds; // Lưu danh sách serial đã chọn
+      await request.save({ session });
+      
+      // Commit transaction
+      await session.commitTransaction();
+      
+    } catch (transactionError) {
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
+      await session.endSession();
+      console.error("Transaction error in approveRequest:", transactionError);
+      return res.status(500).json({ 
         success: false, 
-        message: `Kho school chỉ còn ${availableInstances.length} thiết bị có sẵn, không đủ ${request.qty} thiết bị` 
+        message: "Lỗi khi duyệt yêu cầu: " + transactionError.message 
       });
+    } finally {
+      await session.endSession();
     }
 
-    // Lưu danh sách device instances đã được chọn (chưa chuyển location)
-    const instanceIds = availableInstances.map(inst => inst._id);
-    
-    // CHỈ DUYỆT, CHƯA CHUYỂN LOCATION - sẽ chuyển khi xác nhận đã giao
-    request.status = "APPROVED";
-    request.approved_by = approverId;
-    request.approved_at = new Date();
-    request.processed_at = new Date();
-    request.device_instance_ids = instanceIds; // Lưu danh sách serial đã chọn
-    await request.save();
-
-    // Tạo chứng nhận (Certificate)
+    // Tạo chứng nhận (Certificate) - không cần transaction vì đã commit ở trên
     const approver = await User.findById(approverId);
     const requester = await User.findById(request.created_by);
     
@@ -300,9 +356,75 @@ export const deliverRequest = async (req, res) => {
       return inst.toString();
     });
 
+    // Validate số lượng instances thực tế được chuyển
+    // Kiểm tra xem các instance này có đang trong warehouse và available không
+    const actualInstances = await DeviceInstance.find({
+      _id: { $in: instanceIds },
+      location: "warehouse",
+      status: "available"
+    });
+    
+    console.log(`[DELIVER] Request ID: ${id}, Expected: ${instanceIds.length} instances, Found: ${actualInstances.length} instances in warehouse`);
+    console.log(`[DELIVER] Instance IDs in request:`, instanceIds);
+    console.log(`[DELIVER] Actual instances found:`, actualInstances.map(i => i._id.toString()));
+    
+    // Kiểm tra xem có instance nào đã bị chuyển trong request khác không
+    const alreadyDeliveredInstances = await DeviceInstance.find({
+      _id: { $in: instanceIds },
+      location: { $ne: "warehouse" } // Đã không còn trong warehouse
+    });
+    
+    if (alreadyDeliveredInstances.length > 0) {
+      console.warn(`[DELIVER] Warning: ${alreadyDeliveredInstances.length} instances đã được chuyển trong request khác:`, 
+        alreadyDeliveredInstances.map(i => i._id.toString()));
+      
+      // Kiểm tra xem các instance này thuộc request nào
+      const otherRequests = await RequestLab.find({
+        device_id: request.device_id,
+        status: "DELIVERED",
+        _id: { $ne: request._id },
+        device_instance_ids: { $in: alreadyDeliveredInstances.map(i => i._id) }
+      }).select("_id qty device_instance_ids");
+      
+      console.warn(`[DELIVER] These instances belong to other DELIVERED requests:`, otherRequests.map(r => ({
+        requestId: r._id,
+        qty: r.qty,
+        instanceIds: r.device_instance_ids
+      })));
+    }
+    
+    if (actualInstances.length !== instanceIds.length) {
+      const missingCount = instanceIds.length - actualInstances.length;
+      console.error(`[DELIVER] ERROR: Expected ${instanceIds.length} instances, but only found ${actualInstances.length} available in warehouse. Missing ${missingCount} instances.`);
+      
+      // Nếu không đủ số lượng, chỉ chuyển số lượng có sẵn
+      const actualInstanceIds = actualInstances.map(inst => inst._id.toString());
+      
+      // Cập nhật request với danh sách instances thực tế được chuyển
+      request.device_instance_ids = actualInstanceIds;
+      request.qty = actualInstances.length; // Cập nhật số lượng thực tế
+      
+      // Không throw error nhưng log warning để người dùng biết
+    }
+
+    // Lấy danh sách instance IDs thực tế cần chuyển (tránh trường hợp có instance đã bị chuyển)
+    const instancesToDeliver = actualInstances.map(inst => inst._id.toString());
+    
+    if (instancesToDeliver.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Không có thiết bị nào còn trong warehouse để chuyển. Có thể đã được chuyển trong request khác.` 
+      });
+    }
+    
     // Cập nhật các device instances: chuyển từ warehouse sang lab
-    await DeviceInstance.updateMany(
-      { _id: { $in: instanceIds } },
+    // CHỈ cập nhật các instance còn thực sự trong warehouse
+    const updateResult = await DeviceInstance.updateMany(
+      { 
+        _id: { $in: instancesToDeliver },
+        location: "warehouse", // Chỉ cập nhật nếu vẫn còn trong warehouse
+        status: "available"
+      },
       {
         $set: {
           location: "lab",
@@ -311,18 +433,45 @@ export const deliverRequest = async (req, res) => {
       }
     );
 
+    console.log(`[DELIVER] Updated ${updateResult.modifiedCount} device instances from warehouse to lab`);
+    console.log(`[DELIVER] Expected to update: ${instancesToDeliver.length}, Actually updated: ${updateResult.modifiedCount}`);
+    
+    if (updateResult.modifiedCount < instancesToDeliver.length) {
+      console.error(`[DELIVER] ERROR: Chỉ cập nhật được ${updateResult.modifiedCount}/${instancesToDeliver.length} instances. Một số instances có thể đã bị chuyển trước đó.`);
+    }
+
+    // Tính lại số lượng thực tế đã chuyển (có thể khác với request.qty nếu có instance đã bị chuyển trước đó)
+    const actualDeliveredCount = updateResult.modifiedCount;
+
     // Trừ kho school (giảm available, tăng borrowed, giữ nguyên total)
     const invWarehouse = await Inventory.findOne({
       device_id: request.device_id,
       location: "warehouse",
     });
     if (invWarehouse) {
-      invWarehouse.available -= request.qty;
-      invWarehouse.borrowed = (invWarehouse.borrowed || 0) + request.qty;
+      invWarehouse.available = Math.max(0, invWarehouse.available - actualDeliveredCount);
+      invWarehouse.borrowed = (invWarehouse.borrowed || 0) + actualDeliveredCount;
       await invWarehouse.save();
     }
 
-    // Cộng vào kho lab
+    // Cộng vào kho lab - Tính lại từ DeviceInstance thực tế để đảm bảo tính nhất quán
+    const labTotalAfter = await DeviceInstance.countDocuments({
+      device_model_id: request.device_id,
+      location: "lab",
+    });
+    
+    const labAvailableAfter = await DeviceInstance.countDocuments({
+      device_model_id: request.device_id,
+      location: "lab",
+      status: "available",
+    });
+    
+    const labBrokenAfter = await DeviceInstance.countDocuments({
+      device_model_id: request.device_id,
+      location: "lab",
+      status: "broken",
+    });
+
     let invLab = await Inventory.findOne({
       device_id: request.device_id,
       location: "lab",
@@ -331,15 +480,19 @@ export const deliverRequest = async (req, res) => {
       invLab = await Inventory.create({
         device_id: request.device_id,
         location: "lab",
-        total: request.qty,
-        available: request.qty,
-        broken: 0,
+        total: labTotalAfter,
+        available: labAvailableAfter,
+        broken: labBrokenAfter,
       });
     } else {
-      invLab.total = (invLab.total || 0) + request.qty;
-      invLab.available = (invLab.available || 0) + request.qty;
+      // Cập nhật dựa trên số lượng thực tế từ DeviceInstance
+      invLab.total = labTotalAfter;
+      invLab.available = labAvailableAfter;
+      invLab.broken = labBrokenAfter;
       await invLab.save();
     }
+    
+    console.log(`[DELIVER] Inventory updated - Lab: total=${labTotalAfter}, available=${labAvailableAfter}, broken=${labBrokenAfter}`);
 
     // Cập nhật status sang DELIVERED
     request.status = "DELIVERED";

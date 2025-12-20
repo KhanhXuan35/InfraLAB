@@ -141,7 +141,7 @@ export default function LabManagerRepairList() {
                 <Title level={4} style={{ margin: 0 }}>
                     Yêu cầu sửa chữa đã gửi
                 </Title>
-                <Button onClick={() => navigate(LAB_MANAGER_ROUTES.DASHBOARD)}>
+                <Button onClick={() => navigate(LAB_MANAGER_ROUTES.REPORTS)}>
                     Về dashboard
                 </Button>
             </Header>

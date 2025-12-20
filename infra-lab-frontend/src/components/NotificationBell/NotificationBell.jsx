@@ -28,6 +28,61 @@ const NotificationBell = () => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+  // Lấy role của user hiện tại
+  const getUserRole = () => {
+    try {
+      const userString = localStorage.getItem('user');
+      if (userString) {
+        const userData = JSON.parse(userString);
+        return userData?.role;
+      }
+    } catch (err) {
+      console.error('Error getting user role:', err);
+    }
+    return null;
+  };
+
+  // Lọc thông báo cho school_admin: chỉ hiển thị yêu cầu từ lab_manager
+  const filterNotifications = (notifs) => {
+    const userRole = getUserRole();
+    
+    // Nếu không phải school_admin, trả về tất cả thông báo
+    if (userRole !== 'school_admin') {
+      return notifs;
+    }
+
+    // Đối với school_admin, chỉ hiển thị:
+    // 1. Thông báo có type là 'new_device_request' (yêu cầu thiết bị mới từ lab_manager)
+    // 2. Thông báo có message chứa "Lab Manager" hoặc "từ Lab Manager"
+    // Loại bỏ thông báo về yêu cầu mượn từ student
+    return notifs.filter(notif => {
+      // Giữ lại thông báo yêu cầu thiết bị mới từ lab_manager
+      if (notif.type === 'new_device_request') {
+        return true;
+      }
+      
+      // Giữ lại thông báo có message chứa "Lab Manager"
+      if (notif.message && (
+        notif.message.includes('Lab Manager') || 
+        notif.message.includes('từ Lab Manager') ||
+        notif.message.includes('lab_manager')
+      )) {
+        return true;
+      }
+      
+      // Loại bỏ thông báo về yêu cầu mượn từ student
+      if (notif.message && (
+        notif.message.includes('Sinh viên') && 
+        notif.message.includes('yêu cầu mượn')
+      )) {
+        return false;
+      }
+      
+      // Giữ lại các thông báo khác (không liên quan đến borrow request từ student)
+      return true;
+    });
+  };
+
   const fetchNotifications = async () => {
     try {
       setLoading(true);
@@ -35,12 +90,14 @@ const NotificationBell = () => {
       console.log('Notifications response:', res); // Debug log
       if (res && res.success) {
         const notifs = Array.isArray(res.data) ? res.data : [];
-        setNotifications(notifs);
-        setUnreadCount(notifs.filter(n => !n.read).length);
+        const filteredNotifs = filterNotifications(notifs);
+        setNotifications(filteredNotifs);
+        setUnreadCount(filteredNotifs.filter(n => !n.read).length);
       } else if (Array.isArray(res)) {
         // Nếu API trả về trực tiếp array
-        setNotifications(res);
-        setUnreadCount(res.filter(n => !n.read).length);
+        const filteredNotifs = filterNotifications(res);
+        setNotifications(filteredNotifs);
+        setUnreadCount(filteredNotifs.filter(n => !n.read).length);
       }
     } catch (err) {
       console.error('Error fetching notifications:', err);

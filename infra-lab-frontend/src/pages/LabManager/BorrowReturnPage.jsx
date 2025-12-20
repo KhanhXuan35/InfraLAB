@@ -1082,7 +1082,13 @@ const BorrowReturnPage = () => {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                           }}
-                          onClick={() => {
+                          onClick={(e) => {
+                            // Chỉ xử lý khi click vào div, không xử lý khi click vào checkbox (đã có handler riêng)
+                            // Kiểm tra nếu click vào checkbox hoặc phần tử con của checkbox
+                            if (e.target.type === 'checkbox' || e.target.closest('.ant-checkbox-wrapper')) {
+                              return; // Bỏ qua, để checkbox onChange xử lý
+                            }
+                            
                             if (isSelected) {
                               // Bỏ chọn
                               setSelectedInstanceIds(prev => {
@@ -1099,8 +1105,11 @@ const BorrowReturnPage = () => {
                                 });
                               }
                             } else {
-                              // Chọn
+                              // Chọn - kiểm tra xem đã có trong list chưa để tránh duplicate
                               setSelectedInstanceIds(prev => {
+                                if (prev.includes(instId)) {
+                                  return prev; // Đã có rồi, không thêm nữa
+                                }
                                 const newList = [...prev, instId];
                                 setReturnQuantity(newList.length); // Cập nhật returnQuantity theo số lượng thực tế
                                 return newList;
@@ -1115,6 +1124,10 @@ const BorrowReturnPage = () => {
                                 e.stopPropagation();
                                 if (e.target.checked) {
                                   setSelectedInstanceIds(prev => {
+                                    // Kiểm tra xem đã có trong list chưa để tránh duplicate
+                                    if (prev.includes(instId)) {
+                                      return prev; // Đã có rồi, không thêm nữa
+                                    }
                                     const newList = [...prev, instId];
                                     setReturnQuantity(newList.length); // Cập nhật returnQuantity theo số lượng thực tế
                                     return newList;

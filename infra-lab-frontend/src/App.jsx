@@ -13,8 +13,6 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 // Home dashboards
 import StudentHomePage from "./pages/student/StudentHomePage";
-import LabManagerHomePage from "./pages/LabManager/LabManagerHomePage";
-import SchoolAdminHomePage from "./pages/SchoolAdmin/SchoolAdminHomePage";
 import ReportsPage from "./pages/SchoolAdmin/ReportsPage";
 
 // Components
@@ -80,8 +78,8 @@ function App() {
 
             {/* --- LAB MANAGER PAGES --- */}
             <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
-              {/* Dashboard */}
-              <Route path={LAB_MANAGER_ROUTES.DASHBOARD} element={<LabManagerHomePage />} />
+              {/* Dashboard - Redirect to Reports */}
+              <Route path={LAB_MANAGER_ROUTES.DASHBOARD} element={<Navigate to={LAB_MANAGER_ROUTES.REPORTS} replace />} />
               
               {/* Devices Management */}
               <Route path={LAB_MANAGER_ROUTES.DEVICES} element={<DeviceList />} />
@@ -106,7 +104,7 @@ function App() {
             </Route>
 
             <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
-              <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
+              <Route path="/school-dashboard" element={<Navigate to="/reports" replace />} />
               <Route path="/requests" element={<RepairRequestList />} />
               <Route path="/school/dashboard" element={<SchoolDashboard />} />
               <Route path="/school/devices/create-with-instances" element={<CreateDeviceWithInstances />} />
