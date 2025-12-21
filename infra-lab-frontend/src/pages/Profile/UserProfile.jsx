@@ -154,7 +154,7 @@ const UserProfile = () => {
         {
           key: 'reports',
           icon: <FileTextOutlined />,
-          label: 'Báo cáo',
+          label: 'Thống kê',
         },
         {
           key: 'settings',

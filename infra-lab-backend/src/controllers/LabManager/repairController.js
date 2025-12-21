@@ -343,64 +343,95 @@ export const updateRepairStatus = async (req, res) => {
         console.log(`[updateRepairStatus] DeviceInstance ${instanceId} repaired and returned to lab`);
 
         // Tìm BorrowLab có repairing_items chứa device_instance_id này
-        const borrowLab = await BorrowLab.findOne({
-          "repairing_items.device_instances": instanceId,
-          status: { $in: ["return_pending", "borrowed"] }
+        // Sử dụng $elemMatch để tìm chính xác trong mảng
+        const borrowLabs = await BorrowLab.find({
+          status: { $in: ["return_pending", "borrowed", "return_requested"] }
         });
 
-        if (borrowLab) {
+        // Tìm tất cả BorrowLab có chứa instance này trong repairing_items
+        for (const borrowLab of borrowLabs) {
+          let found = false;
+          
           // Tìm item trong repairing_items có chứa instance này
-          for (let i = 0; i < borrowLab.repairing_items.length; i++) {
+          for (let i = borrowLab.repairing_items.length - 1; i >= 0; i--) {
             const repairingItem = borrowLab.repairing_items[i];
-            const instanceIds = (repairingItem.device_instances || []).map(id => id.toString());
+            const instanceIds = (repairingItem.device_instances || []).map(id => {
+              return id?.toString ? id.toString() : String(id);
+            });
             
-            if (instanceIds.includes(instanceId.toString())) {
+            const instanceIdStr = instanceId?.toString ? instanceId.toString() : String(instanceId);
+            
+            if (instanceIds.includes(instanceIdStr)) {
+              found = true;
+              
               // Giảm quantity
-              repairingItem.quantity -= 1;
+              repairingItem.quantity = Math.max(0, repairingItem.quantity - 1);
               
               // Xóa instance ID khỏi danh sách
               repairingItem.device_instances = repairingItem.device_instances.filter(
-                id => id.toString() !== instanceId.toString()
+                id => {
+                  const idStr = id?.toString ? id.toString() : String(id);
+                  return idStr !== instanceIdStr;
+                }
               );
               
-              // Nếu quantity = 0, xóa item khỏi danh sách
-              if (repairingItem.quantity === 0) {
+              // Nếu quantity = 0 hoặc không còn instance nào, xóa item khỏi danh sách
+              if (repairingItem.quantity === 0 || repairingItem.device_instances.length === 0) {
                 borrowLab.repairing_items.splice(i, 1);
+                console.log(`[updateRepairStatus] Removed repairing_item from BorrowLab ${borrowLab._id.toString().slice(-8)}`);
               }
               
-              break;
+              break; // Chỉ xử lý một item
             }
           }
-
-          // Kiểm tra xem còn thiết bị nào chưa trả không
-          const hasRemainingItems = borrowLab.items && borrowLab.items.length > 0;
-          const hasRemainingRepairing = borrowLab.repairing_items && borrowLab.repairing_items.length > 0;
-
-          if (!hasRemainingItems && !hasRemainingRepairing) {
-            // Đã trả hết tất cả → chuyển sang "returned"
-            borrowLab.status = "returned";
-            borrowLab.returned = true;
-            borrowLab.return_requested = false;
+          
+          if (found) {
+            // Tính lại số lượng items và repairing_items còn lại SAU KHI đã cập nhật
+            // QUAN TRỌNG: Phải tính lại sau khi đã xóa/sửa repairing_items
+            const remainingItemsQuantity = (borrowLab.items || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
+            const remainingRepairingQuantity = (borrowLab.repairing_items || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
             
-            // Gửi thông báo cho sinh viên
-            try {
-              await Notifications.create({
-                user_id: borrowLab.student_id,
-                type: "success",
-                message: `Đơn mượn của bạn đã hoàn thành. Tất cả thiết bị đã được trả lại phòng Lab.`,
-                related_id: borrowLab._id,
-                related_type: "BorrowLab"
-              });
-            } catch (notifError) {
-              console.error("Error creating notification:", notifError);
-            }
-          } else {
-            // Vẫn còn thiết bị chưa trả
-            borrowLab.status = "return_pending";
-          }
+            console.log(`[updateRepairStatus] BorrowLab ${borrowLab._id.toString().slice(-8)}:`);
+            console.log(`  - Before update: repairing_items.length=${borrowLab.repairing_items.length}`);
+            console.log(`  - After update: remaining items=${remainingItemsQuantity}, repairing=${remainingRepairingQuantity}`);
+            console.log(`  - Current status: ${borrowLab.status}`);
 
-          await borrowLab.save();
-          console.log(`[updateRepairStatus] Updated BorrowLab ${borrowLab._id.toString().slice(-8)} after repair completion`);
+            // Kiểm tra xem còn thiết bị nào chưa trả không
+            const hasRemainingItems = remainingItemsQuantity > 0;
+            const hasRemainingRepairing = remainingRepairingQuantity > 0;
+
+            if (!hasRemainingItems && !hasRemainingRepairing) {
+              // Đã trả hết tất cả → chuyển sang "returned"
+              borrowLab.status = "returned";
+              borrowLab.returned = true;
+              borrowLab.return_requested = false;
+              
+              console.log(`[updateRepairStatus] BorrowLab ${borrowLab._id.toString().slice(-8)}: All items returned, status changed to "returned"`);
+              
+              // Gửi thông báo cho sinh viên
+              try {
+                await Notifications.create({
+                  user_id: borrowLab.student_id,
+                  type: "success",
+                  message: `Đơn mượn của bạn đã hoàn thành. Tất cả thiết bị đã được trả lại phòng Lab.`,
+                  related_id: borrowLab._id,
+                  related_type: "BorrowLab"
+                });
+              } catch (notifError) {
+                console.error("Error creating notification:", notifError);
+              }
+            } else {
+              // Vẫn còn thiết bị chưa trả → đảm bảo status là "return_pending"
+              // QUAN TRỌNG: Luôn set status về "return_pending" nếu còn items hoặc repairing_items
+              borrowLab.status = "return_pending";
+              borrowLab.returned = false;
+              console.log(`[updateRepairStatus] BorrowLab ${borrowLab._id.toString().slice(-8)}: Still has items (items=${remainingItemsQuantity}, repairing=${remainingRepairingQuantity}), status set to "return_pending"`);
+            }
+
+            await borrowLab.save();
+            console.log(`[updateRepairStatus] Updated BorrowLab ${borrowLab._id.toString().slice(-8)} after repair completion`);
+            break; // Chỉ xử lý một BorrowLab record
+          }
         }
       }
     }

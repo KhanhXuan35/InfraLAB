@@ -1,4 +1,5 @@
 import Inventory from "../../models/Inventory.js";
+import DeviceInstance from "../../models/DeviceInstance.js";
 import RequestsWarehouse from "../../models/RequestsWarehouse.js";
 import Device from "../../models/Device.js";
 import User from "../../models/User.js";
@@ -56,7 +57,6 @@ export const getSchoolStats = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("getSchoolStats error:", err);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -118,7 +118,6 @@ export const getTeacherRequests = async (req, res) => {
       data: formattedRequests,
     });
   } catch (err) {
-    console.error("getTeacherRequests error:", err);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -162,7 +161,6 @@ export const getWarehouseStats = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("getWarehouseStats error:", err);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -187,13 +185,67 @@ export const getReportsData = async (req, res) => {
       startDate.setFullYear(now.getFullYear() - 2); // 2 năm gần nhất
     }
 
-    // 1. Thống kê thiết bị theo trạng thái
-    const warehouseInventories = await Inventory.find({ location: "warehouse" }).lean();
+    // 1. Thống kê thiết bị theo trạng thái từ cả Lab và Warehouse
+    const deviceStatusFromInstances = await DeviceInstance.aggregate([
+      { 
+        $match: { 
+          location: { $in: ["lab", "warehouse"] } 
+        } 
+      },
+      {
+        $group: {
+          _id: {
+            location: "$location",
+            status: "$status"
+          },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Tổng hợp theo location và status
+    const deviceStatusDetail = {
+      lab: {
+        available: 0,
+        borrowed: 0,
+        broken: 0,
+        inRepair: 0,
+        total: 0
+      },
+      warehouse: {
+        available: 0,
+        borrowed: 0,
+        broken: 0,
+        inRepair: 0,
+        total: 0
+      }
+    };
+    
+    deviceStatusFromInstances.forEach(item => {
+      const location = item._id.location;
+      const status = item._id.status;
+      const count = item.count;
+      
+      if (location === 'lab' || location === 'warehouse') {
+        if (status === 'available') {
+          deviceStatusDetail[location].available = count;
+        } else if (status === 'borrowed') {
+          deviceStatusDetail[location].borrowed = count;
+        } else if (status === 'broken') {
+          deviceStatusDetail[location].broken = count;
+        } else if (status === 'repairing' || status === 'maintenance') {
+          deviceStatusDetail[location].inRepair += count;
+        }
+        deviceStatusDetail[location].total += count;
+      }
+    });
+
     const deviceStatusData = {
-      available: warehouseInventories.reduce((sum, inv) => sum + (inv.available || 0), 0),
-      broken: warehouseInventories.reduce((sum, inv) => sum + (inv.broken || 0), 0),
-      inRepair: await Repair.countDocuments({ status: { $in: ['in_progress', 'approved', 'pending'] } }),
-      borrowed: await BorrowLab.countDocuments({ status: { $in: ['borrowed', 'return_pending'] } }),
+      available: deviceStatusDetail.lab.available + deviceStatusDetail.warehouse.available,
+      borrowed: deviceStatusDetail.lab.borrowed + deviceStatusDetail.warehouse.borrowed,
+      broken: deviceStatusDetail.lab.broken + deviceStatusDetail.warehouse.broken,
+      inRepair: deviceStatusDetail.lab.inRepair + deviceStatusDetail.warehouse.inRepair,
+      detail: deviceStatusDetail
     };
 
     // 2. Yêu cầu mượn theo tháng (6 tháng gần nhất)
@@ -261,7 +313,7 @@ export const getReportsData = async (req, res) => {
         }
       ]);
     } catch (err) {
-      console.error("Error getting top borrowed devices:", err);
+      // Error getting top borrowed devices
     }
 
     // 5. Thống kê theo trạng thái yêu cầu mượn
@@ -331,7 +383,7 @@ export const getReportsData = async (req, res) => {
         { $sort: { total: -1 } }
       ]);
     } catch (err) {
-      console.error("Error getting category usage:", err);
+      // Error getting category usage
     }
 
     const responseData = {
@@ -344,14 +396,11 @@ export const getReportsData = async (req, res) => {
       categoryUsage: categoryUsage || [],
     };
     
-    console.log('School Admin Reports Response:', JSON.stringify(responseData, null, 2));
-    
     res.json({
       success: true,
       data: responseData,
     });
   } catch (err) {
-    console.error("getReportsData error:", err);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",

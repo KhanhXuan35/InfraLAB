@@ -35,6 +35,7 @@ import {
   EyeOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
 import LabManagerSidebar from '../../components/Sidebar/LabManagerSidebar';
@@ -729,7 +730,7 @@ const BorrowReturnPage = () => {
                       {
                         title: 'Mã serial',
                         key: 'serial',
-                        width: 250,
+                        width: 300,
                         render: (_, item) => {
                           const serialNumbers = item.serialNumbers || [];
                           if (serialNumbers.length === 0) {
@@ -741,7 +742,7 @@ const BorrowReturnPage = () => {
                               style={{
                                 maxHeight: '120px',
                                 overflowY: 'auto',
-                                overflowX: 'hidden',
+                                overflowX: 'auto',
                                 padding: '4px 0',
                               }}
                             >
@@ -750,6 +751,7 @@ const BorrowReturnPage = () => {
                                   display: 'flex',
                                   flexWrap: 'wrap',
                                   gap: '4px',
+                                  minWidth: 'max-content',
                                 }}
                               >
                                 {serialNumbers.map((serial, idx) => (
@@ -761,7 +763,11 @@ const BorrowReturnPage = () => {
                                       padding: '2px 6px',
                                       margin: 0,
                                       display: 'inline-block',
+                                      wordBreak: 'break-all',
+                                      whiteSpace: 'normal',
+                                      maxWidth: '100%',
                                     }}
+                                    title={serial}
                                   >
                                     {serial}
                                   </Text>
@@ -863,7 +869,7 @@ const BorrowReturnPage = () => {
                       {
                         title: 'Mã serial',
                         key: 'serial',
-                        width: 250,
+                        width: 300,
                         render: (_, item) => {
                           const serialNumbers = item.serialNumbers || [];
                           if (serialNumbers.length === 0) {
@@ -875,7 +881,7 @@ const BorrowReturnPage = () => {
                               style={{
                                 maxHeight: '120px',
                                 overflowY: 'auto',
-                                overflowX: 'hidden',
+                                overflowX: 'auto',
                                 padding: '4px 0',
                               }}
                             >
@@ -884,6 +890,7 @@ const BorrowReturnPage = () => {
                                   display: 'flex',
                                   flexWrap: 'wrap',
                                   gap: '4px',
+                                  minWidth: 'max-content',
                                 }}
                               >
                                 {serialNumbers.map((serial, idx) => (
@@ -895,7 +902,11 @@ const BorrowReturnPage = () => {
                                       padding: '2px 6px',
                                       margin: 0,
                                       display: 'inline-block',
+                                      wordBreak: 'break-all',
+                                      whiteSpace: 'normal',
+                                      maxWidth: '100%',
                                     }}
+                                    title={serial}
                                   >
                                     {serial}
                                   </Text>
@@ -924,11 +935,22 @@ const BorrowReturnPage = () => {
                         key: 'status',
                         align: 'center',
                         width: 200,
-                        render: (_, item) => (
-                          <Tag color="processing" icon={<WarningOutlined />}>
-                            Đang chờ School Admin sửa chữa
-                          </Tag>
-                        ),
+                        render: (_, item) => {
+                          const repairStatus = item.repairStatus || 'pending';
+                          const statusConfig = {
+                            'done': { color: 'success', text: 'Đã sửa xong', icon: <CheckCircleOutlined /> },
+                            'in_progress': { color: 'processing', text: 'Đang sửa chữa', icon: <SyncOutlined spin /> },
+                            'approved': { color: 'processing', text: 'Đã duyệt, đang sửa', icon: <SyncOutlined spin /> },
+                            'rejected': { color: 'error', text: 'Đã từ chối sửa', icon: <CloseCircleOutlined /> },
+                            'pending': { color: 'warning', text: 'Đang chờ School Admin sửa chữa', icon: <WarningOutlined /> },
+                          };
+                          const config = statusConfig[repairStatus] || statusConfig['pending'];
+                          return (
+                            <Tag color={config.color} icon={config.icon}>
+                              {config.text}
+                            </Tag>
+                          );
+                        },
                       },
                     ]}
                     dataSource={selectedBorrowRequest.repairingItems}
@@ -1055,7 +1077,7 @@ const BorrowReturnPage = () => {
                   style={{
                     maxHeight: '200px',
                     overflowY: 'auto',
-                    overflowX: 'hidden',
+                    overflowX: 'auto',
                     padding: '8px',
                     border: '1px solid #d9d9d9',
                     borderRadius: '4px',
@@ -1148,7 +1170,17 @@ const BorrowReturnPage = () => {
                                 }
                               }}
                             />
-                            <Text code style={{ fontSize: 14, fontWeight: 500 }}>
+                            <Text 
+                              code 
+                              style={{ 
+                                fontSize: 14, 
+                                fontWeight: 500,
+                                wordBreak: 'break-all',
+                                whiteSpace: 'normal',
+                                maxWidth: '100%',
+                              }}
+                              title={serialNumber}
+                            >
                               {serialNumber}
                             </Text>
                             {isBroken && (
@@ -1203,7 +1235,7 @@ const BorrowReturnPage = () => {
                       style={{
                         maxHeight: '150px',
                         overflowY: 'auto',
-                        overflowX: 'hidden',
+                        overflowX: 'auto',
                         padding: '8px',
                         border: '1px solid #ffccc7',
                         borderRadius: '4px',
@@ -1258,7 +1290,17 @@ const BorrowReturnPage = () => {
                                     }
                                   }}
                                 />
-                                <Text code style={{ fontSize: 14, fontWeight: 500 }}>
+                                <Text 
+                                  code 
+                                  style={{ 
+                                    fontSize: 14, 
+                                    fontWeight: 500,
+                                    wordBreak: 'break-all',
+                                    whiteSpace: 'normal',
+                                    maxWidth: '100%',
+                                  }}
+                                  title={serialNumber}
+                                >
                                   {serialNumber}
                                 </Text>
                                 {isBroken && (

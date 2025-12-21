@@ -127,15 +127,48 @@ export const getBorrowingStudents = async (req, res) => {
         }
         
         // Populate device_instances nếu chưa được populate
+        let populatedDeviceInstances = [];
         if (deviceInstances.length > 0 && typeof deviceInstances[0] === 'object' && deviceInstances[0].serial_number) {
           // Đã được populate
+          populatedDeviceInstances = deviceInstances;
           serialNumbers = deviceInstances.map(inst => inst.serial_number || inst._id?.toString().slice(-8)).filter(Boolean);
         } else if (deviceInstances.length > 0) {
           // Chưa được populate, cần populate
-          const populatedInstances = await DeviceInstance.find({
-            _id: { $in: deviceInstances }
-          }).select("serial_number").lean();
-          serialNumbers = populatedInstances.map(inst => inst.serial_number).filter(Boolean);
+          const instanceIds = deviceInstances.map(inst => inst._id || inst);
+          populatedDeviceInstances = await DeviceInstance.find({
+            _id: { $in: instanceIds }
+          }).select("serial_number _id").lean();
+          serialNumbers = populatedDeviceInstances.map(inst => inst.serial_number).filter(Boolean);
+        }
+        
+        // Lấy repair status từ Repair model cho các device_instance_id
+        let overallRepairStatus = "pending";
+        let repairStatusMap = {};
+        if (populatedDeviceInstances.length > 0) {
+          const instanceIds = populatedDeviceInstances.map(inst => inst._id || inst);
+          const repairs = await Repair.find({
+            device_instance_id: { $in: instanceIds },
+            device_id: item.device_id._id || item.device_id
+          }).select("device_instance_id status").lean();
+          
+          // Tạo map để dễ tra cứu repair status theo instance_id
+          repairs.forEach(repair => {
+            if (repair.device_instance_id) {
+              repairStatusMap[repair.device_instance_id.toString()] = repair.status;
+            }
+          });
+          
+          // Xác định trạng thái chung: nếu tất cả đều "done" thì "done", nếu có ít nhất 1 "in_progress" hoặc "approved" thì "in_progress", còn lại là "pending"
+          const repairStatuses = repairs.map(r => r.status);
+          if (repairStatuses.length > 0) {
+            if (repairStatuses.every(s => s === "done")) {
+              overallRepairStatus = "done";
+            } else if (repairStatuses.some(s => s === "in_progress" || s === "approved")) {
+              overallRepairStatus = "in_progress";
+            } else if (repairStatuses.some(s => s === "rejected")) {
+              overallRepairStatus = "rejected";
+            }
+          }
         }
         
         return {
@@ -149,7 +182,9 @@ export const getBorrowingStudents = async (req, res) => {
           broken_reason: item.broken_reason,
           reported_at: item.reported_at,
           serialNumbers: serialNumbers, // Thêm serial numbers
-          device_instances: deviceInstances, // Giữ nguyên để frontend có thể dùng
+          device_instances: populatedDeviceInstances.length > 0 ? populatedDeviceInstances : deviceInstances, // Trả về populated instances
+          repairStatus: overallRepairStatus, // Thêm repair status
+          repairStatusMap: repairStatusMap, // Map status cho từng instance
         };
       }));
       

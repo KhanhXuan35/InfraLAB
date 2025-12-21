@@ -7,24 +7,18 @@ import DeviceInstance from "../../models/DeviceInstance.js";
 export const getAllDevices = async (req, res) => {
   try {
     const { category, location } = req.query;
-    console.log('GET /api/devices - Query params:', { category, location });
     
     let query = {};
     if (category) {
       const categoryDoc = await Category.findOne({ name: category });
       if (categoryDoc) {
         query.category_id = categoryDoc._id;
-        console.log('Found category:', categoryDoc.name);
-      } else {
-        console.log('Category not found:', category);
       }
     }
 
     const devices = await Device.find({ ...query, verify: true })
       .populate('category_id', 'name description')
       .sort({ createdAt: -1 });
-
-    console.log(`Found ${devices.length} devices`);
 
     // Get inventory info for each device and filter only devices with inventory at specified location
     const targetLocation = location || 'lab';
@@ -54,11 +48,7 @@ export const getAllDevices = async (req, res) => {
           location: targetLocation
         });
 
-        // Chỉ trả về device nếu có thiết bị tại location được yêu cầu
-        if (actualTotal === 0 && (!inventory || inventory.total === 0)) {
-          return null;
-        }
-
+        // Trả về tất cả devices, kể cả khi không có instances (để hiển thị "đã hết mã sản phẩm")
         return {
           _id: device._id,
           name: device.name,
@@ -77,18 +67,12 @@ export const getAllDevices = async (req, res) => {
       })
     );
 
-    // Filter out null values (devices without inventory at the location)
-    const filteredDevices = devicesWithInventory.filter(device => device !== null);
-
-    console.log(`Found ${devices.length} total devices, ${filteredDevices.length} devices with inventory at location: ${targetLocation}`);
-
     res.status(200).json({
       success: true,
-      data: filteredDevices,
-      count: filteredDevices.length
+      data: devicesWithInventory,
+      count: devicesWithInventory.length
     });
   } catch (error) {
-    console.error('Error in getAllDevices:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -150,10 +134,6 @@ export const getDeviceById = async (req, res) => {
     });
 
     // Debug log để kiểm tra
-    console.log(`[getDeviceById] Device: ${device.name} (${device._id})`);
-    console.log(`  - Location: ${targetLocation}`);
-    console.log(`  - Actual from DeviceInstance: total=${actualTotal}, available=${actualAvailable}, borrowed=${actualBorrowed}, broken=${actualBroken}, repairing=${actualRepairing}`);
-    console.log(`  - Inventory reported: total=${inventory?.total || 0}, available=${inventory?.available || 0}, broken=${inventory?.broken || 0}`);
 
     // LUÔN sử dụng số lượng thực tế từ DeviceInstance (không fallback về Inventory)
     // Vì DeviceInstance là nguồn dữ liệu chính xác nhất

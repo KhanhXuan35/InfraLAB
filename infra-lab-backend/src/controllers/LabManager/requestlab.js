@@ -88,8 +88,15 @@ export const approveRequest = async (req, res) => {
     if (!request) {
       return res.status(404).json({ success: false, message: "Không tìm thấy yêu cầu" });
     }
+    
+    // Kiểm tra trạng thái request với logging chi tiết
+    console.log(`[APPROVE] Request ID: ${id}, Current status: ${request.status}`);
     if (request.status !== "WAITING") {
-      return res.status(400).json({ success: false, message: "Yêu cầu không ở trạng thái chờ" });
+      console.log(`[APPROVE] Request ${id} is not in WAITING status. Current status: ${request.status}`);
+      return res.status(400).json({ 
+        success: false, 
+        message: `Yêu cầu không ở trạng thái chờ. Trạng thái hiện tại: ${request.status}` 
+      });
     }
     if (!request.device_id) {
       return res.status(400).json({ success: false, message: "Yêu cầu thiếu thông tin thiết bị" });
@@ -111,6 +118,9 @@ export const approveRequest = async (req, res) => {
     // Sử dụng transaction để đảm bảo tính atomic khi approve
     const session = await mongoose.startSession();
     session.startTransaction();
+    
+    // Khai báo instanceIds ở ngoài để có thể sử dụng sau khi transaction kết thúc
+    let instanceIds = [];
     
     try {
       // Tìm các device instances đã được chọn trong các request khác đang APPROVED nhưng chưa DELIVERED
@@ -162,7 +172,7 @@ export const approveRequest = async (req, res) => {
       }
 
       // Lưu danh sách device instances đã được chọn (chưa chuyển location)
-      const instanceIds = availableInstances.map(inst => inst._id);
+      instanceIds = availableInstances.map(inst => inst._id);
       
       console.log(`[APPROVE] Selected ${instanceIds.length} instances for request:`, instanceIds.map(id => id.toString()));
       

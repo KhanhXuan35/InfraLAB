@@ -5,7 +5,6 @@ import {
   DashboardOutlined,
   ToolOutlined,
   ShoppingOutlined,
-  FileTextOutlined,
   BellOutlined,
   AppstoreOutlined,
   LogoutOutlined,
@@ -39,7 +38,6 @@ const LabManagerSidebar = () => {
     if (path === '/lab-manager/repairs' || path.startsWith('/lab-manager/repairs/')) return 'repairs';
     if (path === '/lab-manager/students') return 'students';
     if (path === '/lab-manager/certificates') return 'certificates';
-    if (path === '/reports') return 'reports';
     if (path === '/notifications') return 'notifications';
     if (path === '/chat' || path.startsWith('/chat/')) return 'chat';
     return 'overview';
@@ -87,11 +85,6 @@ const LabManagerSidebar = () => {
       label: 'Tình trạng thiết bị',
     },
     {
-      key: 'reports',
-      icon: <FileTextOutlined />,
-      label: 'Báo cáo',
-    },
-    {
       key: 'chat',
       icon: <MessageOutlined />,
       label: 'Tin nhắn',
@@ -128,9 +121,6 @@ const LabManagerSidebar = () => {
         break;
       case 'certificates':
         navigate('/lab-manager/certificates');
-        break;
-      case 'reports':
-        navigate('/reports');
         break;
       case 'chat':
         navigate('/chat');

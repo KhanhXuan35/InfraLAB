@@ -69,6 +69,11 @@ router.get("/", async (req, res) => {
 
     const repairs = await Repair.find(filter)
       .populate("device_id")
+      .populate({
+        path: "device_instance_id",
+        select: "serial_number status location condition",
+        strictPopulate: false,
+      })
       .sort({ createdAt: -1 });
 
     res.json({ success: true, data: repairs });

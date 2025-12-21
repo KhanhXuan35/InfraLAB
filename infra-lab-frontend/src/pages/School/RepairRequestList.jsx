@@ -202,7 +202,7 @@ export default function RepairRequestList() {
             { key: "overview", icon: <DashboardOutlined />, label: "Tổng quan" },
             { key: "devices", icon: <ToolOutlined />, label: "Quản lý thiết bị" },
             { key: "requests", icon: <CheckCircleOutlined />, label: "Danh sách sửa chữa" },
-            { key: "reports", icon: <FileTextOutlined />, label: "Báo cáo" },
+            { key: "reports", icon: <FileTextOutlined />, label: "Thống kê" },
             { key: "notifications", icon: <BellOutlined />, label: "Thông báo" },
           ]}
           style={{ borderRight: 0, marginTop: 16 }}
@@ -300,6 +300,7 @@ export default function RepairRequestList() {
               <thead>
                 <tr>
                   <th>Thiết bị</th>
+                  <th>Mã Serial</th>
                   <th>Số lượng</th>
                   <th>Lý do</th>
                   <th>Trạng thái</th>
@@ -308,9 +309,28 @@ export default function RepairRequestList() {
                 </tr>
               </thead>
               <tbody>
-                {repairs.map((r) => (
+                {repairs.map((r) => {
+                  // Lấy mã serial từ device_instance_id nếu có, hoặc từ serial_number field
+                  const serialNumber = r.device_instance_id?.serial_number || r.serial_number || "N/A";
+                  
+                  return (
                   <tr key={r._id}>
                     <td>{r.device_id?.name || "N/A"}</td>
+                    <td style={{ whiteSpace: 'nowrap', minWidth: '150px' }}>
+                      <span 
+                        style={{ 
+                          fontFamily: 'monospace', 
+                          fontSize: '13px', 
+                          fontWeight: 500,
+                          display: 'inline-block',
+                          wordBreak: 'break-all',
+                          whiteSpace: 'normal'
+                        }}
+                        title={serialNumber}
+                      >
+                        {serialNumber}
+                      </span>
+                    </td>
                     <td>{r.quantity || 1}</td>
                     <td>{r.reason || "Không có"}</td>
                     <td>
@@ -432,11 +452,12 @@ export default function RepairRequestList() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
 
                 {repairs.length === 0 && (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: "center" }}>
+                    <td colSpan="7" style={{ textAlign: "center" }}>
                       Không có yêu cầu nào.
                     </td>
                   </tr>

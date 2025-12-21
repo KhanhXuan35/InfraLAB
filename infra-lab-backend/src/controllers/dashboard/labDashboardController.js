@@ -3,7 +3,6 @@ import BorrowLab from "../../models/BorrowLab.js";
 import ReturnLab from "../../models/ReturnLab.js";
 import Repair from "../../models/Repair.js";
 import User from "../../models/User.js";
-import mongoose from "mongoose";
 
 /**
  * 1. Trạng thái thiết bị trong Lab
@@ -144,40 +143,68 @@ export const getLabManagerReports = async (req, res) => {
       startDate.setFullYear(now.getFullYear() - 2);
     }
 
-    // 1. Thống kê thiết bị trong Lab
-    const deviceStatusLab = await DeviceInstance.aggregate([
-      { $match: { location: "lab" } },
+    // 1. Thống kê thiết bị từ cả Lab và Warehouse
+    const deviceStatusByLocation = await DeviceInstance.aggregate([
+      { 
+        $match: { 
+          location: { $in: ["lab", "warehouse"] } 
+        } 
+      },
       {
         $group: {
-          _id: "$status",
+          _id: {
+            location: "$location",
+            status: "$status"
+          },
           count: { $sum: 1 }
         }
       }
     ]);
 
-    // Chuyển đổi sang format dễ sử dụng
-    const deviceStatusData = {
-      available: 0,
-      borrowed: 0,
-      broken: 0,
-      inRepair: 0,
+    // Tổng hợp theo location và status
+    const deviceStatusDetail = {
+      lab: {
+        available: 0,
+        borrowed: 0,
+        broken: 0,
+        inRepair: 0,
+        total: 0
+      },
+      warehouse: {
+        available: 0,
+        borrowed: 0,
+        broken: 0,
+        inRepair: 0,
+        total: 0
+      }
     };
     
-    deviceStatusLab.forEach(item => {
-      const status = item._id;
-      if (status === 'available') {
-        deviceStatusData.available = item.count;
-      } else if (status === 'borrowed') {
-        deviceStatusData.borrowed = item.count;
-      } else if (status === 'broken') {
-        deviceStatusData.broken = item.count;
-      } else if (status === 'repairing' || status === 'maintenance') {
-        deviceStatusData.inRepair += item.count; // Cộng dồn nếu có nhiều status
+    deviceStatusByLocation.forEach(item => {
+      const location = item._id.location;
+      const status = item._id.status;
+      const count = item.count;
+      
+      if (location === 'lab' || location === 'warehouse') {
+        if (status === 'available') {
+          deviceStatusDetail[location].available = count;
+        } else if (status === 'borrowed') {
+          deviceStatusDetail[location].borrowed = count;
+        } else if (status === 'broken') {
+          deviceStatusDetail[location].broken = count;
+        } else if (status === 'repairing' || status === 'maintenance') {
+          deviceStatusDetail[location].inRepair += count;
+        }
+        deviceStatusDetail[location].total += count;
       }
     });
-    
-    console.log('Device status lab aggregation result:', deviceStatusLab);
-    console.log('Device status data:', deviceStatusData);
+
+    const deviceStatusData = {
+      available: deviceStatusDetail.lab.available + deviceStatusDetail.warehouse.available,
+      borrowed: deviceStatusDetail.lab.borrowed + deviceStatusDetail.warehouse.borrowed,
+      broken: deviceStatusDetail.lab.broken + deviceStatusDetail.warehouse.broken,
+      inRepair: deviceStatusDetail.lab.inRepair + deviceStatusDetail.warehouse.inRepair,
+      detail: deviceStatusDetail
+    };
 
     // 2. Yêu cầu mượn theo tháng (6 tháng gần nhất)
     const borrowRequestsByMonth = [];
@@ -244,7 +271,7 @@ export const getLabManagerReports = async (req, res) => {
         }
       ]);
     } catch (err) {
-      console.error("Error getting top borrowed devices:", err);
+      // Error getting top borrowed devices
     }
 
     // 5. Thống kê theo trạng thái yêu cầu mượn
@@ -312,7 +339,7 @@ export const getLabManagerReports = async (req, res) => {
         }
       ]);
     } catch (err) {
-      console.error("Error getting top broken devices:", err);
+      // Error getting top broken devices
     }
 
     // 8. Thống kê về sinh viên
@@ -322,24 +349,17 @@ export const getLabManagerReports = async (req, res) => {
       overdueBorrows,
       pendingStudents
     ] = await Promise.all([
-      // Tổng số sinh viên đã active
       User.countDocuments({ 
         role: 'student', 
         isActive: true 
       }),
-      
-      // Số sinh viên đang mượn (có ít nhất 1 đơn mượn với status = "borrowed" hoặc "return_pending")
       BorrowLab.distinct('student_id', {
         status: { $in: ['borrowed', 'return_pending'] }
       }),
-      
-      // Đơn mượn quá hạn (return_due_date < today và status = "borrowed" hoặc "return_pending")
       BorrowLab.countDocuments({
         return_due_date: { $lt: new Date() },
         status: { $in: ['borrowed', 'return_pending'] }
       }),
-      
-      // Sinh viên chờ duyệt (isActive = false)
       User.countDocuments({ 
         role: 'student', 
         isActive: false 
@@ -364,14 +384,11 @@ export const getLabManagerReports = async (req, res) => {
       studentStats,
     };
     
-    console.log('Lab Manager Reports Response:', JSON.stringify(responseData, null, 2));
-    
     res.json({
       success: true,
       data: responseData,
     });
   } catch (err) {
-    console.error("getLabManagerReports error:", err);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",

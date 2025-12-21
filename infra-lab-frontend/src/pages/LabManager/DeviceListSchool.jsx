@@ -54,6 +54,65 @@ const DeviceListSchool = () => {
       const devicesList = Array.isArray(devRes) ? devRes : devRes?.data || [];
       const inventoriesList = Array.isArray(invRes) ? invRes : invRes?.data || [];
 
+      // Fetch danh sách các request đã APPROVED nhưng chưa DELIVERED để trừ đi số lượng đã reserve
+      let reservedCountsMap = {};
+      try {
+        const approvedRequestsRes = await api.get('/request-lab?status=APPROVED&requester_role=lab_manager');
+        const approvedRequests = Array.isArray(approvedRequestsRes) 
+          ? approvedRequestsRes 
+          : approvedRequestsRes?.data || [];
+        
+        // Tính số lượng instances đã được reserve cho mỗi device
+        approvedRequests.forEach(req => {
+          const deviceId = req.device_id?._id || req.device_id || '';
+          const reservedCount = req.device_instance_ids?.length || req.qty || 0;
+          if (deviceId) {
+            const deviceIdStr = deviceId.toString();
+            reservedCountsMap[deviceIdStr] = (reservedCountsMap[deviceIdStr] || 0) + reservedCount;
+          }
+        });
+      } catch (err) {
+        // Nếu không lấy được danh sách approved requests, tiếp tục với reservedCountsMap = {}
+      }
+
+      // Fetch số lượng DeviceInstance (serial) thực tế cho mỗi device trong warehouse
+      const deviceInstanceCounts = await Promise.all(
+        devicesList.map(async (dev) => {
+          const devId = dev._id || dev.id || '';
+          const devIdStr = devId.toString();
+          try {
+            // Gọi API để lấy tổng số instances của device này trong warehouse
+            // Sử dụng limit=1 để chỉ lấy metadata, không cần dữ liệu thực tế
+            const instancesRes = await api.get(`/school-admin/devices/${devId}/instances?location=warehouse&limit=1&page=1`);
+            // API trả về pagination.total chứa tổng số instances
+            const totalInWarehouse = instancesRes?.pagination?.total || instancesRes?.data?.length || 0;
+            // Trừ đi số lượng đã được approve nhưng chưa deliver
+            const reservedCount = reservedCountsMap[devIdStr] || 0;
+            const availableCount = Math.max(0, totalInWarehouse - reservedCount);
+            return { deviceId: devId, count: availableCount, totalInWarehouse, reservedCount };
+          } catch (err) {
+            // Fallback: thử lấy tất cả và đếm
+            try {
+              const instancesRes = await api.get(`/school-admin/devices/${devId}/instances?location=warehouse&limit=1000`);
+              const instances = Array.isArray(instancesRes) ? instancesRes : instancesRes?.data || [];
+              const totalInWarehouse = instancesRes?.pagination?.total || instances.length || 0;
+              // Trừ đi số lượng đã được approve nhưng chưa deliver
+              const reservedCount = reservedCountsMap[devIdStr] || 0;
+              const availableCount = Math.max(0, totalInWarehouse - reservedCount);
+              return { deviceId: devId, count: availableCount, totalInWarehouse, reservedCount };
+            } catch (err2) {
+              return { deviceId: devId, count: 0, totalInWarehouse: 0, reservedCount: 0 };
+            }
+          }
+        })
+      );
+
+      // Tạo map để tra cứu nhanh
+      const countMap = {};
+      deviceInstanceCounts.forEach(({ deviceId, count }) => {
+        countMap[deviceId] = count;
+      });
+
       const merged = devicesList.map((dev) => {
         const devId = dev._id || dev.id || '';
         const inv = inventoriesList.find((i) => {
@@ -64,9 +123,12 @@ const DeviceListSchool = () => {
         const available = inv?.available ?? 0;
         const broken = inv?.broken ?? 0;
         const borrowing = Math.max(total - available - broken, 0);
+        // Đếm trực tiếp từ DeviceInstance (số lượng serial thực tế)
+        const totalInstances = countMap[devId] || 0;
         return {
           ...dev,
           inventory: { total, available, broken, borrowing },
+          totalInstances: totalInstances,
         };
       });
 
@@ -334,13 +396,14 @@ const DeviceListSchool = () => {
                     <th style={{ width: 110, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>Ảnh</th>
                     <th style={{ width: 220, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>Tên linh kiện</th>
                     <th style={{ width: 180, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px' }}>Danh mục</th>
+                    <th style={{ width: 150, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Tổng số mã thiết bị</th>
                     <th style={{ width: 180, padding: '16px 12px', fontWeight: 600, color: '#1a202c', fontSize: '13px', textAlign: 'center' }}>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visibleItems.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="center" style={{ padding: 16 }}>
+                      <td colSpan="6" className="center" style={{ padding: 16 }}>
                         {loading ? 'Dang tai...' : 'Khong co du lieu'}
                       </td>
                     </tr>
@@ -413,6 +476,17 @@ const DeviceListSchool = () => {
                         </td>
                         <td style={{ padding: '16px 12px' }}>
                           <Text style={{ fontSize: '14px', color: '#4a5568' }}>{categoryName}</Text>
+                        </td>
+                        <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                          {item.totalInstances > 0 ? (
+                            <Text strong style={{ fontSize: '14px', color: '#1890ff' }}>
+                              {item.totalInstances}
+                            </Text>
+                          ) : (
+                            <Text type="secondary" style={{ fontSize: '13px', fontStyle: 'italic' }}>
+                              Đã hết mã sản phẩm
+                            </Text>
+                          )}
                         </td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>

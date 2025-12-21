@@ -86,6 +86,19 @@ export default function LabManagerRepairList() {
             render: (device) => device?.name || "N/A",
         },
         {
+            title: "Mã Serial",
+            key: "serial",
+            width: 150,
+            render: (_, record) => {
+                const serialNumber = record.device_instance_id?.serial_number || record.serial_number || "N/A";
+                return (
+                    <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 500 }}>
+                        {serialNumber}
+                    </span>
+                );
+            },
+        },
+        {
             title: "Số lượng",
             dataIndex: "quantity",
             key: "quantity",
