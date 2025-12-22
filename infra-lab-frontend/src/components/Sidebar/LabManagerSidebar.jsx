@@ -5,7 +5,6 @@ import {
   DashboardOutlined,
   ToolOutlined,
   ShoppingOutlined,
-  FileTextOutlined,
   BellOutlined,
   AppstoreOutlined,
   LogoutOutlined,
@@ -34,11 +33,11 @@ const LabManagerSidebar = () => {
     if (path === '/teacher-dashboard') return 'overview';
     if (path === '/lab-manager/devices' || path.startsWith('/lab-manager/device/')) return 'devices';
     if (path === '/lab-manager/school-devices') return 'school-inventory';
-    if (path === '/lab-manager/borrow-return') return 'borrow';
+  if (path === '/lab-manager/borrow-return') return 'borrow';
+  if (path === '/lab-manager/borrow-approval') return 'borrow-approval';
     if (path === '/lab-manager/repairs' || path.startsWith('/lab-manager/repairs/')) return 'repairs';
     if (path === '/lab-manager/students') return 'students';
     if (path === '/lab-manager/certificates') return 'certificates';
-    if (path === '/reports') return 'reports';
     if (path === '/notifications') return 'notifications';
     if (path === '/chat' || path.startsWith('/chat/')) return 'chat';
     return 'overview';
@@ -66,6 +65,11 @@ const LabManagerSidebar = () => {
       label: 'Mượn/Trả',
     },
     {
+      key: 'borrow-approval',
+      icon: <SwapOutlined />,
+      label: 'Duyệt mượn',
+    },
+    {
       key: 'repairs',
       icon: <ToolOutlined />,
       label: 'Danh sách sửa chữa',
@@ -79,11 +83,6 @@ const LabManagerSidebar = () => {
       key: 'certificates',
       icon: <SafetyCertificateOutlined />,
       label: 'Tình trạng thiết bị',
-    },
-    {
-      key: 'reports',
-      icon: <FileTextOutlined />,
-      label: 'Báo cáo',
     },
     {
       key: 'chat',
@@ -111,6 +110,9 @@ const LabManagerSidebar = () => {
       case 'borrow':
         navigate('/lab-manager/borrow-return');
         break;
+      case 'borrow-approval':
+        navigate('/lab-manager/borrow-approval');
+        break;
       case 'repairs':
         navigate('/lab-manager/repairs');
         break;
@@ -119,9 +121,6 @@ const LabManagerSidebar = () => {
         break;
       case 'certificates':
         navigate('/lab-manager/certificates');
-        break;
-      case 'reports':
-        navigate('/reports');
         break;
       case 'chat':
         navigate('/chat');

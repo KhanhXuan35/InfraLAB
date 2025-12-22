@@ -3,6 +3,7 @@ import {
   getSchoolStats,
   getTeacherRequests,
   getWarehouseStats,
+  getReportsData,
 } from "../../controllers/School/schoolDashboardController.js";
 
 const router = express.Router();
@@ -15,6 +16,9 @@ router.get("/requests", getTeacherRequests);
 
 // GET /api/school-dashboard/warehouse-stats - Lấy thống kê kho
 router.get("/warehouse-stats", getWarehouseStats);
+
+// GET /api/school-dashboard/reports - Lấy dữ liệu báo cáo
+router.get("/reports", getReportsData);
 
 export default router;
 

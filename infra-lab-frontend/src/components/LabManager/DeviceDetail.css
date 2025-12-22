@@ -403,3 +403,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.ant-table-cell {
+  white-space: normal !important;
+  word-break: break-word;
+  vertical-align: top;
+}

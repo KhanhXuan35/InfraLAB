@@ -1,9 +1,11 @@
 import Inventory from "../../models/Inventory.js";
+import DeviceInstance from "../../models/DeviceInstance.js";
 import RequestsWarehouse from "../../models/RequestsWarehouse.js";
 import Device from "../../models/Device.js";
 import User from "../../models/User.js";
 import ActivityLogs from "../../models/ActivityLogs.js";
 import Repair from "../../models/Repair.js";
+import BorrowLab from "../../models/BorrowLab.js";
 
 // Lấy thống kê highlights cho School Dashboard
 export const getSchoolStats = async (req, res) => {
@@ -55,7 +57,6 @@ export const getSchoolStats = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("getSchoolStats error:", err);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -117,7 +118,6 @@ export const getTeacherRequests = async (req, res) => {
       data: formattedRequests,
     });
   } catch (err) {
-    console.error("getTeacherRequests error:", err);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -161,10 +161,250 @@ export const getWarehouseStats = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("getWarehouseStats error:", err);
     res.status(500).json({
       success: false,
       message: "Internal Server Error",
+    });
+  }
+};
+
+// Lấy dữ liệu báo cáo chi tiết cho Reports Page
+export const getReportsData = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query; // month, quarter, year
+    
+    // Tính toán khoảng thời gian
+    const now = new Date();
+    let startDate = new Date();
+    
+    if (period === 'month') {
+      startDate.setMonth(now.getMonth() - 6); // 6 tháng gần nhất
+    } else if (period === 'quarter') {
+      startDate.setMonth(now.getMonth() - 12); // 4 quý gần nhất
+    } else {
+      startDate.setFullYear(now.getFullYear() - 2); // 2 năm gần nhất
+    }
+
+    // 1. Thống kê thiết bị theo trạng thái từ cả Lab và Warehouse
+    const deviceStatusFromInstances = await DeviceInstance.aggregate([
+      { 
+        $match: { 
+          location: { $in: ["lab", "warehouse"] } 
+        } 
+      },
+      {
+        $group: {
+          _id: {
+            location: "$location",
+            status: "$status"
+          },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Tổng hợp theo location và status
+    const deviceStatusDetail = {
+      lab: {
+        available: 0,
+        borrowed: 0,
+        broken: 0,
+        inRepair: 0,
+        total: 0
+      },
+      warehouse: {
+        available: 0,
+        borrowed: 0,
+        broken: 0,
+        inRepair: 0,
+        total: 0
+      }
+    };
+    
+    deviceStatusFromInstances.forEach(item => {
+      const location = item._id.location;
+      const status = item._id.status;
+      const count = item.count;
+      
+      if (location === 'lab' || location === 'warehouse') {
+        if (status === 'available') {
+          deviceStatusDetail[location].available = count;
+        } else if (status === 'borrowed') {
+          deviceStatusDetail[location].borrowed = count;
+        } else if (status === 'broken') {
+          deviceStatusDetail[location].broken = count;
+        } else if (status === 'repairing' || status === 'maintenance') {
+          deviceStatusDetail[location].inRepair += count;
+        }
+        deviceStatusDetail[location].total += count;
+      }
+    });
+
+    const deviceStatusData = {
+      available: deviceStatusDetail.lab.available + deviceStatusDetail.warehouse.available,
+      borrowed: deviceStatusDetail.lab.borrowed + deviceStatusDetail.warehouse.borrowed,
+      broken: deviceStatusDetail.lab.broken + deviceStatusDetail.warehouse.broken,
+      inRepair: deviceStatusDetail.lab.inRepair + deviceStatusDetail.warehouse.inRepair,
+      detail: deviceStatusDetail
+    };
+
+    // 2. Yêu cầu mượn theo tháng (6 tháng gần nhất)
+    const borrowRequestsByMonth = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      
+      const count = await BorrowLab.countDocuments({
+        createdAt: { $gte: monthStart, $lte: monthEnd }
+      });
+      
+      borrowRequestsByMonth.push({
+        month: `${monthStart.getMonth() + 1}/${monthStart.getFullYear()}`,
+        count
+      });
+    }
+
+    // 3. Yêu cầu sửa chữa theo tháng
+    const repairRequestsByMonth = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+      
+      const count = await Repair.countDocuments({
+        createdAt: { $gte: monthStart, $lte: monthEnd }
+      });
+      
+      repairRequestsByMonth.push({
+        month: `${monthStart.getMonth() + 1}/${monthStart.getFullYear()}`,
+        count
+      });
+    }
+
+    // 4. Top 10 thiết bị được mượn nhiều nhất
+    let topBorrowedDevices = [];
+    try {
+      topBorrowedDevices = await BorrowLab.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.device_id',
+            totalQuantity: { $sum: '$items.quantity' },
+            borrowCount: { $sum: 1 }
+          }
+        },
+        { $sort: { totalQuantity: -1 } },
+        { $limit: 10 },
+        {
+          $lookup: {
+            from: 'devices',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'device'
+          }
+        },
+        { $unwind: { path: '$device', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            deviceName: { $ifNull: ['$device.name', 'Thiết bị đã xóa'] },
+            totalQuantity: 1,
+            borrowCount: 1
+          }
+        }
+      ]);
+    } catch (err) {
+      // Error getting top borrowed devices
+    }
+
+    // 5. Thống kê theo trạng thái yêu cầu mượn
+    const borrowStatusStats = {
+      pending: await BorrowLab.countDocuments({ status: 'pending' }),
+      approved: await BorrowLab.countDocuments({ status: 'approved' }),
+      borrowed: await BorrowLab.countDocuments({ status: 'borrowed' }),
+      returned: await BorrowLab.countDocuments({ status: 'returned' }),
+      rejected: await BorrowLab.countDocuments({ status: 'rejected' }),
+    };
+
+    // 6. Thống kê theo trạng thái sửa chữa
+    const repairStatusStats = {
+      pending: await Repair.countDocuments({ status: 'pending' }),
+      approved: await Repair.countDocuments({ status: 'approved' }),
+      inProgress: await Repair.countDocuments({ status: 'in_progress' }),
+      completed: await Repair.countDocuments({ status: 'done' }), // Sửa từ 'completed' thành 'done'
+      rejected: await Repair.countDocuments({ status: 'rejected' }),
+    };
+
+    // 7. Tỷ lệ sử dụng thiết bị theo danh mục
+    let categoryUsage = [];
+    try {
+      categoryUsage = await Inventory.aggregate([
+        { $match: { location: 'warehouse' } },
+        {
+          $lookup: {
+            from: 'devices',
+            localField: 'device_id',
+            foreignField: '_id',
+            as: 'device'
+          }
+        },
+        { $unwind: { path: '$device', preserveNullAndEmptyArrays: true } },
+        {
+          $lookup: {
+            from: 'categories',
+            localField: 'device.category_id',
+            foreignField: '_id',
+            as: 'category'
+          }
+        },
+        { $unwind: { path: '$category', preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: { $ifNull: ['$category.name', 'Chưa phân loại'] },
+            total: { $sum: '$total' },
+            available: { $sum: '$available' },
+            broken: { $sum: '$broken' }
+          }
+        },
+        {
+          $project: {
+            categoryName: '$_id',
+            total: 1,
+            available: 1,
+            broken: 1,
+            usageRate: {
+              $cond: [
+                { $eq: ['$total', 0] },
+                0,
+                { $multiply: [{ $divide: ['$available', '$total'] }, 100] }
+              ]
+            }
+          }
+        },
+        { $sort: { total: -1 } }
+      ]);
+    } catch (err) {
+      // Error getting category usage
+    }
+
+    const responseData = {
+      deviceStatusData,
+      borrowRequestsByMonth,
+      repairRequestsByMonth,
+      topBorrowedDevices: topBorrowedDevices || [],
+      borrowStatusStats,
+      repairStatusStats,
+      categoryUsage: categoryUsage || [],
+    };
+    
+    res.json({
+      success: true,
+      data: responseData,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: err.message,
     });
   }
 };

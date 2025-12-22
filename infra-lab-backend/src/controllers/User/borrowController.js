@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import BorrowLab from "../../models/BorrowLab.js";
 import Device from "../../models/Device.js";
 import Inventory from "../../models/Inventory.js";
+import User from "../../models/User.js";
+import Notifications from "../../models/Notifications.js";
 
 export const createBorrowRequest = async (req, res) => {
   try {
@@ -85,8 +87,7 @@ export const createBorrowRequest = async (req, res) => {
     });
     
     // Gửi thông báo cho Lab Manager
-    const labManagers = await require("../../models/User.js").default.find({ role: "lab_manager" });
-    const Notifications = require("../../models/Notifications.js").default;
+    const labManagers = await User.find({ role: "lab_manager" });
     
     for (const lm of labManagers) {
       await Notifications.create({
@@ -144,14 +145,37 @@ export const getLoanDeviceList = async (req, res) => {
       .populate({
         path: "student_id",
         select: "name email student_code phone",
+        strictPopulate: false, // Không throw error nếu không tìm thấy
       })
       .populate({
         path: "items.device_id",
         select: "name description image category_id",
+        strictPopulate: false, // Không throw error nếu không tìm thấy
         populate: {
           path: "category_id",
           select: "name",
+          strictPopulate: false,
         },
+      })
+      .populate({
+        path: "items.device_instances",
+        select: "serial_number status condition",
+        strictPopulate: false,
+      })
+      .populate({
+        path: "repairing_items.device_id",
+        select: "name description image category_id",
+        strictPopulate: false,
+        populate: {
+          path: "category_id",
+          select: "name",
+          strictPopulate: false,
+        },
+      })
+      .populate({
+        path: "repairing_items.device_instances",
+        select: "serial_number status condition",
+        strictPopulate: false,
       })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -162,38 +186,136 @@ export const getLoanDeviceList = async (req, res) => {
     const total = await BorrowLab.countDocuments(query);
 
     // Format dữ liệu trả về
-    const formattedBorrows = borrows.map((borrow) => ({
-      _id: borrow._id,
-      student: {
-        _id: borrow.student_id._id,
-        name: borrow.student_id.name,
-        email: borrow.student_id.email,
-        student_code: borrow.student_id.student_code,
-        phone: borrow.student_id.phone,
-      },
-      items: borrow.items.map((item) => ({
-        device: {
-          _id: item.device_id._id,
-          name: item.device_id.name,
-          description: item.device_id.description,
-          image: item.device_id.image,
-          category: item.device_id.category_id
-            ? {
-                _id: item.device_id.category_id._id,
-                name: item.device_id.category_id.name,
-              }
-            : null,
-        },
-        quantity: item.quantity,
-      })),
-      return_due_date: borrow.return_due_date,
-      purpose: borrow.purpose,
-      notes: borrow.notes,
-      status: borrow.status,
-      returned: borrow.returned,
-      createdAt: borrow.createdAt,
-      updatedAt: borrow.updatedAt,
-    }));
+    const formattedBorrows = borrows
+      .filter((borrow) => {
+        // Lọc bỏ các borrow không có student_id hợp lệ
+        if (!borrow.student_id || !borrow.student_id._id) {
+          console.warn(`Borrow ${borrow._id} has invalid student_id`);
+          return false;
+        }
+        return true;
+      })
+      .map((borrow) => {
+        try {
+          return {
+            _id: borrow._id,
+            student: {
+              _id: borrow.student_id?._id || null,
+              name: borrow.student_id?.name || "N/A",
+              email: borrow.student_id?.email || "",
+              student_code: borrow.student_id?.student_code || "",
+              phone: borrow.student_id?.phone || "",
+            },
+            items: (borrow.items || [])
+              .filter((item) => {
+                // Lọc bỏ các item không có device_id hợp lệ
+                if (!item || !item.device_id || !item.device_id._id) {
+                  console.warn(`Borrow ${borrow._id} has invalid device_id in item`);
+                  return false;
+                }
+                return true;
+              })
+              .map((item) => {
+                try {
+                  // Lấy danh sách serial numbers từ device_instances
+                  const serialNumbers = (item.device_instances || [])
+                    .map(inst => inst.serial_number || inst._id?.toString().slice(-8))
+                    .filter(Boolean);
+                  
+                  return {
+                    device: {
+                      _id: item.device_id?._id || null,
+                      name: item.device_id?.name || "N/A",
+                      description: item.device_id?.description || "",
+                      image: item.device_id?.image || "",
+                      category: item.device_id?.category_id && item.device_id.category_id._id
+                        ? {
+                            _id: item.device_id.category_id._id,
+                            name: item.device_id.category_id?.name || "N/A",
+                          }
+                        : null,
+                    },
+                    quantity: item.quantity || 0,
+                    serialNumbers: serialNumbers, // Thêm serial numbers
+                    device_instances: item.device_instances || [], // Giữ nguyên để frontend có thể dùng
+                  };
+                } catch (itemError) {
+                  console.error(`Error processing item in borrow ${borrow._id}:`, itemError);
+                  return null;
+                }
+              })
+              .filter((item) => item !== null), // Lọc bỏ các item null
+            // Thêm repairing_items để hiển thị thiết bị đã trả nhưng đang sửa chữa
+            repairingItems: (borrow.repairing_items || [])
+              .filter((item) => {
+                if (!item || !item.device_id || !item.device_id._id) {
+                  return false;
+                }
+                return true;
+              })
+              .map((item) => {
+                try {
+                  const serialNumbers = (item.device_instances || [])
+                    .map(inst => inst.serial_number || inst._id?.toString().slice(-8))
+                    .filter(Boolean);
+                  
+                  return {
+                    device: {
+                      _id: item.device_id?._id || null,
+                      name: item.device_id?.name || "N/A",
+                      description: item.device_id?.description || "",
+                      image: item.device_id?.image || "",
+                      category: item.device_id?.category_id && item.device_id.category_id._id
+                        ? {
+                            _id: item.device_id.category_id._id,
+                            name: item.device_id.category_id?.name || "N/A",
+                          }
+                        : null,
+                    },
+                    quantity: item.quantity || 0,
+                    broken_reason: item.broken_reason || "",
+                    reported_at: item.reported_at || null,
+                    serialNumbers: serialNumbers,
+                    device_instances: item.device_instances || [],
+                  };
+                } catch (itemError) {
+                  console.error(`Error processing repairing_item in borrow ${borrow._id}:`, itemError);
+                  return null;
+                }
+              })
+              .filter((item) => item !== null),
+            return_due_date: borrow.return_due_date,
+            purpose: borrow.purpose || "",
+            notes: borrow.notes || "",
+            status: borrow.status || "pending",
+            rejected_reason: borrow.rejected_reason || null,
+            returned: borrow.returned || false,
+            createdAt: borrow.createdAt,
+            updatedAt: borrow.updatedAt,
+          };
+        } catch (borrowError) {
+          console.error(`Error processing borrow ${borrow._id}:`, borrowError);
+          return null;
+        }
+      })
+      .filter((borrow) => {
+        // Lọc bỏ các borrow null
+        if (borrow === null) {
+          return false;
+        }
+        
+        // Nếu đơn đã trả (returned), vẫn hiển thị để xem lịch sử
+        // Ngay cả khi không còn items (đã trả hết)
+        if (borrow.status === "returned") {
+          return true;
+        }
+        
+        // Với các đơn khác, chỉ hiển thị nếu có items hoặc repairing_items
+        const hasItems = borrow.items && borrow.items.length > 0;
+        const hasRepairingItems = borrow.repairingItems && borrow.repairingItems.length > 0;
+        
+        return hasItems || hasRepairingItems;
+      });
 
     res.status(200).json({
       success: true,

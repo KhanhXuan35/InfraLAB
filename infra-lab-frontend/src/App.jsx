@@ -13,8 +13,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 // Home dashboards
 import StudentHomePage from "./pages/student/StudentHomePage";
-import LabManagerHomePage from "./pages/LabManager/LabManagerHomePage";
-import SchoolAdminHomePage from "./pages/SchoolAdmin/SchoolAdminHomePage";
+import ReportsPage from "./pages/SchoolAdmin/ReportsPage";
 
 // Components
 import PrivateRoute from "./components/PrivateRoute";
@@ -33,6 +32,7 @@ import Chat from "./pages/student/Chat/Chat";
 import DeviceList from "./components/LabManager/DeviceList";
 import DeviceDetailPage from "./pages/LabManager/DeviceDetailPage";
 import BorrowReturnPage from "./pages/LabManager/BorrowReturnPage";
+import BorrowApprovalPage from "./pages/LabManager/BorrowApprovalPage";
 import LabManagerRepairDetail from "./pages/LabManager/LabManagerRepairDetail";
 import StudentManagerPage from "./pages/LabManager/StudentManagerPage";
 import DeviceListSchool from "./pages/LabManager/DeviceListSchool";
@@ -78,8 +78,8 @@ function App() {
 
             {/* --- LAB MANAGER PAGES --- */}
             <Route element={<PrivateRoute allowedRoles={["lab_manager"]} />}>
-              {/* Dashboard */}
-              <Route path={LAB_MANAGER_ROUTES.DASHBOARD} element={<LabManagerHomePage />} />
+              {/* Dashboard - Redirect to Reports */}
+              <Route path={LAB_MANAGER_ROUTES.DASHBOARD} element={<Navigate to={LAB_MANAGER_ROUTES.REPORTS} replace />} />
               
               {/* Devices Management */}
               <Route path={LAB_MANAGER_ROUTES.DEVICES} element={<DeviceList />} />
@@ -90,6 +90,7 @@ function App() {
               
               {/* Borrow/Return */}
               <Route path={LAB_MANAGER_ROUTES.BORROW_RETURN} element={<BorrowReturnPage />} />
+              <Route path={LAB_MANAGER_ROUTES.BORROW_APPROVAL} element={<BorrowApprovalPage />} />
               
               {/* Repairs */}
               <Route path={LAB_MANAGER_ROUTES.REPAIRS} element={<LabManagerRepairList />} />
@@ -103,7 +104,7 @@ function App() {
             </Route>
 
             <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
-              <Route path="/school-dashboard" element={<SchoolAdminHomePage />} />
+              <Route path="/school-dashboard" element={<Navigate to="/reports" replace />} />
               <Route path="/requests" element={<RepairRequestList />} />
               <Route path="/school/dashboard" element={<SchoolDashboard />} />
               <Route path="/school/devices/create-with-instances" element={<CreateDeviceWithInstances />} />
@@ -139,7 +140,7 @@ function App() {
 
             {/* --- REPORTS & NOTIFICATIONS (Available for lab_manager and school_admin) --- */}
             <Route element={<PrivateRoute allowedRoles={["lab_manager", "school_admin"]} />}>
-              <Route path={LAB_MANAGER_ROUTES.REPORTS} element={<div>Reports Page - Coming Soon</div>} />
+              <Route path={LAB_MANAGER_ROUTES.REPORTS} element={<ReportsPage />} />
               <Route path={LAB_MANAGER_ROUTES.NOTIFICATIONS} element={<div>Notifications Page - Coming Soon</div>} />
             </Route>
 

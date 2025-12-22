@@ -1,5 +1,6 @@
 import express from "express";
 import { getDashboardStats, getRecentActivities } from "../../controllers/LabManager/dashboardController.js";
+import { getLabManagerReports } from "../../controllers/dashboard/labDashboardController.js";
 
 const router = express.Router();
 
@@ -8,6 +9,9 @@ router.get("/stats", getDashboardStats);
 
 // GET /api/dashboard/activities - Lấy hoạt động gần đây
 router.get("/activities", getRecentActivities);
+
+// GET /api/dashboard/lab/reports - Lấy dữ liệu báo cáo cho Lab Manager
+router.get("/lab/reports", getLabManagerReports);
 
 export default router;
 

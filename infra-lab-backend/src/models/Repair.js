@@ -7,6 +7,11 @@ const repairSchema = new mongoose.Schema({
         ref: "DeviceInstance",
         default: null  // null nếu là repair cũ (chưa có DeviceInstance)
     },
+    // Lưu lại serial để query/hiển thị nhanh, phòng trường hợp sau này xoá instance
+    serial_number: {
+        type: String,
+        default: null
+    },
     
     // ===== GIỮ LẠI CHO COMPATIBILITY VỚI DỮ LIỆU CŨ =====
     device_id: {

@@ -101,9 +101,9 @@ const UserProfile = () => {
       const userData = JSON.parse(userString);
       const role = userData?.role;
       if (role === 'school_admin') {
-        navigate('/school-dashboard');
+        navigate('/reports');
       } else if (role === 'lab_manager') {
-        navigate('/teacher-dashboard');
+        navigate('/reports');
       } else if (role === 'student') {
         navigate('/user-dashboard');
       } else {
@@ -154,7 +154,7 @@ const UserProfile = () => {
         {
           key: 'reports',
           icon: <FileTextOutlined />,
-          label: 'Báo cáo',
+          label: 'Thống kê',
         },
         {
           key: 'settings',
@@ -197,9 +197,9 @@ const UserProfile = () => {
     setSelectedMenu(key);
     if (key === 'overview') {
       if (user?.role === 'school_admin') {
-        navigate('/school-dashboard');
+        navigate('/reports');
       } else if (user?.role === 'lab_manager') {
-        navigate('/teacher-dashboard');
+        navigate('/reports');
       } else if (user?.role === 'student') {
         navigate('/user-dashboard');
       }

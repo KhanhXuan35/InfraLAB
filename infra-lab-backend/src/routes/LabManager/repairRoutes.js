@@ -8,6 +8,7 @@ import {
   getMyRepairRequests,
   updateRepairStatus,
   getRepairByDevice,
+  getRepairHistoryByInstance
 } from "../../controllers/LabManager/repairController.js";
 
 const router = express.Router();
@@ -31,4 +32,6 @@ router.get("/:id", getRepairById);
 // ⭐ Admin update status
 router.patch("/:id/status", updateRepairStatus);
 
+
+router.get("/instance/:deviceInstanceId", getRepairHistoryByInstance);
 export default router;

@@ -21,6 +21,7 @@ import {
   Divider,
   Select,
   DatePicker,
+  Checkbox,
 } from 'antd';
 import {
   CheckOutlined,
@@ -34,6 +35,7 @@ import {
   EyeOutlined,
   CheckCircleOutlined,
   FileTextOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import api from '../../services/api';
 import LabManagerSidebar from '../../components/Sidebar/LabManagerSidebar';
@@ -41,6 +43,39 @@ import dayjs from 'dayjs';
 
 const { Header: LayoutHeader, Content } = Layout;
 const { Title, Text } = Typography;
+
+// CSS cho scrollbar của container mã serial
+const serialScrollStyle = `
+  .serial-scroll-container {
+    max-height: 120px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 4px 0;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+  }
+
+  .serial-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
+  .serial-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+  }
+`;
 
 const BorrowReturnPage = () => {
   const navigate = useNavigate();
@@ -54,7 +89,8 @@ const BorrowReturnPage = () => {
   const [returnQuantity, setReturnQuantity] = useState(1);
   const [brokenQuantity, setBrokenQuantity] = useState(0);
   const [brokenReason, setBrokenReason] = useState('');
-  const [isRepairedItem, setIsRepairedItem] = useState(false); // Flag để phân biệt thiết bị đã sửa
+  const [selectedInstanceIds, setSelectedInstanceIds] = useState([]); // Các instance IDs được chọn để trả
+  const [brokenInstanceIds, setBrokenInstanceIds] = useState([]); // Các instance IDs bị hỏng
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedBorrowRequest, setSelectedBorrowRequest] = useState(null);
   const [filteredInfo, setFilteredInfo] = useState({});
@@ -144,51 +180,55 @@ const BorrowReturnPage = () => {
       isOverdue: borrowRequest.isOverdue,
       returnRequested: borrowRequest.returnRequested,
     });
-    setReturnQuantity(1);
+    
+    // Khởi tạo: chọn tất cả các instance IDs (mặc định chọn hết)
+    const allInstanceIds = (item.device_instances || []).map(inst => {
+      return inst._id?.toString() || inst.toString();
+    });
+    setSelectedInstanceIds(allInstanceIds.slice(0, item.quantity)); // Chọn số lượng đang mượn
+    setBrokenInstanceIds([]);
+    setReturnQuantity(item.quantity);
     setBrokenQuantity(0);
     setBrokenReason('');
-    setIsRepairedItem(false); // Đánh dấu là thiết bị chưa trả (không phải đã sửa)
     setReturnModalVisible(true);
   };
 
   const handleConfirmReturn = async () => {
     if (!selectedRecord) return;
 
-    // Nếu là thiết bị đã sửa, gọi API recordRepairedReturn
-    if (isRepairedItem) {
-      try {
-        const response = await api.post('/lab-manager/borrow-return/repaired', {
-          borrowId: selectedRecord.borrowId,
-          deviceId: selectedRecord.device._id,
-          quantity: returnQuantity,
-        });
+    // Không còn logic "Ghi nhận trả thiết bị đã sửa" nữa vì chỉ School Admin sửa
+    // Khi School Admin sửa xong, hệ thống tự động cập nhật
 
-        if (response.success) {
-          message.success(`Ghi nhận trả ${returnQuantity} thiết bị đã sửa chữa thành công!`);
-          setReturnModalVisible(false);
-          setSelectedRecord(null);
-          setReturnQuantity(1);
-          setIsRepairedItem(false);
-          fetchBorrowingStudents(); // Refresh danh sách
-        } else {
-          message.error(response.message || 'Lỗi khi ghi nhận trả thiết bị đã sửa');
-        }
-      } catch (error) {
-        console.error('Error recording repaired return:', error);
-        message.error(error.message || 'Lỗi khi ghi nhận trả thiết bị đã sửa');
-      }
+    // returnQuantity phải bằng số lượng instance IDs đã chọn
+    // Cập nhật returnQuantity theo selectedInstanceIds.length
+    const actualReturnQuantity = selectedInstanceIds.length;
+    const actualBrokenQuantity = brokenInstanceIds.length;
+    
+    // Kiểm tra đã chọn instance IDs
+    if (actualReturnQuantity === 0) {
+      message.error('Vui lòng chọn ít nhất một mã serial để trả');
       return;
     }
 
-    // Logic cho thiết bị chưa trả (có thể có thiết bị hỏng)
     // Kiểm tra số lượng hỏng không được vượt quá số lượng trả
-    if (brokenQuantity > returnQuantity) {
+    if (actualBrokenQuantity > actualReturnQuantity) {
       message.error('Số lượng hỏng không được vượt quá số lượng trả');
       return;
     }
+    if (actualReturnQuantity === 0) {
+      message.error('Vui lòng chọn ít nhất một mã serial để trả');
+      return;
+    }
 
+    // Kiểm tra thiết bị hỏng phải là subset của thiết bị đã chọn
+    const allBrokenInSelected = brokenInstanceIds.every(id => selectedInstanceIds.includes(id));
+    if (!allBrokenInSelected) {
+      message.error('Thiết bị hỏng phải nằm trong danh sách thiết bị đã chọn để trả');
+      return;
+    }
+    
     // Nếu có thiết bị hỏng nhưng chưa nhập lý do
-    if (brokenQuantity > 0 && !brokenReason.trim()) {
+    if (actualBrokenQuantity > 0 && !brokenReason.trim()) {
       message.warning('Vui lòng nhập lý do thiết bị bị hỏng');
       return;
     }
@@ -197,22 +237,27 @@ const BorrowReturnPage = () => {
       const response = await api.post('/lab-manager/borrow-return/return', {
         borrowId: selectedRecord.borrowId,
         deviceId: selectedRecord.device._id,
-        quantity: returnQuantity,
-        brokenQuantity: brokenQuantity || 0,
+        quantity: actualReturnQuantity, // Sử dụng số lượng thực tế đã chọn
+        brokenQuantity: brokenInstanceIds.length || 0, // Số lượng hỏng = số lượng brokenInstanceIds
         brokenReason: brokenReason || undefined,
+        instanceIds: selectedInstanceIds, // Gửi danh sách instance IDs đã chọn
+        brokenInstanceIds: brokenInstanceIds, // Gửi danh sách instance IDs bị hỏng
       });
 
       if (response.success) {
-        if (brokenQuantity > 0) {
-          message.success(`Ghi nhận trả thiết bị thành công! Đã nhận ${returnQuantity - brokenQuantity} thiết bị tốt. ${brokenQuantity} thiết bị hỏng cần sinh viên tự sửa chữa và trả lại.`);
+        const actualBrokenQty = brokenInstanceIds.length;
+        if (actualBrokenQty > 0) {
+          const goodQty = actualReturnQuantity - actualBrokenQty;
+          message.success(`Ghi nhận trả thiết bị thành công! Đã nhận ${goodQty} thiết bị tốt. ${actualBrokenQty} thiết bị hỏng đã được gửi về trường để sửa chữa.`);
         } else {
           message.success('Ghi nhận trả thiết bị thành công!');
         }
         setReturnModalVisible(false);
         setSelectedRecord(null);
+        setSelectedInstanceIds([]);
+        setBrokenInstanceIds([]);
         setBrokenQuantity(0);
         setBrokenReason('');
-        setIsRepairedItem(false);
         fetchBorrowingStudents(); // Refresh danh sách
       } else {
         message.error(response.message || 'Lỗi khi ghi nhận trả thiết bị');
@@ -512,6 +557,7 @@ const BorrowReturnPage = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      <style>{serialScrollStyle}</style>
       <LabManagerSidebar />
 
       <Layout style={{ marginLeft: 240 }}>
@@ -648,12 +694,15 @@ const BorrowReturnPage = () => {
               {/* Danh sách thiết bị tốt chưa trả */}
               {selectedBorrowRequest.items && selectedBorrowRequest.items.length > 0 && (
                 <>
-                  <Divider orientation="left">
-                    <Space>
-                      <ShoppingOutlined />
-                      <Text strong>Danh sách thiết bị chưa trả ({selectedBorrowRequest.items.length})</Text>
-                    </Space>
-                  </Divider>
+                         <Divider orientation="left">
+                           <Space>
+                             <ShoppingOutlined />
+                             <Text strong>
+                               Danh sách thiết bị chưa trả (
+                               {selectedBorrowRequest.items.reduce((sum, item) => sum + (item.quantity || 0), 0)} thiết bị)
+                             </Text>
+                           </Space>
+                         </Divider>
 
                   <Table
                     columns={[
@@ -679,15 +728,67 @@ const BorrowReturnPage = () => {
                         ),
                       },
                       {
+                        title: 'Mã serial',
+                        key: 'serial',
+                        width: 300,
+                        render: (_, item) => {
+                          const serialNumbers = item.serialNumbers || [];
+                          if (serialNumbers.length === 0) {
+                            return <Text type="secondary">Chưa có</Text>;
+                          }
+                          return (
+                            <div
+                              className="serial-scroll-container"
+                              style={{
+                                maxHeight: '120px',
+                                overflowY: 'auto',
+                                overflowX: 'auto',
+                                padding: '4px 0',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  gap: '4px',
+                                  minWidth: 'max-content',
+                                }}
+                              >
+                                {serialNumbers.map((serial, idx) => (
+                                  <Text
+                                    code
+                                    key={idx}
+                                    style={{
+                                      fontSize: 11,
+                                      padding: '2px 6px',
+                                      margin: 0,
+                                      display: 'inline-block',
+                                      wordBreak: 'break-all',
+                                      whiteSpace: 'normal',
+                                      maxWidth: '100%',
+                                    }}
+                                    title={serial}
+                                  >
+                                    {serial}
+                                  </Text>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        },
+                      },
+                      {
                         title: 'Số lượng',
                         key: 'quantity',
                         align: 'center',
+                        width: 100,
                         render: (_, item) => <Text strong>{item.quantity}</Text>,
                       },
                       {
                         title: 'Hành động',
                         key: 'action',
                         align: 'center',
+                        width: 150,
                         render: (_, item) => {
                           // Kiểm tra nếu quá hạn và chưa yêu cầu trả
                           if (selectedBorrowRequest.isOverdue && !selectedBorrowRequest.returnRequested) {
@@ -735,7 +836,10 @@ const BorrowReturnPage = () => {
                   <Divider orientation="left">
                     <Space>
                       <WarningOutlined style={{ color: '#faad14' }} />
-                      <Text strong>Thiết bị hỏng đang sửa chữa ({selectedBorrowRequest.repairingItems.length})</Text>
+                      <Text strong>
+                        Thiết bị hỏng đang sửa chữa (
+                        {selectedBorrowRequest.repairingItems.reduce((sum, item) => sum + (item.quantity || 0), 0)} thiết bị)
+                      </Text>
                     </Space>
                   </Divider>
 
@@ -763,9 +867,60 @@ const BorrowReturnPage = () => {
                         ),
                       },
                       {
+                        title: 'Mã serial',
+                        key: 'serial',
+                        width: 300,
+                        render: (_, item) => {
+                          const serialNumbers = item.serialNumbers || [];
+                          if (serialNumbers.length === 0) {
+                            return <Text type="secondary">Chưa có</Text>;
+                          }
+                          return (
+                            <div
+                              className="serial-scroll-container"
+                              style={{
+                                maxHeight: '120px',
+                                overflowY: 'auto',
+                                overflowX: 'auto',
+                                padding: '4px 0',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  gap: '4px',
+                                  minWidth: 'max-content',
+                                }}
+                              >
+                                {serialNumbers.map((serial, idx) => (
+                                  <Text
+                                    code
+                                    key={idx}
+                                    style={{
+                                      fontSize: 11,
+                                      padding: '2px 6px',
+                                      margin: 0,
+                                      display: 'inline-block',
+                                      wordBreak: 'break-all',
+                                      whiteSpace: 'normal',
+                                      maxWidth: '100%',
+                                    }}
+                                    title={serial}
+                                  >
+                                    {serial}
+                                  </Text>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        },
+                      },
+                      {
                         title: 'Số lượng',
                         key: 'quantity',
                         align: 'center',
+                        width: 100,
                         render: (_, item) => <Text strong>{item.quantity}</Text>,
                       },
                       {
@@ -776,27 +931,26 @@ const BorrowReturnPage = () => {
                         ),
                       },
                       {
-                        title: 'Hành động',
-                        key: 'action',
+                        title: 'Trạng thái',
+                        key: 'status',
                         align: 'center',
-                        render: (_, item) => (
-                          <Button
-                            type="primary"
-                            icon={<CheckOutlined />}
-                            onClick={() => {
-                              setDetailModalVisible(false);
-                              // Ghi nhận trả thiết bị đã sửa
-                              setSelectedRecord({ ...item, borrowId: selectedBorrowRequest.borrowId });
-                              setReturnQuantity(item.quantity);
-                              setBrokenQuantity(0); // Thiết bị đã sửa nên không hỏng
-                              setBrokenReason('');
-                              setIsRepairedItem(true); // Đánh dấu là thiết bị đã sửa
-                              setReturnModalVisible(true);
-                            }}
-                          >
-                            Ghi nhận trả (đã sửa)
-                          </Button>
-                        ),
+                        width: 200,
+                        render: (_, item) => {
+                          const repairStatus = item.repairStatus || 'pending';
+                          const statusConfig = {
+                            'done': { color: 'success', text: 'Đã sửa xong', icon: <CheckCircleOutlined /> },
+                            'in_progress': { color: 'processing', text: 'Đang sửa chữa', icon: <SyncOutlined spin /> },
+                            'approved': { color: 'processing', text: 'Đã duyệt, đang sửa', icon: <SyncOutlined spin /> },
+                            'rejected': { color: 'error', text: 'Đã từ chối sửa', icon: <CloseCircleOutlined /> },
+                            'pending': { color: 'warning', text: 'Đang chờ School Admin sửa chữa', icon: <WarningOutlined /> },
+                          };
+                          const config = statusConfig[repairStatus] || statusConfig['pending'];
+                          return (
+                            <Tag color={config.color} icon={config.icon}>
+                              {config.text}
+                            </Tag>
+                          );
+                        },
                       },
                     ]}
                     dataSource={selectedBorrowRequest.repairingItems}
@@ -842,15 +996,16 @@ const BorrowReturnPage = () => {
 
         {/* Modal xác nhận trả thiết bị */}
         <Modal
-          title={isRepairedItem ? "Ghi nhận trả thiết bị đã sửa chữa" : "Ghi nhận trả thiết bị"}
+          title="Ghi nhận trả thiết bị"
           open={returnModalVisible}
           onOk={handleConfirmReturn}
           onCancel={() => {
             setReturnModalVisible(false);
             setSelectedRecord(null);
+            setSelectedInstanceIds([]);
+            setBrokenInstanceIds([]);
             setBrokenQuantity(0);
             setBrokenReason('');
-            setIsRepairedItem(false);
           }}
           okText="Xác nhận"
           cancelText="Hủy"
@@ -863,15 +1018,6 @@ const BorrowReturnPage = () => {
                 </Descriptions.Item>
                 <Descriptions.Item label="Số lượng đang mượn">
                   {selectedRecord.quantity}
-                </Descriptions.Item>
-                <Descriptions.Item label="Số lượng trả">
-                  <InputNumber
-                    min={1}
-                    max={selectedRecord.quantity}
-                    value={returnQuantity}
-                    onChange={setReturnQuantity}
-                    style={{ width: '100%' }}
-                  />
                 </Descriptions.Item>
                 <Descriptions.Item label="Ngày hẹn trả">
                   {formatDate(selectedRecord.returnDueDate)}
@@ -888,88 +1034,329 @@ const BorrowReturnPage = () => {
                 )}
               </Descriptions>
 
-              {/* Chỉ hiển thị phần "Thiết bị bị hỏng" khi KHÔNG phải thiết bị đã sửa */}
-              {!isRepairedItem && (
+              {/* Danh sách mã serial để chọn */}
+              <Divider orientation="left" style={{ marginTop: 16, marginBottom: 16 }}>
+                <Space>
+                  <ShoppingCartOutlined />
+                  <Text strong>Chọn mã serial để trả</Text>
+                </Space>
+              </Divider>
+              
+              <div style={{ marginBottom: 16 }}>
+                <Space style={{ marginBottom: 8 }}>
+                  <Checkbox
+                    checked={selectedInstanceIds.length === (selectedRecord.device_instances || []).length && selectedInstanceIds.length > 0}
+                    indeterminate={selectedInstanceIds.length > 0 && selectedInstanceIds.length < (selectedRecord.device_instances || []).length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        // Chọn tất cả
+                        const allIds = (selectedRecord.device_instances || []).map(inst => {
+                          return inst._id?.toString() || inst.toString();
+                        });
+                        setSelectedInstanceIds(allIds);
+                        setReturnQuantity(allIds.length);
+                        // Giữ nguyên brokenInstanceIds (không reset khi chọn tất cả)
+                      } else {
+                        // Bỏ chọn tất cả
+                        setSelectedInstanceIds([]);
+                        setReturnQuantity(0);
+                        setBrokenInstanceIds([]);
+                        setBrokenQuantity(0);
+                      }
+                    }}
+                  >
+                    <Text strong>Chọn tất cả ({selectedRecord.device_instances?.length || 0} mã serial)</Text>
+                  </Checkbox>
+                  <Text type="secondary">
+                    Đã chọn: {selectedInstanceIds.length} / {selectedRecord.device_instances?.length || 0}
+                  </Text>
+                </Space>
+                
+                <div
+                  className="serial-scroll-container"
+                  style={{
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    overflowX: 'auto',
+                    padding: '8px',
+                    border: '1px solid #d9d9d9',
+                    borderRadius: '4px',
+                    backgroundColor: '#fafafa',
+                  }}
+                >
+                  <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                    {(selectedRecord.device_instances || []).map((inst, idx) => {
+                      const instId = inst._id?.toString() || inst.toString();
+                      const serialNumber = inst.serial_number || instId.slice(-8);
+                      const isSelected = selectedInstanceIds.includes(instId);
+                      const isBroken = brokenInstanceIds.includes(instId);
+                      
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '8px',
+                            border: isSelected ? '2px solid #1890ff' : '1px solid #d9d9d9',
+                            borderRadius: '4px',
+                            backgroundColor: isSelected ? '#e6f7ff' : 'white',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                          onClick={(e) => {
+                            // Chỉ xử lý khi click vào div, không xử lý khi click vào checkbox (đã có handler riêng)
+                            // Kiểm tra nếu click vào checkbox hoặc phần tử con của checkbox
+                            if (e.target.type === 'checkbox' || e.target.closest('.ant-checkbox-wrapper')) {
+                              return; // Bỏ qua, để checkbox onChange xử lý
+                            }
+                            
+                            if (isSelected) {
+                              // Bỏ chọn
+                              setSelectedInstanceIds(prev => {
+                                const newList = prev.filter(id => id !== instId);
+                                setReturnQuantity(newList.length); // Cập nhật returnQuantity theo số lượng thực tế
+                                return newList;
+                              });
+                              // Nếu đang đánh dấu hỏng, cũng bỏ chọn hỏng
+                              if (isBroken) {
+                                setBrokenInstanceIds(prev => {
+                                  const newBrokenList = prev.filter(id => id !== instId);
+                                  setBrokenQuantity(newBrokenList.length); // Cập nhật brokenQuantity theo số lượng thực tế
+                                  return newBrokenList;
+                                });
+                              }
+                            } else {
+                              // Chọn - kiểm tra xem đã có trong list chưa để tránh duplicate
+                              setSelectedInstanceIds(prev => {
+                                if (prev.includes(instId)) {
+                                  return prev; // Đã có rồi, không thêm nữa
+                                }
+                                const newList = [...prev, instId];
+                                setReturnQuantity(newList.length); // Cập nhật returnQuantity theo số lượng thực tế
+                                return newList;
+                              });
+                            }
+                          }}
+                        >
+                          <Space>
+                            <Checkbox
+                              checked={isSelected}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                if (e.target.checked) {
+                                  setSelectedInstanceIds(prev => {
+                                    // Kiểm tra xem đã có trong list chưa để tránh duplicate
+                                    if (prev.includes(instId)) {
+                                      return prev; // Đã có rồi, không thêm nữa
+                                    }
+                                    const newList = [...prev, instId];
+                                    setReturnQuantity(newList.length); // Cập nhật returnQuantity theo số lượng thực tế
+                                    return newList;
+                                  });
+                                } else {
+                                  setSelectedInstanceIds(prev => {
+                                    const newList = prev.filter(id => id !== instId);
+                                    setReturnQuantity(newList.length); // Cập nhật returnQuantity theo số lượng thực tế
+                                    return newList;
+                                  });
+                                  if (isBroken) {
+                                    setBrokenInstanceIds(prev => {
+                                      const newBrokenList = prev.filter(id => id !== instId);
+                                      setBrokenQuantity(newBrokenList.length); // Cập nhật brokenQuantity theo số lượng thực tế
+                                      return newBrokenList;
+                                    });
+                                  }
+                                }
+                              }}
+                            />
+                            <Text 
+                              code 
+                              style={{ 
+                                fontSize: 14, 
+                                fontWeight: 500,
+                                wordBreak: 'break-all',
+                                whiteSpace: 'normal',
+                                maxWidth: '100%',
+                              }}
+                              title={serialNumber}
+                            >
+                              {serialNumber}
+                            </Text>
+                            {isBroken && (
+                              <Tag color="red" icon={<CloseCircleOutlined />}>
+                                Hỏng
+                              </Tag>
+                            )}
+                          </Space>
+                        </div>
+                      );
+                    })}
+                  </Space>
+                </div>
+                
+                {selectedInstanceIds.length === 0 && (
+                  <Text type="danger" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
+                    Vui lòng chọn ít nhất một mã serial để trả
+                  </Text>
+                )}
+              </div>
+
+              {/* Chỉ hiển thị phần "Thiết bị bị hỏng" khi đã chọn ít nhất 1 serial */}
+              {selectedInstanceIds.length > 0 && (
                 <>
                   <Divider orientation="left" style={{ marginTop: 16, marginBottom: 16 }}>
                     <Space>
                       <CloseCircleOutlined style={{ color: '#f5222d' }} />
-                      <Text strong>Thiết bị bị hỏng (nếu có)</Text>
+                      <Text strong>Đánh dấu thiết bị bị hỏng (nếu có)</Text>
                     </Space>
                   </Divider>
 
-                  <Descriptions column={1} bordered size="small">
-                    <Descriptions.Item label="Số lượng thiết bị bị hỏng">
-                      <InputNumber
-                        min={0}
-                        max={returnQuantity}
-                        value={brokenQuantity}
-                        onChange={(value) => {
-                          setBrokenQuantity(value || 0);
-                          if (value > 0 && !brokenReason.trim()) {
-                            // Tự động focus vào ô lý do nếu có thiết bị hỏng
-                          }
-                        }}
-                        style={{ width: '100%' }}
-                        placeholder="Nhập số lượng hỏng (0 nếu không có)"
-                      />
-                      <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
-                        Tối đa: {returnQuantity} thiết bị
+                  {/* Thông báo: Tất cả thiết bị hỏng sẽ được gửi về trường sửa */}
+                  <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#fff7e6', border: '1px solid #ffd591', borderRadius: 4 }}>
+                    <Space>
+                      <WarningOutlined style={{ color: '#fa8c16' }} />
+                      <Text strong style={{ color: '#fa8c16' }}>
+                        Tất cả thiết bị hỏng sẽ được gửi về trường để School Admin sửa chữa
                       </Text>
-                    </Descriptions.Item>
-                    {brokenQuantity > 0 && (
-                      <Descriptions.Item label="Lý do thiết bị bị hỏng">
-                        <Input.TextArea
-                          rows={3}
-                          value={brokenReason}
-                          onChange={(e) => setBrokenReason(e.target.value)}
-                          placeholder="Nhập lý do thiết bị bị hỏng (bắt buộc)"
-                          showCount
-                          maxLength={500}
-                        />
-                        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
-                          <WarningOutlined /> Vui lòng mô tả chi tiết tình trạng hỏng của thiết bị
-                        </Text>
-                      </Descriptions.Item>
-                    )}
-                  </Descriptions>
+                    </Space>
+                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4, marginLeft: 24 }}>
+                      Hệ thống sẽ tự động tạo yêu cầu sửa chữa gửi về School Admin. Sau khi School Admin sửa xong, thiết bị sẽ tự động được cập nhật là đã trả.
+                    </Text>
+                  </div>
 
-                  {brokenQuantity > 0 && (
-                    <div style={{ 
-                      marginTop: 16, 
-                      padding: 12, 
-                      backgroundColor: '#fff7e6', 
-                      border: '1px solid #ffd591',
-                      borderRadius: 4
-                    }}>
-                      <Space>
-                        <WarningOutlined style={{ color: '#faad14' }} />
-                        <Text style={{ color: '#faad14' }}>
-                          Lưu ý: {brokenQuantity} thiết bị bị hỏng sẽ được ghi nhận và tạo yêu cầu sửa chữa.
-                        </Text>
+                  <div style={{ marginBottom: 16 }}>
+                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+                      Chọn các mã serial bị hỏng trong số {selectedInstanceIds.length} mã serial đã chọn:
+                    </Text>
+                    
+                    <div
+                      className="serial-scroll-container"
+                      style={{
+                        maxHeight: '150px',
+                        overflowY: 'auto',
+                        overflowX: 'auto',
+                        padding: '8px',
+                        border: '1px solid #ffccc7',
+                        borderRadius: '4px',
+                        backgroundColor: '#fff1f0',
+                      }}
+                    >
+                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                        {selectedInstanceIds.map((instId) => {
+                          const inst = (selectedRecord.device_instances || []).find(i => {
+                            const id = i._id?.toString() || i.toString();
+                            return id === instId;
+                          });
+                          const serialNumber = inst?.serial_number || instId.slice(-8);
+                          const isBroken = brokenInstanceIds.includes(instId);
+                          
+                          return (
+                            <div
+                              key={instId}
+                              style={{
+                                padding: '8px',
+                                border: isBroken ? '2px solid #ff4d4f' : '1px solid #ffccc7',
+                                borderRadius: '4px',
+                                backgroundColor: isBroken ? '#fff1f0' : 'white',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                              }}
+                              onClick={() => {
+                                if (isBroken) {
+                                  // Bỏ đánh dấu hỏng
+                                  setBrokenInstanceIds(prev => prev.filter(id => id !== instId));
+                                  setBrokenQuantity(prev => Math.max(0, prev - 1));
+                                } else {
+                                  // Đánh dấu hỏng
+                                  setBrokenInstanceIds(prev => [...prev, instId]);
+                                  setBrokenQuantity(prev => prev + 1);
+                                }
+                              }}
+                            >
+                              <Space>
+                                <Checkbox
+                                  checked={isBroken}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    if (e.target.checked) {
+                                      setBrokenInstanceIds(prev => [...prev, instId]);
+                                      setBrokenQuantity(prev => prev + 1);
+                                    } else {
+                                      setBrokenInstanceIds(prev => prev.filter(id => id !== instId));
+                                      setBrokenQuantity(prev => Math.max(0, prev - 1));
+                                    }
+                                  }}
+                                />
+                                <Text 
+                                  code 
+                                  style={{ 
+                                    fontSize: 14, 
+                                    fontWeight: 500,
+                                    wordBreak: 'break-all',
+                                    whiteSpace: 'normal',
+                                    maxWidth: '100%',
+                                  }}
+                                  title={serialNumber}
+                                >
+                                  {serialNumber}
+                                </Text>
+                                {isBroken && (
+                                  <Tag color="red" icon={<CloseCircleOutlined />}>
+                                    Hỏng
+                                  </Tag>
+                                )}
+                              </Space>
+                            </div>
+                          );
+                        })}
                       </Space>
                     </div>
+                    
+                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
+                      Đã chọn: {brokenInstanceIds.length} / {selectedInstanceIds.length} thiết bị hỏng
+                    </Text>
+                  </div>
+
+                  {brokenInstanceIds.length > 0 && (
+                    <>
+                      <Descriptions column={1} bordered size="small" style={{ marginBottom: 16 }}>
+                        <Descriptions.Item label="Lý do thiết bị bị hỏng">
+                          <Input.TextArea
+                            rows={3}
+                            value={brokenReason}
+                            onChange={(e) => setBrokenReason(e.target.value)}
+                            placeholder="Nhập lý do thiết bị bị hỏng (bắt buộc)"
+                            showCount
+                            maxLength={500}
+                          />
+                          <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                            <WarningOutlined /> Vui lòng mô tả chi tiết tình trạng hỏng của thiết bị
+                          </Text>
+                        </Descriptions.Item>
+                      </Descriptions>
+
+                      <div style={{ 
+                        marginTop: 16, 
+                        padding: 12, 
+                        backgroundColor: '#fff7e6', 
+                        border: '1px solid #ffd591',
+                        borderRadius: 4
+                      }}>
+                        <Space>
+                          <WarningOutlined style={{ color: '#faad14' }} />
+                          <Text style={{ color: '#faad14' }}>
+                            Lưu ý: {brokenInstanceIds.length} thiết bị bị hỏng sẽ được gửi về trường để sửa chữa. Sau khi trường sửa xong, thiết bị sẽ tự động được cập nhật là đã trả.
+                          </Text>
+                        </Space>
+                      </div>
+                    </>
                   )}
                 </>
               )}
 
-              {/* Hiển thị thông báo khi là thiết bị đã sửa */}
-              {isRepairedItem && (
-                <div style={{ 
-                  marginTop: 16, 
-                  padding: 12, 
-                  backgroundColor: '#f6ffed', 
-                  border: '1px solid #b7eb8f',
-                  borderRadius: 4
-                }}>
-                  <Space>
-                    <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                    <Text style={{ color: '#52c41a' }}>
-                      Thiết bị đã được sinh viên sửa chữa xong và mang đến trả lại.
-                    </Text>
-                  </Space>
-                </div>
-              )}
             </div>
           )}
         </Modal>

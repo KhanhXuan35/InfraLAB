@@ -411,7 +411,7 @@ const CreateDeviceWithInstances = () => {
               </Button>
               <Button
                 style={{ marginLeft: 8 }}
-                onClick={() => navigate("/school-dashboard")}
+                onClick={() => navigate("/reports")}
                 disabled={submitting}
               >
                 Hủy

@@ -86,6 +86,19 @@ export default function LabManagerRepairList() {
             render: (device) => device?.name || "N/A",
         },
         {
+            title: "Mã Serial",
+            key: "serial",
+            width: 150,
+            render: (_, record) => {
+                const serialNumber = record.device_instance_id?.serial_number || record.serial_number || "N/A";
+                return (
+                    <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 500 }}>
+                        {serialNumber}
+                    </span>
+                );
+            },
+        },
+        {
             title: "Số lượng",
             dataIndex: "quantity",
             key: "quantity",
@@ -141,7 +154,7 @@ export default function LabManagerRepairList() {
                 <Title level={4} style={{ margin: 0 }}>
                     Yêu cầu sửa chữa đã gửi
                 </Title>
-                <Button onClick={() => navigate(LAB_MANAGER_ROUTES.DASHBOARD)}>
+                <Button onClick={() => navigate(LAB_MANAGER_ROUTES.REPORTS)}>
                     Về dashboard
                 </Button>
             </Header>

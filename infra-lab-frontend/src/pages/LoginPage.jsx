@@ -37,10 +37,10 @@ const LoginPage = () => {
           navigate("/user-dashboard"); // Trang dành cho Sinh viên
           break;
         case "lab_manager":
-          navigate(LAB_MANAGER_ROUTES.DASHBOARD); // Trang dành cho Quản lý Lab/Giáo viên
+          navigate(LAB_MANAGER_ROUTES.REPORTS); // Trang dành cho Quản lý Lab/Giáo viên
           break;
         case "school_admin":
-          navigate("/school-dashboard"); // Trang dành cho Admin trường
+          navigate("/reports"); // Trang dành cho Admin trường
           break;
         default:
           navigate(ROUTES.LOGIN); // Mặc định quay về login nếu không xác định được role
@@ -59,9 +59,11 @@ const LoginPage = () => {
         handleLoginSuccess(res);
       }
     } catch (error) {
+      console.error("Login error:", error);
       api.error({
         title: "Đăng nhập thất bại",
-        description: error.message || "Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.",
+        description: error.message || error.description || "Vui lòng kiểm tra lại tài khoản hoặc mật khẩu.",
+        duration: 5,
       });
     } finally {
       setLoading(false);
@@ -88,9 +90,11 @@ const LoginPage = () => {
         }
       }
     } catch (error) {
+      console.error("Google login error:", error);
       api.error({
         title: "Lỗi Google Login",
-        description: error.message || "Không thể kết nối tới máy chủ.",
+        description: error.message || error.description || "Không thể kết nối tới máy chủ.",
+        duration: 5,
       });
     }
   };
