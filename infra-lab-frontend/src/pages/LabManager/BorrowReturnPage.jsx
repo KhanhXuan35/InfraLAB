@@ -471,8 +471,8 @@ const BorrowReturnPage = () => {
         return (
           // đổi màu Ngày hẹn trả
           <Space>
-            <CalendarOutlined style={{ color: isOverdue ? '' : undefined }} />
-            <Text style={{ color: isOverdue ? '#ff4d4f' : '', fontWeight: 500 }}>
+            <CalendarOutlined style={{ color: isOverdue ? 'red' : undefined }} />
+            <Text style={{ color: isOverdue ? '#ff4d4f' : 'red', fontWeight: 500 }}>
               {formatDate(record.returnDueDate)}
             </Text>
           </Space>
