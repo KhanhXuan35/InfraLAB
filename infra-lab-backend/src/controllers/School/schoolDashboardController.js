@@ -177,6 +177,10 @@ export const getReportsData = async (req, res) => {
     const now = new Date();
     let startDate = new Date();
     
+  
+    if (period === 'week') {
+      startDate.setDate(now.getDate() - 7); // 1 tuần gần nhất
+    } else 
     if (period === 'month') {
       startDate.setMonth(now.getMonth() - 6); // 6 tháng gần nhất
     } else if (period === 'quarter') {
