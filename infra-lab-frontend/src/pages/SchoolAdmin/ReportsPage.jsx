@@ -127,7 +127,8 @@ const ReportsPage = () => {
 
   // Chuẩn bị dữ liệu cho biểu đồ tròn - Trạng thái yêu cầu mượn
   const borrowStatusChartData = reportsData?.borrowStatusStats
-    ? [
+    ? [ 
+      // đổi màu trạng thái yêu cầu mượn
         { name: 'Chờ duyệt', value: reportsData.borrowStatusStats.pending, color: '#faad14' },
         { name: 'Đã duyệt', value: reportsData.borrowStatusStats.approved, color: '#1890ff' },
         { name: 'Đang mượn', value: reportsData.borrowStatusStats.borrowed, color: '#52c41a' },
@@ -138,7 +139,8 @@ const ReportsPage = () => {
 
   // Chuẩn bị dữ liệu cho biểu đồ tròn - Trạng thái sửa chữa
   const repairStatusChartData = reportsData?.repairStatusStats
-    ? [
+    ? [ 
+      // đổi màu trạng thái yêu cầu sửa chữa
         { name: 'Chờ duyệt', value: reportsData.repairStatusStats.pending, color: '#faad14' },
         { name: 'Đã duyệt', value: reportsData.repairStatusStats.approved, color: '#1890ff' },
         { name: 'Đang sửa', value: reportsData.repairStatusStats.inProgress, color: '#722ed1' },
@@ -210,10 +212,8 @@ const ReportsPage = () => {
           >
             {/*
               // Nếu muốn bật nhanh tuỳ chọn "1 tuần gần nhất", chỉ cần bỏ "//" ở dòng dưới:
-              
+              // <Option value="week">1 tuần gần nhất</Option>
             */}
-            {/* <Option value="week">1 tuần gần nhất</Option> */}
-            
             <Option value="month">6 tháng gần nhất</Option>
             <Option value="quarter">4 quý gần nhất</Option>
             <Option value="year">2 năm gần nhất</Option>
@@ -372,6 +372,7 @@ const ReportsPage = () => {
                         }}
                       />
                       <Legend />
+                      // đổi màu Phân bổ trạng thái thiết bị (Lab + Warehouse)
                       <Bar dataKey="Lab" fill="#1890ff" name="Lab" />
                       <Bar dataKey="Warehouse" fill="#52c41a" name="Warehouse" />
                     </BarChart>
@@ -428,6 +429,7 @@ const ReportsPage = () => {
                       <YAxis />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
+                      // đổi màu Yêu cầu mượn theo tháng
                       <Bar dataKey="count" fill="#1890ff" name="Số lượng yêu cầu" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -449,6 +451,7 @@ const ReportsPage = () => {
                       <YAxis />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
+                      // đổi màu Yêu cầu sửa chữa theo tháng
                       <Line type="monotone" dataKey="count" stroke="#ff4d4f" name="Số lượng yêu cầu" strokeWidth={2} />
                     </LineChart>
                   </ResponsiveContainer>

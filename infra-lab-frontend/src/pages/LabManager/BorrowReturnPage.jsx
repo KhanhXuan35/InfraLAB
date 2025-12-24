@@ -357,7 +357,6 @@ const BorrowReturnPage = () => {
       ),
     },
     {
-      
       title: 'Tổng thiết bị',
       dataIndex: 'totalQuantity',
       key: 'totalQuantity',
@@ -405,7 +404,10 @@ const BorrowReturnPage = () => {
         </div>
       ),
       render: (_, record) => (
-        <Text strong>{record.totalQuantity} thiết bị</Text>
+        // đổi màu Tổng thiết bị 
+        <Text strong style={{ color: '' }}>
+          {record.totalQuantity} thiết bị
+        </Text>
       ),
     },
     {
@@ -471,8 +473,8 @@ const BorrowReturnPage = () => {
         return (
           // đổi màu Ngày hẹn trả
           <Space>
-            <CalendarOutlined style={{ color: isOverdue ? 'red' : undefined }} />
-            <Text style={{ color: isOverdue ? '#ff4d4f' : 'red', fontWeight: 500 }}>
+            <CalendarOutlined style={{ color: isOverdue ? '' : undefined }} />
+            <Text style={{ color: isOverdue ? '#ff4d4f' : '', fontWeight: 500 }}>
               {formatDate(record.returnDueDate)}
             </Text>
           </Space>
@@ -749,7 +751,7 @@ const BorrowReturnPage = () => {
                               style={{
                                 maxHeight: '120px',
                                 overflowY: 'auto',
-                                overflowX: 'auto',
+                                overflowX: 'hidden',
                                 padding: '4px 0',
                               }}
                             >
@@ -758,7 +760,6 @@ const BorrowReturnPage = () => {
                                   display: 'flex',
                                   flexWrap: 'wrap',
                                   gap: '4px',
-                                  minWidth: 'max-content',
                                 }}
                               >
                                 {serialNumbers.map((serial, idx) => (
@@ -888,7 +889,7 @@ const BorrowReturnPage = () => {
                               style={{
                                 maxHeight: '120px',
                                 overflowY: 'auto',
-                                overflowX: 'auto',
+                                overflowX: 'hidden',
                                 padding: '4px 0',
                               }}
                             >
@@ -897,7 +898,6 @@ const BorrowReturnPage = () => {
                                   display: 'flex',
                                   flexWrap: 'wrap',
                                   gap: '4px',
-                                  minWidth: 'max-content',
                                 }}
                               >
                                 {serialNumbers.map((serial, idx) => (
