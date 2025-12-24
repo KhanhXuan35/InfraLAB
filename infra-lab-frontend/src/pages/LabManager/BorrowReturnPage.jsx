@@ -553,6 +553,8 @@ const BorrowReturnPage = () => {
           ) : (
             <Button
               type="primary"
+              // đổi màu nút "Ghi nhận trả" trong modal chi tiết
+              style={{ backgroundColor: '', borderColor: '#52c41a' }}
               icon={<CheckOutlined />}
               onClick={() => handleReturnFromRequest(record)}
             >
@@ -641,11 +643,16 @@ const BorrowReturnPage = () => {
               <Divider orientation="left">
                 <Space>
                   <UserOutlined />
-                  <Text strong>Thông tin sinh viên</Text>
+                  // đổi màu Thông tin sinh viên
+                  <Text strong style={{ color: '' }}>Thông tin sinh viên</Text>
                 </Space>
               </Divider>
               <Descriptions column={2} bordered size="small" style={{ marginBottom: 16 }}>
-                <Descriptions.Item label="Họ và tên">
+                <Descriptions.Item
+                  label="Họ và tên"
+                  //đổi màu họ và tên
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   <Space>
                     <Avatar
                       icon={<UserOutlined />}
@@ -656,13 +663,25 @@ const BorrowReturnPage = () => {
                     <Text strong>{selectedBorrowRequest.student.name || 'N/A'}</Text>
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="Email">
+                <Descriptions.Item
+                  label="Email"
+                  //đổi màu Email
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   {selectedBorrowRequest.student.email || 'N/A'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Mã sinh viên">
+                <Descriptions.Item
+                  label="Mã sinh viên"
+                  //đổi màu Mã sinh viên
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   {selectedBorrowRequest.student.student_code || 'N/A'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Số điện thoại">
+                <Descriptions.Item
+                  label="Số điện thoại"
+                  //đổi màu Số điện thoại
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   {selectedBorrowRequest.student.phone || 'N/A'}
                 </Descriptions.Item>
               </Descriptions>
@@ -671,14 +690,22 @@ const BorrowReturnPage = () => {
               <Divider orientation="left">
                 <Space>
                   <FileTextOutlined />
-                  <Text strong>Thông tin yêu cầu mượn</Text>
+                  <Text strong style={{ color: '' }}>Thông tin yêu cầu mượn</Text>
                 </Space>
               </Divider>
               <Descriptions column={1} bordered size="small" style={{ marginBottom: 16 }}>
-                <Descriptions.Item label="Mã yêu cầu">
+                <Descriptions.Item
+                  label="Mã yêu cầu"
+                  //đổi màu Mã yêu cầu
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   <Text code>{selectedBorrowRequest.borrowIdString}</Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Ngày hẹn trả">
+                <Descriptions.Item
+                  label="Ngày hẹn trả"
+                  //đổi màu Ngày hẹn trả
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   <Space>
                     <CalendarOutlined />
                     <Text>{formatDate(selectedBorrowRequest.returnDueDate)}</Text>
@@ -687,15 +714,27 @@ const BorrowReturnPage = () => {
                     )}
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="Mục đích sử dụng">
+                <Descriptions.Item
+                  label="Mục đích sử dụng"
+                  //đổi màu Mục đích sử dụng
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   {selectedBorrowRequest.purpose || 'N/A'}
                 </Descriptions.Item>
                 {selectedBorrowRequest.notes && (
-                  <Descriptions.Item label="Ghi chú">
+                  <Descriptions.Item
+                    label="Ghi chú"
+                    //đổi màu Ghi chú
+                    labelStyle={{ color: '', fontWeight: 600 }}
+                  >
                     {selectedBorrowRequest.notes}
                   </Descriptions.Item>
                 )}
-                <Descriptions.Item label="Trạng thái">
+                <Descriptions.Item
+                  label="Trạng thái"
+                  //đổi màu Trạng thái
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   {getStatusTag(selectedBorrowRequest.status, selectedBorrowRequest.isOverdue, selectedBorrowRequest.returnRequested)}
                 </Descriptions.Item>
               </Descriptions>
