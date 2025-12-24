@@ -213,6 +213,7 @@ const ReportsPage = () => {
               
             */}
             {/* <Option value="week">1 tuần gần nhất</Option> */}
+            <Option value="week">1 tuần gần nhất</Option>
             <Option value="month">6 tháng gần nhất</Option>
             <Option value="quarter">4 quý gần nhất</Option>
             <Option value="year">2 năm gần nhất</Option>

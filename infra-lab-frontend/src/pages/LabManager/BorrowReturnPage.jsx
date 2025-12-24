@@ -357,6 +357,7 @@ const BorrowReturnPage = () => {
       ),
     },
     {
+      
       title: 'Tổng thiết bị',
       dataIndex: 'totalQuantity',
       key: 'totalQuantity',
@@ -407,10 +408,7 @@ const BorrowReturnPage = () => {
         <Text strong>{record.totalQuantity} thiết bị</Text>
       ),
     },
-    { 
-      style: {
-        color: 'red',
-      },
+    {
       title: 'Ngày hẹn trả',
       dataIndex: 'returnDueDate',
       key: 'returnDueDate',
@@ -468,12 +466,18 @@ const BorrowReturnPage = () => {
           </Space>
         </div>
       ),
-      render: (_, record) => (
-        <Space>
-          <CalendarOutlined />
-          <Text>{formatDate(record.returnDueDate)}</Text>
-        </Space>
-      ),
+      render: (_, record) => {
+        const isOverdue = record.isOverdue; 
+        return (
+          // đổi màu Ngày hẹn trả
+          <Space>
+            <CalendarOutlined style={{ color: isOverdue ? '' : undefined }} />
+            <Text style={{ color: isOverdue ? '#ff4d4f' : '', fontWeight: 500 }}>
+              {formatDate(record.returnDueDate)}
+            </Text>
+          </Space>
+        );
+      },
     },
     {
       title: 'Trạng thái',
@@ -672,7 +676,7 @@ const BorrowReturnPage = () => {
                 <Descriptions.Item label="Mã yêu cầu">
                   <Text code>{selectedBorrowRequest.borrowIdString}</Text>
                 </Descriptions.Item>
-                <Descriptions.Item color="red" label="Ngày hẹn trả">
+                <Descriptions.Item label="Ngày hẹn trả">
                   <Space>
                     <CalendarOutlined />
                     <Text>{formatDate(selectedBorrowRequest.returnDueDate)}</Text>
@@ -1022,7 +1026,7 @@ const BorrowReturnPage = () => {
                 <Descriptions.Item label="Số lượng đang mượn">
                   {selectedRecord.quantity}
                 </Descriptions.Item>
-                <Descriptions.Item color="red" label="Ngày hẹn trả">
+                <Descriptions.Item label="Ngày hẹn trả">
                   {formatDate(selectedRecord.returnDueDate)}
                   {selectedRecord.isOverdue && (
                     <Tag color="red" style={{ marginLeft: 8 }}>
