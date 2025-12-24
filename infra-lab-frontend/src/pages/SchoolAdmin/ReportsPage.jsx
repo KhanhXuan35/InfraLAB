@@ -208,6 +208,11 @@ const ReportsPage = () => {
             onChange={setPeriod}
             style={{ width: 150 }}
           >
+            {/*
+              // Nếu muốn bật nhanh tuỳ chọn "1 tuần gần nhất", chỉ cần bỏ "//" ở dòng dưới:
+              
+            */}
+            {/* <Option value="week">1 tuần gần nhất</Option> */}
             <Option value="month">6 tháng gần nhất</Option>
             <Option value="quarter">4 quý gần nhất</Option>
             <Option value="year">2 năm gần nhất</Option>

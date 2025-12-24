@@ -407,7 +407,10 @@ const BorrowReturnPage = () => {
         <Text strong>{record.totalQuantity} thiết bị</Text>
       ),
     },
-    {
+    { 
+      style: {
+        color: 'red',
+      },
       title: 'Ngày hẹn trả',
       dataIndex: 'returnDueDate',
       key: 'returnDueDate',
@@ -669,7 +672,7 @@ const BorrowReturnPage = () => {
                 <Descriptions.Item label="Mã yêu cầu">
                   <Text code>{selectedBorrowRequest.borrowIdString}</Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Ngày hẹn trả">
+                <Descriptions.Item color="red" label="Ngày hẹn trả">
                   <Space>
                     <CalendarOutlined />
                     <Text>{formatDate(selectedBorrowRequest.returnDueDate)}</Text>
@@ -1019,7 +1022,7 @@ const BorrowReturnPage = () => {
                 <Descriptions.Item label="Số lượng đang mượn">
                   {selectedRecord.quantity}
                 </Descriptions.Item>
-                <Descriptions.Item label="Ngày hẹn trả">
+                <Descriptions.Item color="red" label="Ngày hẹn trả">
                   {formatDate(selectedRecord.returnDueDate)}
                   {selectedRecord.isOverdue && (
                     <Tag color="red" style={{ marginLeft: 8 }}>
