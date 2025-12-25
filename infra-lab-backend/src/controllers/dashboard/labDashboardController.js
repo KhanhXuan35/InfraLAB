@@ -135,6 +135,10 @@ export const getLabManagerReports = async (req, res) => {
     const now = new Date();
     let startDate = new Date();
     
+    // Nếu muốn bật nhanh chế độ "1 tuần gần nhất", có thể dùng mẫu dưới (bỏ //):
+    if (period === 'week') {
+      startDate.setDate(now.getDate() - 7); // 1 tuần gần nhất
+    } else 
     if (period === 'month') {
       startDate.setMonth(now.getMonth() - 6);
     } else if (period === 'quarter') {
