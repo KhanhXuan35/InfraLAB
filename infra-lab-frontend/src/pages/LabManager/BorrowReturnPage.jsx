@@ -624,66 +624,87 @@ const BorrowReturnPage = () => {
               Đóng
             </Button>,
           ]}
-          width={900}
+          width={1000}
         >
           {selectedBorrowRequest && (
-            <div>
+            <div style={{ maxHeight: '80vh', overflowY: 'auto' }}>
               {/* Thông tin sinh viên */}
-              <Divider orientation="left">
+              <Divider orientation="left" style={{ marginTop: 0 }}>
                 <Space>
-                  <UserOutlined />
-                  <Text strong>Thông tin sinh viên</Text>
+                  <UserOutlined style={{ color: '', fontSize: 16 }} />
+                  <Text strong style={{ fontSize: 16, color: '' }}>Thông tin sinh viên</Text>
                 </Space>
               </Divider>
-              <Descriptions column={2} bordered size="small" style={{ marginBottom: 16 }}>
+              <Descriptions 
+                column={2} 
+                bordered 
+                size="middle" 
+                style={{ marginBottom: 24 }}
+                labelStyle={{ 
+                  fontWeight: 600, 
+                  backgroundColor: '#fafafa',
+                  width: '30%'
+                }}
+              >
                 <Descriptions.Item label="Họ và tên">
                   <Space>
                     <Avatar
                       icon={<UserOutlined />}
                       style={{ backgroundColor: '#1890ff' }}
+                      size="large"
                     >
                       {selectedBorrowRequest.student.name?.charAt(0) || 'S'}
                     </Avatar>
-                    <Text strong>{selectedBorrowRequest.student.name || 'N/A'}</Text>
+                    <Text strong style={{ fontSize: 15 }}>{selectedBorrowRequest.student.name || 'N/A'}</Text>
                   </Space>
                 </Descriptions.Item>
                 <Descriptions.Item label="Email">
-                  {selectedBorrowRequest.student.email || 'N/A'}
+                  <Text>{selectedBorrowRequest.student.email || 'N/A'}</Text>
                 </Descriptions.Item>
                 <Descriptions.Item label="Mã sinh viên">
-                  {selectedBorrowRequest.student.student_code || 'N/A'}
+                  <Text code style={{ fontSize: 13 }}>{selectedBorrowRequest.student.student_code || 'N/A'}</Text>
                 </Descriptions.Item>
                 <Descriptions.Item label="Số điện thoại">
-                  {selectedBorrowRequest.student.phone || 'N/A'}
+                  <Text>{selectedBorrowRequest.student.phone || 'N/A'}</Text>
                 </Descriptions.Item>
               </Descriptions>
 
               {/* Thông tin yêu cầu mượn */}
               <Divider orientation="left">
                 <Space>
-                  <FileTextOutlined />
-                  <Text strong>Thông tin yêu cầu mượn</Text>
+                  <FileTextOutlined style={{ color: '#1890ff', fontSize: 16 }} />
+                  <Text strong style={{ fontSize: 16, color: '#1890ff' }}>Thông tin yêu cầu mượn</Text>
                 </Space>
               </Divider>
-              <Descriptions column={1} bordered size="small" style={{ marginBottom: 16 }}>
+              <Descriptions 
+                column={1} 
+                bordered 
+                size="middle" 
+                style={{ marginBottom: 24 }}
+                labelStyle={{ 
+                  fontWeight: 600, 
+                  backgroundColor: '#fafafa',
+                  width: '25%'
+                }}
+              >
                 <Descriptions.Item label="Mã yêu cầu">
-                  <Text code>{selectedBorrowRequest.borrowIdString}</Text>
+                  <Text code style={{ fontSize: 13, fontWeight: 500 }}>{selectedBorrowRequest.borrowIdString}</Text>
                 </Descriptions.Item>
                 <Descriptions.Item label="Ngày hẹn trả">
                   <Space>
-                    <CalendarOutlined />
-                    <Text>{formatDate(selectedBorrowRequest.returnDueDate)}</Text>
+                    <CalendarOutlined style={{ color: selectedBorrowRequest.isOverdue ? '#ff4d4f' : '#52c41a' }} />
+                    <Text style={{ fontSize: 14 }}>{formatDate(selectedBorrowRequest.returnDueDate)}</Text>
                     {selectedBorrowRequest.isOverdue && (
-                      <Tag color="red">Quá hạn</Tag>
+                      <Tag color="red" icon={<WarningOutlined />}>Quá hạn</Tag>
                     )}
                   </Space>
                 </Descriptions.Item>
                 <Descriptions.Item label="Mục đích sử dụng">
-                  {selectedBorrowRequest.purpose || 'N/A'}
+                  <Text style={{ fontSize: 14 }}>{selectedBorrowRequest.purpose || 'N/A'}</Text>
                 </Descriptions.Item>
                 {selectedBorrowRequest.notes && (
                   <Descriptions.Item label="Ghi chú">
-                    {selectedBorrowRequest.notes}
+                    <Text style={{ fontSize: 14 }}>{selectedBorrowRequest.notes}</Text>
                   </Descriptions.Item>
                 )}
                 <Descriptions.Item label="Trạng thái">
@@ -694,32 +715,35 @@ const BorrowReturnPage = () => {
               {/* Danh sách thiết bị tốt chưa trả */}
               {selectedBorrowRequest.items && selectedBorrowRequest.items.length > 0 && (
                 <>
-                         <Divider orientation="left">
-                           <Space>
-                             <ShoppingOutlined />
-                             <Text strong>
-                               Danh sách thiết bị chưa trả (
-                               {selectedBorrowRequest.items.reduce((sum, item) => sum + (item.quantity || 0), 0)} thiết bị)
-                             </Text>
-                           </Space>
-                         </Divider>
+                  <Divider orientation="left">
+                    <Space>
+                      <ShoppingOutlined style={{ color: '', fontSize: 16 }} />
+                      <Text strong style={{ fontSize: 16, color: '' }}>
+                        Danh sách thiết bị chưa trả (
+                        {selectedBorrowRequest.items.reduce((sum, item) => sum + (item.quantity || 0), 0)} thiết bị)
+                      </Text>
+                    </Space>
+                  </Divider>
 
                   <Table
                     columns={[
                       {
                         title: 'Thiết bị',
                         key: 'device',
+                        width: 250,
                         render: (_, item) => (
                           <Space>
                             <Avatar
                               src={item.device.image}
                               icon={<ShoppingOutlined />}
                               shape="square"
-                              size={40}
+                              size={50}
+                              style={{ border: '2px solid #e8e8e8' }}
                             />
                             <div>
-                              <Text strong>{item.device.name}</Text>
-                              <br />
+                              <Text strong style={{ fontSize: 14, display: 'block', marginBottom: 4 }}>
+                                {item.device.name}
+                              </Text>
                               <Text type="secondary" style={{ fontSize: 12 }}>
                                 {item.device.category || 'N/A'}
                               </Text>
@@ -730,7 +754,7 @@ const BorrowReturnPage = () => {
                       {
                         title: 'Mã serial',
                         key: 'serial',
-                        width: 300,
+                        width: 400,
                         render: (_, item) => {
                           const serialNumbers = item.serialNumbers || [];
                           if (serialNumbers.length === 0) {
@@ -740,37 +764,37 @@ const BorrowReturnPage = () => {
                             <div
                               className="serial-scroll-container"
                               style={{
-                                maxHeight: '120px',
+                                maxHeight: '150px',
                                 overflowY: 'auto',
-                                overflowX: 'auto',
-                                padding: '4px 0',
+                                overflowX: 'hidden',
+                                padding: '8px',
+                                backgroundColor: '#fafafa',
+                                borderRadius: '4px',
+                                border: '1px solid #e8e8e8',
                               }}
                             >
                               <div
                                 style={{
                                   display: 'flex',
                                   flexWrap: 'wrap',
-                                  gap: '4px',
-                                  minWidth: 'max-content',
+                                  gap: '6px',
                                 }}
                               >
                                 {serialNumbers.map((serial, idx) => (
-                                  <Text
-                                    code
+                                  <Tag
                                     key={idx}
+                                    color="blue"
                                     style={{
-                                      fontSize: 11,
-                                      padding: '2px 6px',
+                                      fontSize: 12,
+                                      padding: '4px 8px',
                                       margin: 0,
-                                      display: 'inline-block',
-                                      wordBreak: 'break-all',
-                                      whiteSpace: 'normal',
-                                      maxWidth: '100%',
+                                      borderRadius: '4px',
+                                      cursor: 'default',
                                     }}
                                     title={serial}
                                   >
                                     {serial}
-                                  </Text>
+                                  </Tag>
                                 ))}
                               </div>
                             </div>
@@ -781,14 +805,18 @@ const BorrowReturnPage = () => {
                         title: 'Số lượng',
                         key: 'quantity',
                         align: 'center',
-                        width: 100,
-                        render: (_, item) => <Text strong>{item.quantity}</Text>,
+                        width: 100, 
+                        render: (_, item) => (
+                          <Text strong style={{ fontSize: 15, color: '' }}>
+                            {item.quantity}
+                          </Text>
+                        ),
                       },
                       {
                         title: 'Hành động',
                         key: 'action',
                         align: 'center',
-                        width: 150,
+                        width: 160,
                         render: (_, item) => {
                           // Kiểm tra nếu quá hạn và chưa yêu cầu trả
                           if (selectedBorrowRequest.isOverdue && !selectedBorrowRequest.returnRequested) {
@@ -801,6 +829,7 @@ const BorrowReturnPage = () => {
                                   setDetailModalVisible(false);
                                   handleRequestReturn(selectedBorrowRequest.borrowId);
                                 }}
+                                style={{ fontWeight: 500 }}
                               >
                                 Yêu cầu trả
                               </Button>
@@ -814,8 +843,15 @@ const BorrowReturnPage = () => {
                                 setDetailModalVisible(false);
                                 handleReturn(item, selectedBorrowRequest);
                               }}
+                              style={{ 
+                                backgroundColor: '#52c41a',
+                                borderColor: '#52c41a',
+                                fontWeight: 500
+                              }}
                             >
+                              <span style={{ color: '', backgroundColor: '' }}>
                               Ghi nhận trả
+                              </span>
                             </Button>
                           );
                         },
@@ -824,8 +860,9 @@ const BorrowReturnPage = () => {
                     dataSource={selectedBorrowRequest.items}
                     rowKey={(item) => item.device._id}
                     pagination={false}
-                    size="small"
+                    size="middle"
                     style={{ marginBottom: 24 }}
+                    bordered
                   />
                 </>
               )}
@@ -835,8 +872,8 @@ const BorrowReturnPage = () => {
                 <>
                   <Divider orientation="left">
                     <Space>
-                      <WarningOutlined style={{ color: '#faad14' }} />
-                      <Text strong>
+                      <WarningOutlined style={{ color: '#faad14', fontSize: 16 }} />
+                      <Text strong style={{ fontSize: 16, color: '#faad14' }}>
                         Thiết bị hỏng đang sửa chữa (
                         {selectedBorrowRequest.repairingItems.reduce((sum, item) => sum + (item.quantity || 0), 0)} thiết bị)
                       </Text>
@@ -848,17 +885,20 @@ const BorrowReturnPage = () => {
                       {
                         title: 'Thiết bị',
                         key: 'device',
+                        width: 200,
                         render: (_, item) => (
                           <Space>
                             <Avatar
                               src={item.device.image}
                               icon={<ShoppingOutlined />}
                               shape="square"
-                              size={40}
+                              size={50}
+                              style={{ border: '2px solid #e8e8e8' }}
                             />
                             <div>
-                              <Text strong>{item.device.name}</Text>
-                              <br />
+                              <Text strong style={{ fontSize: 14, display: 'block', marginBottom: 4 }}>
+                                {item.device.name}
+                              </Text>
                               <Text type="secondary" style={{ fontSize: 12 }}>
                                 {item.device.category || 'N/A'}
                               </Text>
@@ -869,7 +909,7 @@ const BorrowReturnPage = () => {
                       {
                         title: 'Mã serial',
                         key: 'serial',
-                        width: 300,
+                        width: 350,
                         render: (_, item) => {
                           const serialNumbers = item.serialNumbers || [];
                           if (serialNumbers.length === 0) {
@@ -879,37 +919,37 @@ const BorrowReturnPage = () => {
                             <div
                               className="serial-scroll-container"
                               style={{
-                                maxHeight: '120px',
+                                maxHeight: '150px',
                                 overflowY: 'auto',
-                                overflowX: 'auto',
-                                padding: '4px 0',
+                                overflowX: 'hidden',
+                                padding: '8px',
+                                backgroundColor: '#fff7e6',
+                                borderRadius: '4px',
+                                border: '1px solid #ffd591',
                               }}
                             >
                               <div
                                 style={{
                                   display: 'flex',
                                   flexWrap: 'wrap',
-                                  gap: '4px',
-                                  minWidth: 'max-content',
+                                  gap: '6px',
                                 }}
                               >
                                 {serialNumbers.map((serial, idx) => (
-                                  <Text
-                                    code
+                                  <Tag
                                     key={idx}
+                                    color="orange"
                                     style={{
-                                      fontSize: 11,
-                                      padding: '2px 6px',
+                                      fontSize: 12,
+                                      padding: '4px 8px',
                                       margin: 0,
-                                      display: 'inline-block',
-                                      wordBreak: 'break-all',
-                                      whiteSpace: 'normal',
-                                      maxWidth: '100%',
+                                      borderRadius: '4px',
+                                      cursor: 'default',
                                     }}
                                     title={serial}
                                   >
                                     {serial}
-                                  </Text>
+                                  </Tag>
                                 ))}
                               </div>
                             </div>
@@ -921,13 +961,31 @@ const BorrowReturnPage = () => {
                         key: 'quantity',
                         align: 'center',
                         width: 100,
-                        render: (_, item) => <Text strong>{item.quantity}</Text>,
+                        render: (_, item) => (
+                          <Text strong style={{ fontSize: 15, color: '#faad14' }}>
+                            {item.quantity}
+                          </Text>
+                        ),
                       },
                       {
                         title: 'Lý do hỏng',
                         key: 'broken_reason',
+                        width: 200,
                         render: (_, item) => (
-                          <Text type="secondary">{item.broken_reason || 'N/A'}</Text>
+                          <Text 
+                            type="secondary" 
+                            style={{ 
+                              fontSize: 13,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}
+                            title={item.broken_reason || 'N/A'}
+                          >
+                            {item.broken_reason || 'N/A'}
+                          </Text>
                         ),
                       },
                       {
@@ -946,7 +1004,7 @@ const BorrowReturnPage = () => {
                           };
                           const config = statusConfig[repairStatus] || statusConfig['pending'];
                           return (
-                            <Tag color={config.color} icon={config.icon}>
+                            <Tag color={config.color} icon={config.icon} style={{ fontSize: 12 }}>
                               {config.text}
                             </Tag>
                           );
@@ -956,7 +1014,8 @@ const BorrowReturnPage = () => {
                     dataSource={selectedBorrowRequest.repairingItems}
                     rowKey={(item) => item.device._id}
                     pagination={false}
-                    size="small"
+                    size="middle"
+                    bordered
                   />
                 </>
               )}
