@@ -639,11 +639,12 @@ const BorrowReturnPage = () => {
         >
           {selectedBorrowRequest && (
             <div style={{ maxHeight: '80vh', overflowY: 'auto' }}>
-              {/* Thông tin sinh viên */}
+              {/* Thông tin sinh viên
+              // đổi màu Thông tin sinh viên */}
               <Divider orientation="left" style={{ marginTop: 0 }}>
                 <Space>
                   <UserOutlined />
-                  // đổi màu Thông tin sinh viên
+                  
                   <Text strong style={{ color: '' }}>Thông tin sinh viên</Text>
                 </Space>
               </Divider>
