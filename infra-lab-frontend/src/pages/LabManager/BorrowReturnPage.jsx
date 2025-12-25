@@ -404,7 +404,10 @@ const BorrowReturnPage = () => {
         </div>
       ),
       render: (_, record) => (
-        <Text strong>{record.totalQuantity} thiết bị</Text>
+        // đổi màu Tổng thiết bị 
+        <Text strong style={{ color: '' }}>
+          {record.totalQuantity} thiết bị
+        </Text>
       ),
     },
     {
@@ -465,12 +468,18 @@ const BorrowReturnPage = () => {
           </Space>
         </div>
       ),
-      render: (_, record) => (
-        <Space>
-          <CalendarOutlined />
-          <Text>{formatDate(record.returnDueDate)}</Text>
-        </Space>
-      ),
+      render: (_, record) => {
+        const isOverdue = record.isOverdue; 
+        return (
+          // đổi màu Ngày hẹn trả
+          <Space>
+            <CalendarOutlined style={{ color: isOverdue ? '' : undefined }} />
+            <Text style={{ color: isOverdue ? '#ff4d4f' : '', fontWeight: 500 }}>
+              {formatDate(record.returnDueDate)}
+            </Text>
+          </Space>
+        );
+      },
     },
     {
       title: 'Trạng thái',
@@ -544,6 +553,8 @@ const BorrowReturnPage = () => {
           ) : (
             <Button
               type="primary"
+              // đổi màu nút "Ghi nhận trả" trong modal chi tiết
+              style={{ backgroundColor: '', borderColor: '#52c41a' }}
               icon={<CheckOutlined />}
               onClick={() => handleReturnFromRequest(record)}
             >
@@ -631,22 +642,17 @@ const BorrowReturnPage = () => {
               {/* Thông tin sinh viên */}
               <Divider orientation="left" style={{ marginTop: 0 }}>
                 <Space>
-                  <UserOutlined style={{ color: '', fontSize: 16 }} />
-                  <Text strong style={{ fontSize: 16, color: '' }}>Thông tin sinh viên</Text>
+                  <UserOutlined />
+                  // đổi màu Thông tin sinh viên
+                  <Text strong style={{ color: '' }}>Thông tin sinh viên</Text>
                 </Space>
               </Divider>
-              <Descriptions 
-                column={2} 
-                bordered 
-                size="middle" 
-                style={{ marginBottom: 24 }}
-                labelStyle={{ 
-                  fontWeight: 600, 
-                  backgroundColor: '#fafafa',
-                  width: '30%'
-                }}
-              >
-                <Descriptions.Item label="Họ và tên">
+              <Descriptions column={2} bordered size="small" style={{ marginBottom: 16 }}>
+                <Descriptions.Item
+                  label="Họ và tên"
+                  //đổi màu họ và tên
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   <Space>
                     <Avatar
                       icon={<UserOutlined />}
@@ -658,39 +664,49 @@ const BorrowReturnPage = () => {
                     <Text strong style={{ fontSize: 15 }}>{selectedBorrowRequest.student.name || 'N/A'}</Text>
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="Email">
-                  <Text>{selectedBorrowRequest.student.email || 'N/A'}</Text>
+                <Descriptions.Item
+                  label="Email"
+                  //đổi màu Email
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
+                  {selectedBorrowRequest.student.email || 'N/A'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Mã sinh viên">
-                  <Text code style={{ fontSize: 13 }}>{selectedBorrowRequest.student.student_code || 'N/A'}</Text>
+                <Descriptions.Item
+                  label="Mã sinh viên"
+                  //đổi màu Mã sinh viên
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
+                  {selectedBorrowRequest.student.student_code || 'N/A'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Số điện thoại">
-                  <Text>{selectedBorrowRequest.student.phone || 'N/A'}</Text>
+                <Descriptions.Item
+                  label="Số điện thoại"
+                  //đổi màu Số điện thoại
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
+                  {selectedBorrowRequest.student.phone || 'N/A'}
                 </Descriptions.Item>
               </Descriptions>
 
               {/* Thông tin yêu cầu mượn */}
               <Divider orientation="left">
                 <Space>
-                  <FileTextOutlined style={{ color: '#1890ff', fontSize: 16 }} />
-                  <Text strong style={{ fontSize: 16, color: '#1890ff' }}>Thông tin yêu cầu mượn</Text>
+                  <FileTextOutlined />
+                  <Text strong style={{ color: '' }}>Thông tin yêu cầu mượn</Text>
                 </Space>
               </Divider>
-              <Descriptions 
-                column={1} 
-                bordered 
-                size="middle" 
-                style={{ marginBottom: 24 }}
-                labelStyle={{ 
-                  fontWeight: 600, 
-                  backgroundColor: '#fafafa',
-                  width: '25%'
-                }}
-              >
-                <Descriptions.Item label="Mã yêu cầu">
-                  <Text code style={{ fontSize: 13, fontWeight: 500 }}>{selectedBorrowRequest.borrowIdString}</Text>
+              <Descriptions column={1} bordered size="small" style={{ marginBottom: 16 }}>
+                <Descriptions.Item
+                  label="Mã yêu cầu"
+                  //đổi màu Mã yêu cầu
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
+                  <Text code>{selectedBorrowRequest.borrowIdString}</Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Ngày hẹn trả">
+                <Descriptions.Item
+                  label="Ngày hẹn trả"
+                  //đổi màu Ngày hẹn trả
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   <Space>
                     <CalendarOutlined style={{ color: selectedBorrowRequest.isOverdue ? '#ff4d4f' : '#52c41a' }} />
                     <Text style={{ fontSize: 14 }}>{formatDate(selectedBorrowRequest.returnDueDate)}</Text>
@@ -699,15 +715,27 @@ const BorrowReturnPage = () => {
                     )}
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="Mục đích sử dụng">
-                  <Text style={{ fontSize: 14 }}>{selectedBorrowRequest.purpose || 'N/A'}</Text>
+                <Descriptions.Item
+                  label="Mục đích sử dụng"
+                  //đổi màu Mục đích sử dụng
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
+                  {selectedBorrowRequest.purpose || 'N/A'}
                 </Descriptions.Item>
                 {selectedBorrowRequest.notes && (
-                  <Descriptions.Item label="Ghi chú">
-                    <Text style={{ fontSize: 14 }}>{selectedBorrowRequest.notes}</Text>
+                  <Descriptions.Item
+                    label="Ghi chú"
+                    //đổi màu Ghi chú
+                    labelStyle={{ color: '', fontWeight: 600 }}
+                  >
+                    {selectedBorrowRequest.notes}
                   </Descriptions.Item>
                 )}
-                <Descriptions.Item label="Trạng thái">
+                <Descriptions.Item
+                  label="Trạng thái"
+                  //đổi màu Trạng thái
+                  labelStyle={{ color: '', fontWeight: 600 }}
+                >
                   {getStatusTag(selectedBorrowRequest.status, selectedBorrowRequest.isOverdue, selectedBorrowRequest.returnRequested)}
                 </Descriptions.Item>
               </Descriptions>
@@ -767,17 +795,14 @@ const BorrowReturnPage = () => {
                                 maxHeight: '150px',
                                 overflowY: 'auto',
                                 overflowX: 'hidden',
-                                padding: '8px',
-                                backgroundColor: '#fafafa',
-                                borderRadius: '4px',
-                                border: '1px solid #e8e8e8',
+                                padding: '4px 0',
                               }}
                             >
                               <div
                                 style={{
                                   display: 'flex',
                                   flexWrap: 'wrap',
-                                  gap: '6px',
+                                  gap: '4px',
                                 }}
                               >
                                 {serialNumbers.map((serial, idx) => (
@@ -922,17 +947,14 @@ const BorrowReturnPage = () => {
                                 maxHeight: '150px',
                                 overflowY: 'auto',
                                 overflowX: 'hidden',
-                                padding: '8px',
-                                backgroundColor: '#fff7e6',
-                                borderRadius: '4px',
-                                border: '1px solid #ffd591',
+                                padding: '4px 0',
                               }}
                             >
                               <div
                                 style={{
                                   display: 'flex',
                                   flexWrap: 'wrap',
-                                  gap: '6px',
+                                  gap: '4px',
                                 }}
                               >
                                 {serialNumbers.map((serial, idx) => (
