@@ -38,15 +38,15 @@ import StudentManagerPage from "./pages/LabManager/StudentManagerPage";
 import DeviceListSchool from "./pages/LabManager/DeviceListSchool";
 import CertificatesPage from "./pages/LabManager/CertificatesPage";
 
-// School pages
-import SchoolDashboard from './SchoolDashboard/SchoolDashboard.jsx';
-import ViewDetailDevice from './SchoolDashboard/viewdetailDevice.jsx';
+// School Admin pages
+import SchoolAdminDeviceList from './pages/schooladminfeature/DeviceList.jsx';
+import SchoolAdminDeviceDetail from './pages/schooladminfeature/DeviceDetail.jsx';
+import SchoolAdminCreateDevice from './pages/schooladminfeature/CreateDevice.jsx';
 import RepairRequestList from "./pages/School/RepairRequestList";
 import LabManagerRepairList from "./pages/LabManager/LabManagerRepairList";
 import SchoolRepairDetail from "./pages/School/SchoolRepairDetail";
-import BorrowRequests from "./pages/SchoolAdmin/BorrowRequests";
+import BorrowRequests from "./pages/schooladminfeature/BorrowRequests.jsx";
 import BorrowHistory from "./pages/SchoolAdmin/BorrowHistory";
-import CreateDeviceWithInstances from "./pages/SchoolAdmin/CreateDeviceWithInstances.jsx";
 
 // Profile page
 import UserProfile from "./pages/Profile/UserProfile";
@@ -106,13 +106,13 @@ function App() {
             <Route element={<PrivateRoute allowedRoles={["school_admin"]} />}>
               <Route path="/school-dashboard" element={<Navigate to="/reports" replace />} />
               <Route path="/requests" element={<RepairRequestList />} />
-              <Route path="/school/dashboard" element={<SchoolDashboard />} />
-              <Route path="/school/devices/create-with-instances" element={<CreateDeviceWithInstances />} />
+              <Route path="/school/dashboard" element={<SchoolAdminDeviceList />} />
+              <Route path="/school/devices/create-with-instances" element={<SchoolAdminCreateDevice />} />
               <Route path={SCHOOL_ROUTES.REPAIRS} element={<RepairRequestList />} />
               <Route path={SCHOOL_ROUTES.REPAIR_DETAIL(":id")} element={<SchoolRepairDetail />} />
               <Route path="/school/borrow-requests" element={<BorrowRequests />} />
               <Route path="/school/borrow-history" element={<BorrowHistory />} />
-              <Route path="/school/device/:id" element={<ViewDetailDevice />} />
+              <Route path="/school/device/:id" element={<SchoolAdminDeviceDetail />} />
             </Route>
 
             {/* --- SCHOOL PAGES --- */}

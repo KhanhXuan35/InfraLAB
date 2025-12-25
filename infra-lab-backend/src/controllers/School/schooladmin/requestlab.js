@@ -1,9 +1,9 @@
-import RequestLab from "../../models/requestlab.js";
-import Inventory from "../../models/Inventory.js";
-import Device from "../../models/Device.js";
-import DeviceInstance from "../../models/DeviceInstance.js";
-import Certificate from "../../models/Certificate.js";
-import User from "../../models/User.js";
+import RequestLab from "../../../models/requestlab.js";
+import Inventory from "../../../models/Inventory.js";
+import Device from "../../../models/Device.js";
+import DeviceInstance from "../../../models/DeviceInstance.js";
+import Certificate from "../../../models/Certificate.js";
+import User from "../../../models/User.js";
 import mongoose from "mongoose";
 
 // Tạo yêu cầu mượn từ lab manager
@@ -227,7 +227,7 @@ export const approveRequest = async (req, res) => {
 
     // Tạo thông báo cho Lab Manager
     try {
-      const Notifications = (await import("../../models/Notifications.js")).default;
+      const Notifications = (await import("../../../models/Notifications.js")).default;
       await Notifications.create({
         user_id: request.created_by,
         type: "borrow_approved",
@@ -304,7 +304,7 @@ export const rejectRequest = async (req, res) => {
 
     // Tạo thông báo cho Lab Manager
     try {
-      const Notifications = (await import("../../models/Notifications.js")).default;
+      const Notifications = (await import("../../../models/Notifications.js")).default;
       const device = await Device.findById(request.device_id);
       const rejectionReason = req.body.reason || "Không có lý do";
       await Notifications.create({
@@ -517,7 +517,7 @@ export const deliverRequest = async (req, res) => {
 
     // Tạo thông báo cho Lab Manager
     try {
-      const Notifications = (await import("../../models/Notifications.js")).default;
+      const Notifications = (await import("../../../models/Notifications.js")).default;
       await Notifications.create({
         user_id: request.created_by,
         type: "borrow_delivered",

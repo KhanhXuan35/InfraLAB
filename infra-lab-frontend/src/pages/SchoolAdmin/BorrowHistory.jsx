@@ -8,7 +8,8 @@ import {
 import api from '../../services/api';
 import SchoolAdminSidebar from '../../components/Sidebar/SchoolAdminSidebar';
 import NotificationBell from '../../components/NotificationBell/NotificationBell';
-import './BorrowRequests.css';
+// Reuse the shared styles from the schooladminfeature BorrowRequests page
+import '../schooladminfeature/BorrowRequests.css';
 
 const { Text, Title } = Typography;
 const { Search } = Input;

@@ -7,7 +7,7 @@ import {
   getDeviceInstances,
   getInstancesStats,
   addInstancesToDevice
-} from "../controllers/School/deviceInstanceController.js";
+} from "../controllers/School/schooladmin/deviceInstanceController.js";
 
 // Lab Manager controllers
 import {

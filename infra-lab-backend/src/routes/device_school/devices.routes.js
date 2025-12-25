@@ -7,7 +7,7 @@ import {
   getPendingDevices,
   approveDevice,
   rejectDevice
-} from "../../controllers/School/schoolDeviceController.js";
+} from "../../controllers/School/schooladmin/schoolDeviceController.js";
 
 const router = express.Router();
 

@@ -1,0 +1,175 @@
+/* ============================================
+   Device Detail Page - CSS Styles
+   ============================================ */
+
+.device-detail-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.device-detail-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.device-detail-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.device-detail-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.device-detail-image-section {
+  text-align: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.device-detail-image {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.device-detail-image-placeholder {
+  width: 100%;
+  max-height: 400px;
+  background: linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 14px;
+  border: 1px solid #e5e7eb;
+}
+
+.device-info-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.device-info-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #0f172a;
+}
+
+.inventory-stats-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.inventory-stats-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #0f172a;
+}
+
+.inventory-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.inventory-stat-box {
+  text-align: center;
+  padding: 16px;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.inventory-stat-box.available {
+  background: #f0fdf4;
+}
+
+.inventory-stat-box.borrowing {
+  background: #fffbeb;
+}
+
+.inventory-stat-box.broken {
+  background: #fef2f2;
+}
+
+.inventory-stat-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.inventory-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  display: block;
+  color: #0f172a;
+}
+
+.inventory-stat-value.available {
+  color: #16a34a;
+}
+
+.inventory-stat-value.borrowing {
+  color: #d97706;
+}
+
+.inventory-stat-value.broken {
+  color: #dc2626;
+}
+
+.instances-table-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.instances-table-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #0f172a;
+}
+
+.serial-number-text {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #1890ff;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .device-detail-header-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .inventory-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .inventory-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -1,5 +1,5 @@
 import express from "express";
-import { getDeviceCategories } from "../../controllers/School/schoolDeviceController.js";
+import { getDeviceCategories } from "../../controllers/School/schooladmin/schoolDeviceController.js";
 
 const router = express.Router();
 

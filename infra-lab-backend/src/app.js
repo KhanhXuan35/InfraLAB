@@ -21,7 +21,7 @@ import borrowReturnRoutes from "./routes/LabManager/borrowReturnRoutes.js";
 import deviceInstanceRoutes from "./routes/deviceInstanceRoutes.js";
 import { uploadImage, uploadSingle } from "./controllers/common/uploadController.js";
 import { checkAuthMiddleware, authorize } from "./middlewares/authMiddleware.js";
-import { deliverRequest } from "./controllers/LabManager/requestlab.js";
+import { deliverRequest } from "./controllers/School/schooladmin/requestlab.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import userRoutes from "./routes/LabManager/userRoutes.js";
@@ -36,6 +36,8 @@ app.use((req, res, next) => {
 const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:5173/",
+    "http://localhost:5174",
+    "http://localhost:5174/",
     process.env.CLIENT_URL,
     process.env.CLIENT_URL?.replace(/\/$/, ""), // Loại bỏ dấu / ở cuối nếu có
 ].filter(Boolean); // Loại bỏ giá trị undefined/null
@@ -124,10 +126,10 @@ app.use("/api/school-dashboard", schoolDashboardRoutes);
 // User Dashboard routes
 app.use("/api/user-dashboard", userDashboardRoutes);
 
-// School device management routes
+// School admin device management routes
 app.use("/api/inventories", schoolInventoryRoutes);
 app.use("/api/device-categories", deviceCategoryRoutes);
-app.use("/api/devices", deviceRoutes);
+app.use("/api/devices", deviceRoutes); //
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/borrow", borrowRoutes);
 

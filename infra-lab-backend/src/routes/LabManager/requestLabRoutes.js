@@ -4,7 +4,7 @@ import {
   createRequest,
   listRequests,
   rejectRequest,
-} from "../../controllers/LabManager/requestlab.js";
+} from "../../controllers/School/schooladmin/requestlab.js";
 
 const router = express.Router();
 
